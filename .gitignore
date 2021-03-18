@@ -1,0 +1,11 @@
+target/
+logs/**
+**/.DS_Store
+
+.idea/
+*.iml
+*.iws
+
+.classpath
+.project
+.settings/

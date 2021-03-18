@@ -37,7 +37,6 @@ public class QueryMetricQueryLogicFactory implements FactoryBean<QueryMetricQuer
         logic.setMarkingFunctions(markingFunctions);
         logic.setTableName(this.queryMetricHandlerProperties.getShardTableName());
         logic.setIndexTableName(this.queryMetricHandlerProperties.getIndexTableName());
-        logic.setDateIndexTableName(this.queryMetricHandlerProperties.getDateIndexTableName());
         logic.setReverseIndexTableName(this.queryMetricHandlerProperties.getReverseIndexTableName());
         logic.setMetadataTableName(this.queryMetricHandlerProperties.getMetadataTableName());
         logic.setModelTableName(this.queryMetricHandlerProperties.getMetadataTableName());

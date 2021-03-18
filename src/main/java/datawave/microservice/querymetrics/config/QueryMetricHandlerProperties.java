@@ -10,6 +10,7 @@ import org.apache.commons.lang.StringUtils;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -29,7 +30,6 @@ public class QueryMetricHandlerProperties {
     protected int numShards = 10;
     protected String shardTableName = "QueryMetrics_e";
     protected String indexTableName = "QueryMetrics_i";
-    protected String dateIndexTableName = "QueryMetrics_di";
     protected String reverseIndexTableName = "QueryMetrics_r";
     protected String metadataTableName = "QueryMetrics_m";
     protected String metadataDefaultAuths = "";
@@ -72,7 +72,9 @@ public class QueryMetricHandlerProperties {
             "SEEK_COUNT",
             "SOURCE_COUNT",
             "USER");
-    
+
+    protected List<String> additionalIndexFields = Collections.EMPTY_LIST;
+
     protected List<String> reverseIndexFields = Arrays.asList(
             "ERROR_CODE",
             "ERROR_MESSAGE",
@@ -86,7 +88,9 @@ public class QueryMetricHandlerProperties {
             "QUERY_LOGIC",
             "QUERY_NAME",
             "USER");
-    
+
+    protected List<String> additionalReverseIndexFields = Collections.EMPTY_LIST;
+
     protected List<String> numericFields = Arrays.asList(
             "CREATE_CALL_TIME",
             "SETUP_TIME",
@@ -94,6 +98,8 @@ public class QueryMetricHandlerProperties {
             "NUM_RESULTS",
             "NUM_PAGES",
             "NUM_UPDATES");
+
+    protected List<String> additionalNumericFields = Collections.EMPTY_LIST;
     //@formatter:on
     
     protected boolean enableBloomFilter = false;
@@ -136,12 +142,18 @@ public class QueryMetricHandlerProperties {
         p.put("querymetrics.data.category.uuid.fields", "QUERY_ID");
         p.put("querymetrics.data.header", "none");
         p.put("querymetrics.data.field.length.threshold", Integer.toString(fieldLengthThreshold));
-        p.put("querymetrics.data.category.index", StringUtils.join(indexFields, ","));
-        p.put("querymetrics.data.category.index.reverse", StringUtils.join(reverseIndexFields, ','));
+        List<String> combinedIndexFields = new ArrayList<>(indexFields);
+        combinedIndexFields.addAll(additionalIndexFields);
+        p.put("querymetrics.data.category.index", StringUtils.join(combinedIndexFields, ","));
+        List<String> combinedReverseIndexFields = new ArrayList<>(reverseIndexFields);
+        combinedReverseIndexFields.addAll(additionalReverseIndexFields);
+        p.put("querymetrics.data.category.index.reverse", StringUtils.join(combinedReverseIndexFields, ','));
         p.put("querymetrics.data.category.token.fieldname.designator", "");
         p.put("querymetrics.data.default.type.class", LcNoDiacriticsType.class.getCanonicalName());
         p.put("querymetrics.ingest.policy.enforcer.class", policyEnforcerClass);
-        numericFields.forEach(f -> {
+        List<String> combinedNumericFields = new ArrayList<>(numericFields);
+        combinedNumericFields.addAll(additionalNumericFields);
+        combinedNumericFields.forEach(f -> {
             p.put("querymetrics." + f + ".data.field.type.class", NumberType.class.getCanonicalName());
         });
         p.put("AccumuloRecordWriter.maxmemory", Integer.toString(recordWriterMaxMemory));
@@ -220,14 +232,6 @@ public class QueryMetricHandlerProperties {
     
     public void setIndexTableName(String indexTableName) {
         this.indexTableName = indexTableName;
-    }
-    
-    public String getDateIndexTableName() {
-        return dateIndexTableName;
-    }
-    
-    public void setDateIndexTableName(String dateIndexTableName) {
-        this.dateIndexTableName = dateIndexTableName;
     }
     
     public String getReverseIndexTableName() {
@@ -310,6 +314,14 @@ public class QueryMetricHandlerProperties {
         this.indexFields = indexFields;
     }
     
+    public List<String> getAdditionalIndexFields() {
+        return additionalIndexFields;
+    }
+    
+    public void setAdditionalIndexFields(List<String> additionalIndexFields) {
+        this.additionalIndexFields = additionalIndexFields;
+    }
+    
     public List<String> getReverseIndexFields() {
         return reverseIndexFields;
     }
@@ -318,12 +330,28 @@ public class QueryMetricHandlerProperties {
         this.reverseIndexFields = reverseIndexFields;
     }
     
+    public List<String> getAdditionalReverseIndexFields() {
+        return additionalReverseIndexFields;
+    }
+    
+    public void setAdditionalReverseIndexFields(List<String> additionalReverseIndexFields) {
+        this.additionalReverseIndexFields = additionalReverseIndexFields;
+    }
+    
     public List<String> getNumericFields() {
         return numericFields;
     }
     
     public void setNumericFields(List<String> numericFields) {
         this.numericFields = numericFields;
+    }
+    
+    public List<String> getAdditionalNumericFields() {
+        return additionalNumericFields;
+    }
+    
+    public void setAdditionalNumericFields(List<String> additionalNumericFields) {
+        this.additionalNumericFields = additionalNumericFields;
     }
     
     public boolean isEnableBloomFilter() {

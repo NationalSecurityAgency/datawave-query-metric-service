@@ -122,7 +122,7 @@ public class QueryMetricOperations {
     /**
      * Returns metrics for the current users queries that are identified by the id
      *
-     * @param id
+     * @param queryId
      *
      * @return datawave.webservice.result.QueryMetricListResponse
      *
@@ -130,27 +130,30 @@ public class QueryMetricOperations {
      * @HTTP 500 internal server error
      */
     @PermitAll
-    @RequestMapping(path = "/id/{id}", method = {RequestMethod.GET, RequestMethod.POST},
-                    produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
+    @RequestMapping(path = "/id/{queryId}", method = {RequestMethod.GET}, produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
     public BaseQueryMetricListResponse query(@AuthenticationPrincipal ProxiedUserDetails currentUser,
-                    @ApiParam("queryId to return") @PathVariable("id") String id) {
+                    @ApiParam("queryId to return") @PathVariable("queryId") String queryId) {
         
         BaseQueryMetricListResponse response = new QueryMetricListResponse();
-        BaseQueryMetric metric = incomingQueryMetricsCache.get(id, BaseQueryMetric.class);
         List<BaseQueryMetric> metricList = new ArrayList<>();
-        if (metric != null) {
-            String adminRole = queryMetricHandlerProperties.getMetricAdminRole();
-            boolean allowAllMetrics = adminRole == null;
-            boolean sameUser = false;
-            if (currentUser != null) {
-                String metricUser = metric.getUser();
-                String requestingUser = DnUtils.getShortName(currentUser.getPrimaryUser().getName());
-                sameUser = metricUser != null && metricUser.equals(requestingUser);
-                allowAllMetrics = allowAllMetrics || currentUser.getPrimaryUser().getRoles().contains(adminRole);
+        try {
+            BaseQueryMetric metric = incomingQueryMetricsCache.get(queryId, BaseQueryMetric.class);
+            if (metric != null) {
+                String adminRole = queryMetricHandlerProperties.getMetricAdminRole();
+                boolean allowAllMetrics = adminRole == null;
+                boolean sameUser = false;
+                if (currentUser != null) {
+                    String metricUser = metric.getUser();
+                    String requestingUser = DnUtils.getShortName(currentUser.getPrimaryUser().getName());
+                    sameUser = metricUser != null && metricUser.equals(requestingUser);
+                    allowAllMetrics = allowAllMetrics || currentUser.getPrimaryUser().getRoles().contains(adminRole);
+                }
+                if (sameUser || allowAllMetrics) {
+                    metricList.add(metric);
+                }
             }
-            if (sameUser || allowAllMetrics) {
-                metricList.add(metric);
-            }
+        } catch (Exception e) {
+            response.addException(new QueryException(e.getMessage(), 500));
         }
         response.setResult(metricList);
         if (metricList.isEmpty()) {
