@@ -1,6 +1,6 @@
 spring:
   application:
-    name: querymetrics
+    name: querymetric
   cloud:
     bus:
       enabled: false

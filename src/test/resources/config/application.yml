@@ -1,7 +1,4 @@
 spring:
-#  autoconfigure:
-#    exclude: org.springframework.boot.autoconfigure.web.servlet.error.ErrorMvcAutoConfiguration
-
   security:
     user.password: passwordNotUsed
     datawave:
@@ -10,10 +7,11 @@ spring:
       enforce-allowed-callers: false
       allowed-callers:
         - "cn=test a. user, ou=example developers, o=example corp, c=us<cn=example corp ca, o=example corp, c=us>"
+        -
 server:
   port: 0
   non-secure-port: 0
-  servlet.context-path: /querymetrics
+  servlet.context-path: /${spring.application.name}
   ssl:
     client-auth: need
     trust-store: 'classpath:testCA.p12'
@@ -46,7 +44,7 @@ logging:
   level:
     ROOT: warn
     datawave:
-      microservice.querymetrics: error
+      microservice.querymetric: error
       iterators: error
       query: error
       ingest: error

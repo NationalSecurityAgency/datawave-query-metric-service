@@ -12,7 +12,7 @@ can only retrieve a query metric for a query that they ran.
 
 ### Query Metric API V1
 
-*https://host:port/querymetrics/v1/*
+*https://host:port/querymetric/v1/*
 
 | Method | Operation     | Description                           | Request Body                |
 |:---    |:---           |:---                                   |:---                         |
@@ -20,8 +20,26 @@ can only retrieve a query metric for a query that they ran.
 | `POST` | updateMetrics | Update a list of BaseQueryMetric      | List&lt;BaseQueryMetric&gt; |
 | `GET`  | id/{queryId}  | Retrieve a BaseQueryMetric by queryId | N/A                         |
 
-* See [QueryMetricOperations](src/main/java/datawave/microservice/querymetrics/QueryMetricOperations.java)
+* See [QueryMetricOperations](src/main/java/datawave/microservice/querymetric/QueryMetricOperations.java)
   class for details
+
+---
+### Design
+
+The Query Metric service is designed so that metric updates can be sent to any running instance of  
+the service.  This is accomplished by using two Hazelcast distributed map data structures.
+
+- incomingQueryMetrics - A write-behind String-BaseQueryMetric map where metrics are placed as
+soon as they are received.  When a new metric is received, this map is llocked and checked for
+an existing entry.  The new metric is combined with any existing entry (PageMetrics can get lengthy and
+are often truncated) and then placed in the map.  The write-behind feature allows several quick updates 
+to take place for each Accumulo write.  A configured MapStore is periodically called on one of the service 
+instances to write updated metrics to Accumulo.  It can also retrieve a metric from Accumulo that is asked for
+but missing from the map.
+  
+- lastWrittenQueryMetrics - A read-through String-BaseQueryMetric map that is used by incomingQueryMetrics's 
+MapStore to determine which keys in Accumulo need to be deleted when a new metric is written to Accumulo. As a 
+read-through map, it can retrieve a metric from Accumulo that is asked for but missing from the map.
 
 ---
 
@@ -36,7 +54,7 @@ can only retrieve a query metric for a query that they ran.
    java -jar target/query-metric-service*-exec.jar --spring.profiles.active=dev
    ```
 
-   See [sample_configuration/querymetrics-dev.yml.example](https://github.com/NationalSecurityAgency/datawave-microservices-root/blob/master/sample_configuration/querymetrics-dev.yml.example) 
+   See [sample_configuration/querymetric-dev.yml.example](https://github.com/NationalSecurityAgency/datawave-microservices-root/blob/master/sample_configuration/querymetric-dev.yml.example) 
    and configure as desired.
 
 [li]: http://img.shields.io/badge/license-ASL-blue.svg

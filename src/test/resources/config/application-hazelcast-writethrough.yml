@@ -25,7 +25,7 @@ hazelcast:
           <!-- Evict the least frequently used entries first if we run out of space -->
           <eviction-policy>LFU</eviction-policy>
           <map-store enabled="true" initial-mode="LAZY">
-            <factory-class-name>datawave.microservice.querymetrics.peristence.AccumuloMapStore$Factory</factory-class-name>
+            <factory-class-name>datawave.microservice.querymetric.peristence.AccumuloMapStore$Factory</factory-class-name>
             <write-delay-seconds>0</write-delay-seconds>
             <write-batch-size>1000</write-batch-size>
           </map-store>
@@ -44,7 +44,7 @@ hazelcast:
           <!-- Evict the least frequently used entries first if we run out of space -->
           <eviction-policy>LFU</eviction-policy>
           <map-store enabled="true" initial-mode="LAZY">
-            <factory-class-name>datawave.microservice.querymetrics.peristence.AccumuloMapLoader$Factory</factory-class-name>
+            <factory-class-name>datawave.microservice.querymetric.peristence.AccumuloMapLoader$Factory</factory-class-name>
           </map-store>
         </map>
       </hazelcast>
