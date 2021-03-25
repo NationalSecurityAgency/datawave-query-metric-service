@@ -1,5 +1,6 @@
 package datawave.microservice.querymetric.config;
 
+import com.fasterxml.jackson.databind.AnnotationIntrospector;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -46,10 +47,9 @@ public class QueryMetricConfiguration {
         ObjectMapper mapper = new ObjectMapper();
         mapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-        Class metricClass = metricFactory.createMetric().getClass();
-        SimpleModule baseQueryMetricDeserializer = new SimpleModule(metricClass.getName());
-        baseQueryMetricDeserializer.addDeserializer(BaseQueryMetric.class, new BaseQueryMetricDeserializer(metricClass));
-        mapper.registerModule(baseQueryMetricDeserializer);
+        SimpleModule module = new SimpleModule();
+        module.addAbstractTypeMapping(BaseQueryMetric.class, metricFactory.createMetric().getClass());
+        mapper.registerModule(module);
         mapper.registerModule(new GuavaModule());
         mapper.registerModule(new JaxbAnnotationModule());
         return mapper;
