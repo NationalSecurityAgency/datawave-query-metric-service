@@ -2,6 +2,7 @@ package datawave.microservice.querymetric.config;
 
 import datawave.accumulo.inmemory.InMemoryInstance;
 import datawave.microservice.config.accumulo.AccumuloProperties;
+import datawave.webservice.common.connection.AccumuloConnectionPool;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
@@ -32,7 +33,17 @@ public class QueryMetricTestConfiguration {
     private AccumuloProperties accumuloProperties;
     
     public QueryMetricTestConfiguration() {}
-    
+
+    @Bean
+    @Lazy
+    @Qualifier("warehouse")
+    public AccumuloConnectionPool accumuloConnectionPool(@Qualifier("warehouse") AccumuloProperties accumuloProperties,
+                    @Qualifier("warehouse") Instance instance) {
+        InMemoryAccumuloConnectionPoolFactory connectionPoolFactory = new InMemoryAccumuloConnectionPoolFactory(accumuloProperties.getUsername(),
+                        accumuloProperties.getPassword(), instance);
+        return new AccumuloConnectionPool(connectionPoolFactory);
+    }
+
     @Bean
     @Lazy
     @Qualifier("warehouse")

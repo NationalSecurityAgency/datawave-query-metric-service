@@ -6,12 +6,10 @@ import datawave.util.timely.UdpClient;
 import datawave.webservice.query.metric.BaseQueryMetric;
 import datawave.webservice.query.metric.BaseQueryMetric.Lifecycle;
 import datawave.webservice.query.metric.BaseQueryMetric.PageMetric;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.commons.collections4.map.LRUMap;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.cloud.endpoint.event.RefreshEvent;
 import org.springframework.stereotype.Component;
 
@@ -27,11 +25,7 @@ import java.util.Set;
 public class QueryMetricWriter {
     
     private Logger log = Logger.getLogger(this.getClass());
-    
-    @Autowired
-    @Qualifier("warehouse")
-    Connector connection;
-    
+
     @Autowired
     private QueryMetricHandler<? extends BaseQueryMetric> queryMetricHandler;
     

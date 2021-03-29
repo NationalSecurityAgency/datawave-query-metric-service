@@ -16,7 +16,6 @@ import datawave.ingest.mapreduce.handler.tokenize.ContentIndexingColumnBasedHand
 import datawave.ingest.mapreduce.job.BulkIngestKey;
 import datawave.ingest.mapreduce.job.writer.LiveContextWriter;
 import datawave.ingest.table.config.TableConfigHelper;
-import datawave.marking.ColumnVisibilityCache;
 import datawave.marking.MarkingFunctions;
 import datawave.microservice.querymetric.config.QueryMetricHandlerProperties;
 import datawave.microservice.querymetric.logic.QueryMetricQueryLogicFactory;
@@ -25,6 +24,7 @@ import datawave.security.authorization.DatawavePrincipal;
 import datawave.security.authorization.DatawaveUser;
 import datawave.security.authorization.SubjectIssuerDNPair;
 import datawave.webservice.common.connection.AccumuloConnectionFactory.Priority;
+import datawave.webservice.common.connection.AccumuloConnectionPool;
 import datawave.webservice.common.logging.ThreadConfigurableLogger;
 import datawave.webservice.query.Query;
 import datawave.webservice.query.QueryImpl;
@@ -48,11 +48,9 @@ import datawave.webservice.result.VoidResponse;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -98,7 +96,7 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> implements 
     private static final String QUERY_METRICS_LOGIC_NAME = "QueryMetricsQuery";
     protected static final String DEFAULT_SECURITY_MARKING = "PUBLIC";
     
-    protected Connector connector;
+    protected AccumuloConnectionPool connectionPool;
     protected QueryMetricHandlerProperties queryMetricHandlerProperties;
     
     private String connectorAuthorizations = null;
@@ -116,19 +114,22 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> implements 
     private DatawavePrincipal datawavePrincipal;
     private MarkingFunctions markingFunctions;
     
-    public ShardTableQueryMetricHandler(QueryMetricHandlerProperties queryMetricHandlerProperties, @Qualifier("warehouse") Instance instance,
+    public ShardTableQueryMetricHandler(QueryMetricHandlerProperties queryMetricHandlerProperties, @Qualifier("warehouse") AccumuloConnectionPool connectionPool,
                     QueryMetricQueryLogicFactory logicFactory, QueryMetricFactory metricFactory, MarkingFunctions markingFunctions) {
         this.queryMetricHandlerProperties = queryMetricHandlerProperties;
         this.logicFactory = logicFactory;
         this.metricFactory = metricFactory;
         this.markingFunctions = markingFunctions;
+        this.connectionPool = connectionPool;
         queryMetricHandlerProperties.getProperties().entrySet().forEach(e -> conf.set(e.getKey(), e.getValue()));
-        
+
+        Connector connector = null;
         try {
             log.info("creating connector with username:" + queryMetricHandlerProperties.getUsername() + " password:"
                             + queryMetricHandlerProperties.getPassword());
-            this.connector = instance.getConnector(queryMetricHandlerProperties.getUsername(), new PasswordToken(queryMetricHandlerProperties.getPassword()));
-            connectorAuthorizations = this.connector.securityOperations().getUserAuthorizations(this.connector.whoami()).toString();
+            Map<String,String> trackingMap = AccumuloConnectionTracking.getTrackingMap(Thread.currentThread().getStackTrace());
+            connector = connectionPool.borrowObject(trackingMap);
+            connectorAuthorizations = connector.securityOperations().getUserAuthorizations(connector.whoami()).toString();
             reload();
             
             if (tablesChecked.compareAndSet(false, true)) {
@@ -136,6 +137,10 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> implements 
             }
         } catch (Exception e) {
             log.error(e.getMessage(), e);
+        } finally {
+            if (connector != null) {
+                this.connectionPool.returnObject(connector);
+            }
         }
         Collection<String> auths = new ArrayList<>();
         if (connectorAuthorizations != null) {
@@ -159,6 +164,7 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> implements 
     }
     
     public void verifyTables() {
+        Connector connector = null;
         try {
             AbstractColumnBasedHandler<Key> handler = new ContentIndexingColumnBasedHandler() {
                 @Override
@@ -166,9 +172,15 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> implements 
                     return getQueryMetricsIngestHelper(false);
                 }
             };
+            Map<String,String> trackingMap = AccumuloConnectionTracking.getTrackingMap(Thread.currentThread().getStackTrace());
+            connector = connectionPool.borrowObject(trackingMap);
             createAndConfigureTablesIfNecessary(handler.getTableNames(conf), connector.tableOperations(), conf);
         } catch (Exception e) {
             log.error("Error verifying table configuration", e);
+        } finally {
+            if (connector != null) {
+                this.connectionPool.returnObject(connector);
+            }
         }
     }
     
@@ -382,9 +394,12 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> implements 
     private List<T> getQueryMetrics(BaseResponse response, Query query) {
         List<T> queryMetrics = new ArrayList<>();
         RunningQuery runningQuery;
-        
+
+        Connector connector = null;
         try {
             QueryLogic<?> queryLogic = logicFactory.getObject();
+            Map<String,String> trackingMap = AccumuloConnectionTracking.getTrackingMap(Thread.currentThread().getStackTrace());
+            connector = connectionPool.borrowObject(trackingMap);
             runningQuery = new RunningQuery(null, connector, Priority.ADMIN, queryLogic, query, query.getQueryAuthorizations(), datawavePrincipal,
                             metricFactory);
             
@@ -429,6 +444,10 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> implements 
             log.error(e.getMessage(), e);
             if (response != null) {
                 response.addExceptions(new QueryException(e).getQueryExceptionsInStack());
+            }
+        } finally {
+            if (connector != null) {
+                this.connectionPool.returnObject(connector);
             }
         }
         return queryMetrics;
@@ -694,7 +713,7 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> implements 
                 // because of an Exception and the metrics have been saved off to be added to the new recordWriter.
                 this.recordWriter.returnConnector();
             }
-            recordWriter = new AccumuloRecordWriter(connector, conf);
+            recordWriter = new AccumuloRecordWriter(connectionPool, conf);
         } catch (AccumuloException | AccumuloSecurityException | IOException e) {
             log.error(e.getMessage(), e);
         }

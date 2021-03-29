@@ -2,6 +2,8 @@ package datawave.microservice.querymetric.config;
 
 import datawave.microservice.config.accumulo.AccumuloProperties;
 import datawave.microservice.config.cluster.ClusterProperties;
+import datawave.webservice.common.connection.AccumuloConnectionPool;
+import datawave.webservice.common.connection.AccumuloConnectionPoolFactory;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
@@ -32,7 +34,17 @@ public class AccumuloConfiguration {
     public AccumuloProperties warehouseAccumuloProperies(WarehouseClusterProperties warehouseProperties) {
         return warehouseProperties.getAccumulo();
     }
-    
+
+    @Bean
+    @Lazy
+    @Qualifier("warehouse")
+    @ConditionalOnMissingBean
+    public AccumuloConnectionPool accumuloConnectionPool(@Qualifier("warehouse") AccumuloProperties accumuloProperties) {
+        AccumuloConnectionPoolFactory accumuloConnectionPoolFactory = new AccumuloConnectionPoolFactory(accumuloProperties.getUsername(),
+                        accumuloProperties.getPassword(), accumuloProperties.getZookeepers(), accumuloProperties.getInstanceName());
+        return new AccumuloConnectionPool(accumuloConnectionPoolFactory);
+    }
+
     @Bean
     @Lazy
     @Qualifier("warehouse")

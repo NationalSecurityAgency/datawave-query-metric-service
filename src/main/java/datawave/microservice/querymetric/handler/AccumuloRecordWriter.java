@@ -2,6 +2,7 @@ package datawave.microservice.querymetric.handler;
 
 import datawave.accumulo.inmemory.InMemoryInstance;
 import datawave.common.util.ArgumentChecker;
+import datawave.webservice.common.connection.AccumuloConnectionPool;
 import datawave.webservice.common.logging.ThreadConfigurableLogger;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -31,6 +32,7 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 public class AccumuloRecordWriter extends RecordWriter<Text,Mutation> {
@@ -45,6 +47,7 @@ public class AccumuloRecordWriter extends RecordWriter<Text,Mutation> {
     private long mutCount = 0;
     private long valCount = 0;
     
+    private AccumuloConnectionPool connectionPool;
     private Connector connector;
     private static final String PREFIX = AccumuloRecordWriter.class.getSimpleName();
     private static final String OUTPUT_INFO_HAS_BEEN_SET = PREFIX + ".configured";
@@ -70,15 +73,15 @@ public class AccumuloRecordWriter extends RecordWriter<Text,Mutation> {
     private static final int DEFAULT_MAX_LATENCY = 120000; // 1 minute
     private static final int DEFAULT_NUM_WRITE_THREADS = 4;
     
-    public AccumuloRecordWriter(Connector connector, Configuration conf) throws AccumuloException, AccumuloSecurityException, IOException {
+    public AccumuloRecordWriter(AccumuloConnectionPool connectionPool, Configuration conf) throws AccumuloException, AccumuloSecurityException, IOException {
         Level l = getLogLevel(conf);
         if (l != null) {
             log.setLevel(Level.TRACE);
         }
         this.simulate = getSimulationMode(conf);
         this.createTables = canCreateTables(conf);
-        this.connector = connector;
-        
+        this.connectionPool = connectionPool;
+
         if (simulate) {
             log.info("Simulating output only. No writes to tables will occur");
         }
@@ -90,6 +93,8 @@ public class AccumuloRecordWriter extends RecordWriter<Text,Mutation> {
         
         if (!simulate) {
             try {
+                Map<String,String> trackingMap = AccumuloConnectionTracking.getTrackingMap(Thread.currentThread().getStackTrace());
+                this.connector = connectionPool.borrowObject(trackingMap);
                 BatchWriterConfig bwConfig = new BatchWriterConfig();
                 bwConfig.setMaxMemory(getMaxMutationBufferSize(conf));
                 bwConfig.setMaxLatency(getMaxLatency(conf), TimeUnit.MILLISECONDS);
@@ -231,7 +236,11 @@ public class AccumuloRecordWriter extends RecordWriter<Text,Mutation> {
         returnConnector();
     }
     
-    public void returnConnector() {}
+    public void returnConnector() {
+        if (this.connector != null) {
+            this.connectionPool.returnObject(connector);
+        }
+    }
     
     public static void setZooKeeperInstance(Configuration conf, String instanceName, String zooKeepers) {
         if (conf.getBoolean(INSTANCE_HAS_BEEN_SET, false)) {

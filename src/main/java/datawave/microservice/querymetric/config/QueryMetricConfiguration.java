@@ -1,6 +1,5 @@
 package datawave.microservice.querymetric.config;
 
-import com.fasterxml.jackson.databind.AnnotationIntrospector;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -9,19 +8,20 @@ import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.fasterxml.jackson.module.jaxb.JaxbAnnotationModule;
 import com.github.benmanes.caffeine.cache.CaffeineSpec;
 import datawave.marking.MarkingFunctions;
+import datawave.microservice.querymetric.handler.AccumuloConnectionTracking;
 import datawave.microservice.querymetric.handler.ShardTableQueryMetricHandler;
 import datawave.microservice.querymetric.logic.QueryMetricQueryLogicFactory;
 import datawave.query.composite.CompositeMetadataHelper;
 import datawave.query.util.DateIndexHelper;
 import datawave.query.util.DateIndexHelperFactory;
 import datawave.query.util.TypeMetadataHelper;
+import datawave.webservice.common.connection.AccumuloConnectionPool;
 import datawave.webservice.query.cache.QueryMetricFactory;
 import datawave.webservice.query.cache.QueryMetricFactoryImpl;
 import datawave.webservice.query.metric.BaseQueryMetric;
 import datawave.webservice.query.result.event.DefaultResponseObjectFactory;
 import datawave.webservice.query.result.event.ResponseObjectFactory;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.security.Authorizations;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -89,9 +89,9 @@ public class QueryMetricConfiguration {
     @Bean
     @ConditionalOnMissingBean
     public ShardTableQueryMetricHandler shardTableQueryMetricHandler(QueryMetricHandlerProperties queryMetricHandlerProperties,
-                    @Qualifier("warehouse") Instance instance, QueryMetricQueryLogicFactory logicFactory, QueryMetricFactory metricFactory,
+                    @Qualifier("warehouse") AccumuloConnectionPool connectionPool, QueryMetricQueryLogicFactory logicFactory, QueryMetricFactory metricFactory,
                     MarkingFunctions markingFunctions) {
-        return new ShardTableQueryMetricHandler(queryMetricHandlerProperties, instance, logicFactory, metricFactory, markingFunctions);
+        return new ShardTableQueryMetricHandler(queryMetricHandlerProperties, connectionPool, logicFactory, metricFactory, markingFunctions);
     }
     
     @Bean
@@ -117,8 +117,11 @@ public class QueryMetricConfiguration {
     }
     
     @Bean
-    public CompositeMetadataHelper compositeMetadataHelper(@Qualifier("warehouse") Connector connector,
-                    QueryMetricHandlerProperties queryMetricHandlerProperties, @Qualifier("allMetadataAuths") Set<Authorizations> allMetadataAuths) {
+    public CompositeMetadataHelper compositeMetadataHelper(@Qualifier("warehouse") AccumuloConnectionPool connectionPool,
+                    QueryMetricHandlerProperties queryMetricHandlerProperties, @Qualifier("allMetadataAuths") Set<Authorizations> allMetadataAuths)
+                    throws Exception {
+        Map<String,String> trackingMap = AccumuloConnectionTracking.getTrackingMap(Thread.currentThread().getStackTrace());
+        Connector connector = connectionPool.borrowObject(trackingMap);
         return new CompositeMetadataHelper(connector, queryMetricHandlerProperties.getMetadataTableName(), allMetadataAuths);
     }
 }

@@ -3,8 +3,8 @@ package datawave.microservice.querymetric.config;
 import datawave.marking.MarkingFunctions;
 import datawave.microservice.querymetric.handler.ShardTableQueryMetricHandler;
 import datawave.microservice.querymetric.logic.QueryMetricQueryLogicFactory;
+import datawave.webservice.common.connection.AccumuloConnectionPool;
 import datawave.webservice.query.cache.QueryMetricFactory;
-import org.apache.accumulo.core.client.Instance;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.autoconfigure.cache.CacheType;
@@ -29,8 +29,8 @@ public class AlternateQueryMetricConfiguration {
     
     @Bean
     public ShardTableQueryMetricHandler shardTableQueryMetricHandler(QueryMetricHandlerProperties queryMetricHandlerProperties,
-                    @Qualifier("warehouse") Instance instance, QueryMetricQueryLogicFactory logicFactory, QueryMetricFactory metricFactory,
+                    @Qualifier("warehouse") AccumuloConnectionPool connectionPool, QueryMetricQueryLogicFactory logicFactory, QueryMetricFactory metricFactory,
                     MarkingFunctions markingFunctions) {
-        return new AlternateShardTableQueryMetricHandler(queryMetricHandlerProperties, instance, logicFactory, metricFactory, markingFunctions);
+        return new AlternateShardTableQueryMetricHandler(queryMetricHandlerProperties, connectionPool, logicFactory, metricFactory, markingFunctions);
     }
 }
