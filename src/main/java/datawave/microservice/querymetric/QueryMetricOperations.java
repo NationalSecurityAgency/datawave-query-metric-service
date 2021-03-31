@@ -2,6 +2,7 @@ package datawave.microservice.querymetric;
 
 import com.hazelcast.map.impl.proxy.MapProxyImpl;
 import com.hazelcast.spring.cache.HazelcastCacheManager;
+import datawave.marking.MarkingFunctions;
 import datawave.microservice.authorization.user.ProxiedUserDetails;
 import datawave.microservice.querymetric.config.QueryMetricHandlerProperties;
 import datawave.microservice.querymetric.handler.ShardTableQueryMetricHandler;
@@ -14,6 +15,9 @@ import datawave.webservice.query.metric.BaseQueryMetricListResponse;
 import datawave.webservice.query.metric.QueryMetricListResponse;
 import datawave.webservice.result.VoidResponse;
 import io.swagger.annotations.ApiParam;
+import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.security.ColumnVisibility;
+import org.apache.accumulo.core.security.VisibilityEvaluator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,16 +51,19 @@ public class QueryMetricOperations {
     private Cache incomingQueryMetricsCache;
     private Cache lastWrittenQueryMetricCache;
     private boolean isHazelCast;
-    QueryMetricHandlerProperties queryMetricHandlerProperties;
+    private QueryMetricHandlerProperties queryMetricHandlerProperties;
+    private MarkingFunctions markingFunctions;
     private ReentrantLock caffeineLock = new ReentrantLock();
     
     @Autowired
-    public QueryMetricOperations(CacheManager cacheManager, ShardTableQueryMetricHandler handler, QueryMetricHandlerProperties queryMetricHandlerProperties) {
+    public QueryMetricOperations(CacheManager cacheManager, ShardTableQueryMetricHandler handler,
+                    QueryMetricHandlerProperties queryMetricHandlerProperties, MarkingFunctions markingFunctions) {
         this.handler = handler;
         this.isHazelCast = cacheManager instanceof HazelcastCacheManager;
         this.incomingQueryMetricsCache = cacheManager.getCache(INCOMING_METRICS);
         this.lastWrittenQueryMetricCache = cacheManager.getCache(LAST_WRITTEN_METRICS);
         this.queryMetricHandlerProperties = queryMetricHandlerProperties;
+        this.markingFunctions = markingFunctions;
     }
     
     @RolesAllowed({"Administrator", "JBossAdministrator"})
@@ -148,7 +155,13 @@ public class QueryMetricOperations {
                     sameUser = metricUser != null && metricUser.equals(requestingUser);
                     allowAllMetrics = allowAllMetrics || currentUser.getPrimaryUser().getRoles().contains(adminRole);
                 }
-                if (sameUser || allowAllMetrics) {
+                // since we are using the incomingQueryMetricsCache, we need to make sure that the
+                // requesting user has the necessary Authorizations to view the requested query metric
+                Authorizations authorizations = new Authorizations(currentUser.getPrimaryUser().getAuths().toArray(new String[0]));
+                VisibilityEvaluator visibilityEvaluator = new VisibilityEvaluator(authorizations);
+                ColumnVisibility columnVisibility = this.markingFunctions.translateToColumnVisibility(metric.getMarkings());
+                boolean userCanSeeVisibility = visibilityEvaluator.evaluate(columnVisibility);
+                if (userCanSeeVisibility && (sameUser || allowAllMetrics)) {
                     metricList.add(metric);
                 }
             }
