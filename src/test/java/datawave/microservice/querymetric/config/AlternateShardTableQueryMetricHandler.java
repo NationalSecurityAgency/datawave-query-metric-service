@@ -14,9 +14,9 @@ import java.util.List;
 
 public class AlternateShardTableQueryMetricHandler extends ShardTableQueryMetricHandler<AlternateQueryMetric> {
     
-    public AlternateShardTableQueryMetricHandler(QueryMetricHandlerProperties queryMetricHandlerProperties, @Qualifier("warehouse")
-                    AccumuloConnectionPool connectionPool,
-                    QueryMetricQueryLogicFactory logicFactory, QueryMetricFactory metricFactory, MarkingFunctions markingFunctions) {
+    public AlternateShardTableQueryMetricHandler(QueryMetricHandlerProperties queryMetricHandlerProperties,
+                    @Qualifier("warehouse") AccumuloConnectionPool connectionPool, QueryMetricQueryLogicFactory logicFactory, QueryMetricFactory metricFactory,
+                    MarkingFunctions markingFunctions) {
         super(queryMetricHandlerProperties, connectionPool, logicFactory, metricFactory, markingFunctions);
     }
     
@@ -27,7 +27,7 @@ public class AlternateShardTableQueryMetricHandler extends ShardTableQueryMetric
     
     @Override
     public AlternateQueryMetric toMetric(EventBase event) {
-        AlternateQueryMetric queryMetric = (AlternateQueryMetric) super.toMetric(event);
+        AlternateQueryMetric queryMetric = super.toMetric(event);
         List<FieldBase> fields = event.getFields();
         fields.forEach(f -> {
             if (f.getName().equals("EXTRA_FIELD")) {

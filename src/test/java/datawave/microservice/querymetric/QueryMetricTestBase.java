@@ -95,7 +95,7 @@ public class QueryMetricTestBase {
     protected QueryMetricHandlerProperties queryMetricHandlerProperties;
     
     @Autowired
-    private QueryMetricFactory queryMetricFactory;
+    protected QueryMetricFactory queryMetricFactory;
     
     protected Cache incomingQueryMetricsCache;
     protected Cache lastWrittenQueryMetricCache;
@@ -264,7 +264,7 @@ public class QueryMetricTestBase {
             Assert.assertEquals(message + "fiRanges", m1.getFiRanges(), m2.getFiRanges());
             Assert.assertTrue(message + "plan", assertObjectsEqual(m1.getPlan(), m2.getPlan()));
             Assert.assertEquals(message + "loginTime", m1.getLoginTime(), m2.getLoginTime());
-            Assert.assertTrue(message + "prdictions", assertObjectsEqual(m1.getPredictions(), m2.getPredictions()));
+            Assert.assertTrue(message + "predictions", assertObjectsEqual(m1.getPredictions(), m2.getPredictions()));
         }
     }
     
@@ -344,32 +344,6 @@ public class QueryMetricTestBase {
             e.printStackTrace();
         }
     }
-    
-    // public interface RetryCallback<T> {
-    // public T doThis() throws Exception;
-    // }
-    //
-    // protected <T> T retry(RetryCallback<T> callback, int maxRetries, long delayMs) throws Exception {
-    // T response = null;
-    // boolean done = false;
-    // int attempt = 0;
-    // maxRetries = 1;
-    // while (!done && attempt++ < maxRetries) {
-    // try {
-    // response = callback.doThis();
-    // done = true;
-    // } catch (Exception e) {
-    // if (attempt == maxRetries) {
-    // throw e;
-    // }
-    // log.error(e.getMessage() + " on attempt " + attempt);
-    // try {
-    // Thread.sleep(delayMs);
-    // } catch (InterruptedException interruptedException) {}
-    // }
-    // }
-    // return response;
-    // }
     
     protected void waitForWriteBehind(Cache incomingCache, Cache lastWrittenCache, String queryId) {
         long now = System.currentTimeMillis();

@@ -56,8 +56,8 @@ public class QueryMetricOperations {
     private ReentrantLock caffeineLock = new ReentrantLock();
     
     @Autowired
-    public QueryMetricOperations(CacheManager cacheManager, ShardTableQueryMetricHandler handler,
-                    QueryMetricHandlerProperties queryMetricHandlerProperties, MarkingFunctions markingFunctions) {
+    public QueryMetricOperations(CacheManager cacheManager, ShardTableQueryMetricHandler handler, QueryMetricHandlerProperties queryMetricHandlerProperties,
+                    MarkingFunctions markingFunctions) {
         this.handler = handler;
         this.isHazelCast = cacheManager instanceof HazelcastCacheManager;
         this.incomingQueryMetricsCache = cacheManager.getCache(INCOMING_METRICS);

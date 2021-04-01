@@ -70,6 +70,9 @@ datawave:
         recordWriterMaxLatency: 0
         recordWriterNumThreads: 4
         enableBloomFilter: false
+        queryVisibility: PUBLIC
+        defaultMetricMarkings:
+          columnVisibility: PUBLIC
   metadata:
     all-metadata-auths:
       - PRIVATE

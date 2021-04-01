@@ -4,7 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class AccumuloConnectionTracking {
-
+    
     public static Map<String,String> getTrackingMap(StackTraceElement[] stackTrace) {
         HashMap<String,String> trackingMap = new HashMap<>();
         if (stackTrace != null) {

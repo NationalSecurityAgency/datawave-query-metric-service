@@ -34,7 +34,7 @@ public class AccumuloConfiguration {
     public AccumuloProperties warehouseAccumuloProperies(WarehouseClusterProperties warehouseProperties) {
         return warehouseProperties.getAccumulo();
     }
-
+    
     @Bean
     @Lazy
     @Qualifier("warehouse")
@@ -44,7 +44,7 @@ public class AccumuloConfiguration {
                         accumuloProperties.getPassword(), accumuloProperties.getZookeepers(), accumuloProperties.getInstanceName());
         return new AccumuloConnectionPool(accumuloConnectionPoolFactory);
     }
-
+    
     @Bean
     @Lazy
     @Qualifier("warehouse")

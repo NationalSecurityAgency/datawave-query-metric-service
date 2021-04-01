@@ -81,7 +81,7 @@ public class AccumuloRecordWriter extends RecordWriter<Text,Mutation> {
         this.simulate = getSimulationMode(conf);
         this.createTables = canCreateTables(conf);
         this.connectionPool = connectionPool;
-
+        
         if (simulate) {
             log.info("Simulating output only. No writes to tables will occur");
         }

@@ -25,7 +25,7 @@ import java.util.Set;
 public class QueryMetricWriter {
     
     private Logger log = Logger.getLogger(this.getClass());
-
+    
     @Autowired
     private QueryMetricHandler<? extends BaseQueryMetric> queryMetricHandler;
     

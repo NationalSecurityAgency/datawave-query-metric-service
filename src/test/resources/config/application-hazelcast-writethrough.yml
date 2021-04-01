@@ -5,7 +5,7 @@ hazelcast:
     # of cache servers start up at once, they will form individual clusters because the attempt
     # to create a cluster happens before the server has registered in Consul. Therefore, the split
     # brain merge will take care of joining the multiple clusters.
-    initialMergeDelaySeconds: 50
+    initialMergeDelaySeconds: 5
     initialMinClusterSize: 1
     xml-config: |
       <hazelcast xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"

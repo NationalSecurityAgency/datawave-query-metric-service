@@ -47,7 +47,7 @@ public class QueryMetricConfiguration {
         ObjectMapper mapper = new ObjectMapper();
         mapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-        SimpleModule module = new SimpleModule();
+        SimpleModule module = new SimpleModule("BaseQueryMetricMapping");
         module.addAbstractTypeMapping(BaseQueryMetric.class, metricFactory.createMetric().getClass());
         mapper.registerModule(module);
         mapper.registerModule(new GuavaModule());

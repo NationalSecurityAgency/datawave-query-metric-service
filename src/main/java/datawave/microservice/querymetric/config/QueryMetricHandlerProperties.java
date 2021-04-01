@@ -20,9 +20,8 @@ import java.util.Map;
 @ConfigurationProperties(prefix = "datawave.query.metric.handler")
 public class QueryMetricHandlerProperties {
     
-    protected String markingString;
-    protected String visibilityString;
-    
+    protected Map<String,String> defaultMetricMarkings;
+    protected String queryVisibility;
     protected String zookeepers;
     protected String instanceName;
     protected String username;
@@ -162,20 +161,20 @@ public class QueryMetricHandlerProperties {
         return p;
     }
     
-    public void setMarkingString(String markingString) {
-        this.markingString = markingString;
+    public void setDefaultMetricMarkings(Map<String,String> defaultMetricMarkings) {
+        this.defaultMetricMarkings = defaultMetricMarkings;
     }
     
-    public String getMarkingString() {
-        return markingString;
+    public Map<String,String> getDefaultMetricMarkings() {
+        return defaultMetricMarkings;
     }
     
-    public void setVisibilityString(String visibilityString) {
-        this.visibilityString = visibilityString;
+    public void setQueryVisibility(String queryVisibility) {
+        this.queryVisibility = queryVisibility;
     }
     
-    public String getVisibilityString() {
-        return visibilityString;
+    public String getQueryVisibility() {
+        return queryVisibility;
     }
     
     public String getZookeepers() {

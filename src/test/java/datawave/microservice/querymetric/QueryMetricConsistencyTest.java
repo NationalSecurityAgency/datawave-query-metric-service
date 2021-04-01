@@ -80,6 +80,7 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
         Assert.assertEquals(1, metricResponse.getBody().getNumResults());
         BaseQueryMetric returnedMetric = (BaseQueryMetric) metricResponse.getBody().getResult().get(0);
         Assert.assertEquals("lifecycle incorrect", BaseQueryMetric.Lifecycle.CLOSED, returnedMetric.getLifecycle());
+        assertEquals(m, returnedMetric);
         
         // send an update with out-of-sequence lifecycle
         m = createMetric(queryId);

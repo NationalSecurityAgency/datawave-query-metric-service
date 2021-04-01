@@ -54,7 +54,6 @@ import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.time.DateUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -94,10 +93,9 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> implements 
     private static final Logger log = ThreadConfigurableLogger.getLogger(ShardTableQueryMetricHandler.class.getName());
     
     private static final String QUERY_METRICS_LOGIC_NAME = "QueryMetricsQuery";
-    protected static final String DEFAULT_SECURITY_MARKING = "PUBLIC";
     
-    protected AccumuloConnectionPool connectionPool;
-    protected QueryMetricHandlerProperties queryMetricHandlerProperties;
+    private AccumuloConnectionPool connectionPool;
+    private QueryMetricHandlerProperties queryMetricHandlerProperties;
     
     private String connectorAuthorizations = null;
     
@@ -114,15 +112,16 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> implements 
     private DatawavePrincipal datawavePrincipal;
     private MarkingFunctions markingFunctions;
     
-    public ShardTableQueryMetricHandler(QueryMetricHandlerProperties queryMetricHandlerProperties, @Qualifier("warehouse") AccumuloConnectionPool connectionPool,
-                    QueryMetricQueryLogicFactory logicFactory, QueryMetricFactory metricFactory, MarkingFunctions markingFunctions) {
+    public ShardTableQueryMetricHandler(QueryMetricHandlerProperties queryMetricHandlerProperties,
+                    @Qualifier("warehouse") AccumuloConnectionPool connectionPool, QueryMetricQueryLogicFactory logicFactory, QueryMetricFactory metricFactory,
+                    MarkingFunctions markingFunctions) {
         this.queryMetricHandlerProperties = queryMetricHandlerProperties;
         this.logicFactory = logicFactory;
         this.metricFactory = metricFactory;
         this.markingFunctions = markingFunctions;
         this.connectionPool = connectionPool;
         queryMetricHandlerProperties.getProperties().entrySet().forEach(e -> conf.set(e.getKey(), e.getValue()));
-
+        
         Connector connector = null;
         try {
             log.info("creating connector with username:" + queryMetricHandlerProperties.getUsername() + " password:"
@@ -249,16 +248,16 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> implements 
         event.setConf(this.conf);
         event.setDataType(type);
         event.setDate(storedQueryMetric.getCreateDate().getTime());
-        // get markings from metric, otherwise default to PUBLIC
+        // get markings from metric, otherwise use the default markings
         if (updatedQueryMetric.getMarkings() != null) {
             try {
                 event.setVisibility(this.markingFunctions.translateToColumnVisibility(updatedQueryMetric.getMarkings()));
             } catch (MarkingFunctions.Exception e) {
                 log.error(e.getMessage(), e);
-                event.setVisibility(new ColumnVisibility(DEFAULT_SECURITY_MARKING));
+                event.setSecurityMarkings(this.queryMetricHandlerProperties.getDefaultMetricMarkings());
             }
         } else {
-            event.setVisibility(new ColumnVisibility(DEFAULT_SECURITY_MARKING));
+            event.setSecurityMarkings(this.queryMetricHandlerProperties.getDefaultMetricMarkings());
         }
         event.setAuxData(storedQueryMetric);
         event.setRawRecordNumber(1000L);
@@ -373,7 +372,7 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> implements 
         return queryMetrics.isEmpty() ? null : queryMetrics.get(0);
     }
     
-    private List<T> getQueryMetrics(BaseResponse response, final String query) {
+    public List<T> getQueryMetrics(BaseResponse response, final String query) {
         Date end = new Date();
         Date begin = DateUtils.setYears(end, 2000);
         QueryImpl queryImpl = new QueryImpl();
@@ -382,7 +381,7 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> implements 
         queryImpl.setQueryLogicName(QUERY_METRICS_LOGIC_NAME);
         queryImpl.setQuery(query);
         queryImpl.setQueryName(QUERY_METRICS_LOGIC_NAME);
-        queryImpl.setColumnVisibility(queryMetricHandlerProperties.getVisibilityString());
+        queryImpl.setColumnVisibility(queryMetricHandlerProperties.getQueryVisibility());
         queryImpl.setQueryAuthorizations(this.connectorAuthorizations);
         queryImpl.setExpirationDate(DateUtils.addDays(new Date(), 1));
         queryImpl.setPagesize(1000);
@@ -391,10 +390,10 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> implements 
         return getQueryMetrics(response, queryImpl);
     }
     
-    private List<T> getQueryMetrics(BaseResponse response, Query query) {
+    public List<T> getQueryMetrics(BaseResponse response, Query query) {
         List<T> queryMetrics = new ArrayList<>();
         RunningQuery runningQuery;
-
+        
         Connector connector = null;
         try {
             QueryLogic<?> queryLogic = logicFactory.getObject();
@@ -453,7 +452,7 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> implements 
         return queryMetrics;
     }
     
-    public T toMetric(datawave.webservice.query.result.event.EventBase event) {
+    public T toMetric(EventBase event) {
         SimpleDateFormat sdf_date_time1 = new SimpleDateFormat("yyyyMMdd HHmmss");
         SimpleDateFormat sdf_date_time2 = new SimpleDateFormat("yyyyMMdd HHmmss");
         
@@ -671,7 +670,7 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> implements 
         return helperMap;
     }
     
-    private void enableLogs(boolean enable) {
+    protected void enableLogs(boolean enable) {
         if (enable) {
             ThreadConfigurableLogger.clearThreadLevels();
         } else {

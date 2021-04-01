@@ -29,26 +29,18 @@ import java.util.Set;
 
 public class ContentQueryMetricsIngestHelper extends CSVIngestHelper implements TermFrequencyIngestHelperInterface {
     
-    /*
-     * Field Name | Content | Update | Delete
-     * 
-     * ELAPSED_TIME X X LAST_UPDATED X X LIFECYCLE X X NUM_PAGES X X NUM_RESULTS X X PAGE_METRICS.X X X SETUP_TIME X X CREATE_CALL_TIME X X
-     * 
-     * AUTHORIZATIONS X BEGIN_DATE X END_DATE X ERROR_CODE X ERROR_MESSAGE X HOST X NEGATIVE_SELECTORS X POSITIVE_SELECTORS X PROXY_SERVERS QUERY X QUERY_ID X
-     * QUERY_LOGIC X QUERY_TYPE X QUERY_NAME X X PARAMETERS X CREATE_DATE X USER X
-     */
-    
     private static final Logger log = Logger.getLogger(ContentQueryMetricsIngestHelper.class);
     
     private Set<String> contentIndexFields = new HashSet<>();
-    private HelperDelegate<BaseQueryMetric> delegate = new HelperDelegate<>();
-    
-    public ContentQueryMetricsIngestHelper() {
-        
-    }
+    private HelperDelegate<BaseQueryMetric> delegate;
     
     public ContentQueryMetricsIngestHelper(boolean deleteMode) {
+        this(deleteMode, new HelperDelegate<>());
+    }
+    
+    public ContentQueryMetricsIngestHelper(boolean deleteMode, HelperDelegate<BaseQueryMetric> delegate) {
         this.deleteMode = deleteMode;
+        this.delegate = delegate;
     }
     
     public Multimap<String,NormalizedContentInterface> getEventFieldsToDelete(BaseQueryMetric updatedQueryMetric, BaseQueryMetric storedQueryMetric) {

@@ -33,7 +33,7 @@ public class QueryMetricTestConfiguration {
     private AccumuloProperties accumuloProperties;
     
     public QueryMetricTestConfiguration() {}
-
+    
     @Bean
     @Lazy
     @Qualifier("warehouse")
@@ -43,7 +43,7 @@ public class QueryMetricTestConfiguration {
                         accumuloProperties.getPassword(), instance);
         return new AccumuloConnectionPool(connectionPoolFactory);
     }
-
+    
     @Bean
     @Lazy
     @Qualifier("warehouse")
