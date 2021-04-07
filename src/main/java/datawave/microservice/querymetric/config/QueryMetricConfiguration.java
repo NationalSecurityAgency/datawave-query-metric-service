@@ -39,7 +39,7 @@ import java.util.Set;
 import static datawave.query.util.MetadataHelperFactory.ALL_AUTHS_PROPERTY;
 
 @Configuration
-@EnableConfigurationProperties({QueryMetricTimelyProperties.class, QueryMetricHandlerProperties.class, MetadataProperties.class})
+@EnableConfigurationProperties({QueryMetricHandlerProperties.class, MetadataProperties.class})
 public class QueryMetricConfiguration {
     
     @Bean
