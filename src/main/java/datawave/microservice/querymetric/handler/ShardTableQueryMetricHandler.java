@@ -372,10 +372,14 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> implements 
         return queryMetrics.isEmpty() ? null : queryMetrics.get(0);
     }
     
+    protected Query createQuery() {
+        return new QueryImpl();
+    }
+    
     public List<T> getQueryMetrics(BaseResponse response, final String query) {
         Date end = new Date();
         Date begin = DateUtils.setYears(end, 2000);
-        QueryImpl queryImpl = new QueryImpl();
+        Query queryImpl = createQuery();
         queryImpl.setBeginDate(begin);
         queryImpl.setEndDate(end);
         queryImpl.setQueryLogicName(QUERY_METRICS_LOGIC_NAME);
