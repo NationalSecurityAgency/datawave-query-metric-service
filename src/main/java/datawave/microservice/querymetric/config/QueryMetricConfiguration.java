@@ -1,6 +1,7 @@
 package datawave.microservice.querymetric.config;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.module.SimpleModule;
@@ -39,14 +40,15 @@ import java.util.Set;
 import static datawave.query.util.MetadataHelperFactory.ALL_AUTHS_PROPERTY;
 
 @Configuration
-@EnableConfigurationProperties({QueryMetricHandlerProperties.class, MetadataProperties.class})
+@EnableConfigurationProperties({QueryMetricHandlerProperties.class, MetadataProperties.class, TimelyProperties.class})
 public class QueryMetricConfiguration {
     
     @Bean
     public ObjectMapper objectMapper(QueryMetricFactory metricFactory) {
         ObjectMapper mapper = new ObjectMapper();
-        mapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
-        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        mapper.disable(SerializationFeature.FAIL_ON_EMPTY_BEANS);
+        mapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
+        mapper.enable(MapperFeature.USE_WRAPPER_NAME_AS_PROPERTY_NAME);
         SimpleModule module = new SimpleModule("BaseQueryMetricMapping");
         module.addAbstractTypeMapping(BaseQueryMetric.class, metricFactory.createMetric().getClass());
         mapper.registerModule(module);

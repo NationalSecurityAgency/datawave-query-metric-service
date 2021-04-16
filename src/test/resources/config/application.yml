@@ -7,7 +7,6 @@ spring:
       enforce-allowed-callers: false
       allowed-callers:
         - "cn=test a. user, ou=example developers, o=example corp, c=us<cn=example corp ca, o=example corp, c=us>"
-        -
 server:
   port: 0
   non-secure-port: 0
@@ -73,6 +72,15 @@ datawave:
         queryVisibility: PUBLIC
         defaultMetricMarkings:
           columnVisibility: PUBLIC
+      timely:
+        enabled: false
+        host: localhost
+        port: 4242
+        tags:
+          - USER
+          - HOST
+          - QUERY_ID
+          - QUERY_LOGIC
   metadata:
     all-metadata-auths:
       - PRIVATE
