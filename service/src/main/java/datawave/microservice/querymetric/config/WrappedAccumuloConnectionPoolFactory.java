@@ -5,6 +5,7 @@ import datawave.microservice.config.accumulo.AccumuloProperties;
 import datawave.webservice.common.connection.AccumuloConnectionPoolFactory;
 import datawave.webservice.common.connection.WrappedConnector;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.commons.pool2.PooledObject;
 import org.apache.commons.pool2.impl.DefaultPooledObject;
@@ -21,8 +22,8 @@ public class WrappedAccumuloConnectionPoolFactory extends AccumuloConnectionPool
     private Connector inMemoryConnector;
     private InMemoryInstance inMemoryInstance;
     
-    public WrappedAccumuloConnectionPoolFactory(AccumuloProperties accumuloProperties) {
-        super(accumuloProperties.getUsername(), accumuloProperties.getPassword(), accumuloProperties.getZookeepers(), accumuloProperties.getInstanceName());
+    public WrappedAccumuloConnectionPoolFactory(AccumuloProperties accumuloProperties, Instance instance) {
+        super(accumuloProperties.getUsername(), accumuloProperties.getPassword(), instance);
         try {
             inMemoryInstance = new InMemoryInstance();
             inMemoryConnector = inMemoryInstance.getConnector("mock", new PasswordToken("mock"));

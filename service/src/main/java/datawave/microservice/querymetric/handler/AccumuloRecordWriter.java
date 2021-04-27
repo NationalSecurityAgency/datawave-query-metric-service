@@ -1,6 +1,5 @@
 package datawave.microservice.querymetric.handler;
 
-import datawave.accumulo.inmemory.InMemoryInstance;
 import datawave.common.util.ArgumentChecker;
 import datawave.webservice.common.connection.AccumuloConnectionPool;
 import datawave.webservice.common.logging.ThreadConfigurableLogger;
@@ -8,19 +7,15 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.MultiTableBatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.security.ColumnVisibility;
-import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.RecordWriter;
@@ -29,7 +24,6 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -50,15 +44,8 @@ public class AccumuloRecordWriter extends RecordWriter<Text,Mutation> {
     private AccumuloConnectionPool connectionPool;
     private Connector connector;
     private static final String PREFIX = AccumuloRecordWriter.class.getSimpleName();
-    private static final String OUTPUT_INFO_HAS_BEEN_SET = PREFIX + ".configured";
-    private static final String INSTANCE_HAS_BEEN_SET = PREFIX + ".instanceConfigured";
     private static final String USERNAME = PREFIX + ".username";
-    private static final String PASSWORD = PREFIX + ".password";
     private static final String DEFAULT_TABLE_NAME = PREFIX + ".defaulttable";
-    
-    private static final String INSTANCE_NAME = PREFIX + ".instanceName";
-    private static final String ZOOKEEPERS = PREFIX + ".zooKeepers";
-    private static final String MOCK = ".useInMemoryInstance";
     
     private static final String CREATETABLES = PREFIX + ".createtables";
     private static final String LOGLEVEL = PREFIX + ".loglevel";
@@ -242,23 +229,6 @@ public class AccumuloRecordWriter extends RecordWriter<Text,Mutation> {
         }
     }
     
-    public static void setZooKeeperInstance(Configuration conf, String instanceName, String zooKeepers) {
-        if (conf.getBoolean(INSTANCE_HAS_BEEN_SET, false)) {
-            throw new IllegalStateException("Instance info can only be set once per job");
-        }
-        conf.setBoolean(INSTANCE_HAS_BEEN_SET, true);
-        
-        ArgumentChecker.notNull(instanceName, zooKeepers);
-        conf.set(INSTANCE_NAME, instanceName);
-        conf.set(ZOOKEEPERS, zooKeepers);
-    }
-    
-    public static void setInMemoryInstance(Configuration conf, String instanceName) {
-        conf.setBoolean(INSTANCE_HAS_BEEN_SET, true);
-        conf.setBoolean(MOCK, true);
-        conf.set(INSTANCE_NAME, instanceName);
-    }
-    
     public static void setMaxMutationBufferSize(Configuration conf, long numberOfBytes) {
         conf.setLong(MAX_MUTATION_BUFFER_SIZE, numberOfBytes);
     }
@@ -284,27 +254,12 @@ public class AccumuloRecordWriter extends RecordWriter<Text,Mutation> {
         return conf.get(USERNAME);
     }
     
-    /**
-     * WARNING: The password is stored in the Configuration and shared with all MapReduce tasks; It is BASE64 encoded to provide a charset safe conversion to a
-     * string, and is not intended to be secure.
-     */
-    protected static byte[] getPassword(Configuration conf) {
-        return Base64.decodeBase64(conf.get(PASSWORD, "").getBytes(Charset.forName("UTF-8")));
-    }
-    
     protected static boolean canCreateTables(Configuration conf) {
         return conf.getBoolean(CREATETABLES, false);
     }
     
     protected static String getDefaultTableName(Configuration conf) {
         return conf.get(DEFAULT_TABLE_NAME);
-    }
-    
-    protected static Instance getInstance(Configuration conf) {
-        if (conf.getBoolean(MOCK, false)) {
-            return new InMemoryInstance(conf.get(INSTANCE_NAME));
-        }
-        return new ZooKeeperInstance(ClientConfiguration.loadDefault().withInstance(conf.get(INSTANCE_NAME)).withZkHosts(conf.get(ZOOKEEPERS)));
     }
     
     protected static long getMaxMutationBufferSize(Configuration conf) {

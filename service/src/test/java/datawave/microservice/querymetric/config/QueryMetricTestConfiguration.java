@@ -39,9 +39,7 @@ public class QueryMetricTestConfiguration {
     @Qualifier("warehouse")
     public AccumuloConnectionPool accumuloConnectionPool(@Qualifier("warehouse") AccumuloProperties accumuloProperties,
                     @Qualifier("warehouse") Instance instance) {
-        InMemoryAccumuloConnectionPoolFactory connectionPoolFactory = new InMemoryAccumuloConnectionPoolFactory(accumuloProperties.getUsername(),
-                        accumuloProperties.getPassword(), instance);
-        return new AccumuloConnectionPool(connectionPoolFactory);
+        return new AccumuloConnectionPool(new WrappedAccumuloConnectionPoolFactory(accumuloProperties, instance));
     }
     
     @Bean

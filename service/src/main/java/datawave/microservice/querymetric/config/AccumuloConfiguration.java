@@ -38,8 +38,9 @@ public class AccumuloConfiguration {
     @Lazy
     @Qualifier("warehouse")
     @ConditionalOnMissingBean
-    public AccumuloConnectionPool accumuloConnectionPool(@Qualifier("warehouse") AccumuloProperties accumuloProperties) {
-        return new AccumuloConnectionPool(new WrappedAccumuloConnectionPoolFactory(accumuloProperties));
+    public AccumuloConnectionPool accumuloConnectionPool(@Qualifier("warehouse") AccumuloProperties accumuloProperties,
+                    @Qualifier("warehouse") Instance instance) {
+        return new AccumuloConnectionPool(new WrappedAccumuloConnectionPoolFactory(accumuloProperties, instance));
     }
     
     @Bean
