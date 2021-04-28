@@ -1,4 +1,4 @@
-package datawave.microservice.querymetric.config;
+package datawave.microservice.querymetric.factory;
 
 import datawave.accumulo.inmemory.InMemoryInstance;
 import datawave.microservice.config.accumulo.AccumuloProperties;

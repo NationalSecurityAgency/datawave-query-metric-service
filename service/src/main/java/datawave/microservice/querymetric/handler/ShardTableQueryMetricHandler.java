@@ -18,7 +18,7 @@ import datawave.ingest.mapreduce.job.writer.LiveContextWriter;
 import datawave.ingest.table.config.TableConfigHelper;
 import datawave.marking.MarkingFunctions;
 import datawave.microservice.querymetric.config.QueryMetricHandlerProperties;
-import datawave.microservice.querymetric.logic.QueryMetricQueryLogicFactory;
+import datawave.microservice.querymetric.factory.QueryMetricQueryLogicFactory;
 import datawave.query.iterator.QueryOptions;
 import datawave.security.authorization.DatawavePrincipal;
 import datawave.security.authorization.DatawaveUser;

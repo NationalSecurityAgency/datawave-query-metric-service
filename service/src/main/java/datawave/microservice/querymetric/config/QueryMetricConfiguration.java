@@ -11,7 +11,7 @@ import com.github.benmanes.caffeine.cache.CaffeineSpec;
 import datawave.marking.MarkingFunctions;
 import datawave.microservice.querymetric.handler.AccumuloConnectionTracking;
 import datawave.microservice.querymetric.handler.ShardTableQueryMetricHandler;
-import datawave.microservice.querymetric.logic.QueryMetricQueryLogicFactory;
+import datawave.microservice.querymetric.factory.QueryMetricQueryLogicFactory;
 import datawave.query.composite.CompositeMetadataHelper;
 import datawave.query.util.DateIndexHelper;
 import datawave.query.util.DateIndexHelperFactory;

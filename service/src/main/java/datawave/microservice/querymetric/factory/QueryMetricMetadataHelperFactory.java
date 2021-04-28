@@ -1,4 +1,4 @@
-package datawave.microservice.querymetric.config;
+package datawave.microservice.querymetric.factory;
 
 import datawave.query.util.MetadataHelperFactory;
 import datawave.query.util.TypeMetadataHelper;

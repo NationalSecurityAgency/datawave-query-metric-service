@@ -2,6 +2,7 @@ package datawave.microservice.querymetric.config;
 
 import datawave.accumulo.inmemory.InMemoryInstance;
 import datawave.microservice.config.accumulo.AccumuloProperties;
+import datawave.microservice.querymetric.factory.WrappedAccumuloConnectionPoolFactory;
 import datawave.webservice.common.connection.AccumuloConnectionPool;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;

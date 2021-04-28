@@ -11,7 +11,6 @@ import datawave.marking.MarkingFunctions;
 import datawave.microservice.authorization.preauth.ProxiedEntityX509Filter;
 import datawave.microservice.authorization.user.ProxiedUserDetails;
 import datawave.microservice.querymetric.config.QueryMetricHandlerProperties;
-import datawave.microservice.querymetric.config.QueryMetricListResponseDeserializer;
 import datawave.microservice.querymetric.handler.ShardTableQueryMetricHandler;
 import datawave.security.authorization.DatawaveUser;
 import datawave.security.authorization.JWTTokenHandler;
@@ -144,11 +143,9 @@ public class QueryMetricTestBase {
         }
         deleteAllAccumuloEntries();
         Assert.assertTrue("metadata table empty", getMetadataEntries().size() > 0);
-        
         SimpleModule baseQueryMetricDeserializer = new SimpleModule(BaseQueryMetricListResponse.class.getName());
-        baseQueryMetricDeserializer.addDeserializer(BaseQueryMetricListResponse.class, new QueryMetricListResponseDeserializer(QueryMetricListResponse.class));
+        baseQueryMetricDeserializer.addAbstractTypeMapping(BaseQueryMetricListResponse.class, QueryMetricListResponse.class);
         objectMapper.registerModule(baseQueryMetricDeserializer);
-        
     }
     
     @After

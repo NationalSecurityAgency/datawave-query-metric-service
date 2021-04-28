@@ -1,7 +1,8 @@
-package datawave.microservice.querymetric.logic;
+package datawave.microservice.querymetric.factory;
 
 import datawave.marking.MarkingFunctions;
 import datawave.microservice.querymetric.config.QueryMetricHandlerProperties;
+import datawave.query.tables.ShardQueryLogic;
 import datawave.query.util.DateIndexHelperFactory;
 import datawave.query.util.MetadataHelperFactory;
 import datawave.webservice.common.audit.Auditor;
@@ -11,7 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
-public class QueryMetricQueryLogicFactory implements FactoryBean<QueryMetricQueryLogic> {
+public class QueryMetricQueryLogicFactory implements FactoryBean<ShardQueryLogic> {
     
     private MarkingFunctions markingFunctions;
     private ResponseObjectFactory responseObjectFactory;
@@ -31,9 +32,9 @@ public class QueryMetricQueryLogicFactory implements FactoryBean<QueryMetricQuer
     }
     
     @Override
-    public QueryMetricQueryLogic getObject() throws Exception {
+    public ShardQueryLogic getObject() throws Exception {
         
-        QueryMetricQueryLogic logic = new QueryMetricQueryLogic();
+        ShardQueryLogic logic = new ShardQueryLogic();
         logic.setMarkingFunctions(markingFunctions);
         logic.setTableName(this.queryMetricHandlerProperties.getShardTableName());
         logic.setIndexTableName(this.queryMetricHandlerProperties.getIndexTableName());
@@ -51,6 +52,6 @@ public class QueryMetricQueryLogicFactory implements FactoryBean<QueryMetricQuer
     
     @Override
     public Class<?> getObjectType() {
-        return QueryMetricQueryLogic.class;
+        return ShardQueryLogic.class;
     }
 }
