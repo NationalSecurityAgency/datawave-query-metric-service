@@ -1,4 +1,4 @@
-package datawave.webservice.query.metric;
+package datawave.microservice.querymetric;
 
 import datawave.webservice.result.BaseResponse;
 

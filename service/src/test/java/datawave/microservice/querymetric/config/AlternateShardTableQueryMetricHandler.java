@@ -5,7 +5,7 @@ import datawave.microservice.querymetric.handler.ContentQueryMetricsIngestHelper
 import datawave.microservice.querymetric.handler.ShardTableQueryMetricHandler;
 import datawave.microservice.querymetric.factory.QueryMetricQueryLogicFactory;
 import datawave.webservice.common.connection.AccumuloConnectionPool;
-import datawave.webservice.query.cache.QueryMetricFactory;
+import datawave.microservice.querymetric.QueryMetricFactory;
 import datawave.webservice.query.result.event.EventBase;
 import datawave.webservice.query.result.event.FieldBase;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -17,7 +17,8 @@ public class AlternateShardTableQueryMetricHandler extends ShardTableQueryMetric
     public AlternateShardTableQueryMetricHandler(QueryMetricHandlerProperties queryMetricHandlerProperties,
                     @Qualifier("warehouse") AccumuloConnectionPool connectionPool, QueryMetricQueryLogicFactory logicFactory, QueryMetricFactory metricFactory,
                     MarkingFunctions markingFunctions) {
-        super(queryMetricHandlerProperties, connectionPool, logicFactory, metricFactory, markingFunctions);
+        super(queryMetricHandlerProperties, connectionPool, logicFactory, metricFactory, new datawave.webservice.query.cache.QueryMetricFactoryImpl(),
+                        markingFunctions);
     }
     
     @Override

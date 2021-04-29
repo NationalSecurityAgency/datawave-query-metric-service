@@ -1,7 +1,6 @@
 package datawave.microservice.querymetric;
 
 import com.hazelcast.map.impl.proxy.MapProxyImpl;
-import datawave.webservice.query.metric.BaseQueryMetric;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;

@@ -9,7 +9,7 @@ import com.hazelcast.map.listener.EntryMergedListener;
 import com.hazelcast.map.listener.EntryRemovedListener;
 import com.hazelcast.map.listener.EntryUpdatedListener;
 import com.hazelcast.map.listener.MapEvictedListener;
-import datawave.webservice.query.metric.BaseQueryMetric;
+import datawave.microservice.querymetric.BaseQueryMetric;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

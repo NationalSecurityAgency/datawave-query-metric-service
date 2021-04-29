@@ -6,7 +6,7 @@
     -->
 
     <Match>
-        <Class name="~datawave\.webservice\.query\.metric\.MetricsMessages.*" />
+        <Class name="~datawave\.microservice\.querymetric\.MetricsMessages.*" />
     </Match>
 
 </FindBugsFilter>

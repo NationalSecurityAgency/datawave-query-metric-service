@@ -1,6 +1,5 @@
 package datawave.microservice.querymetric;
 
-import datawave.webservice.query.metric.BaseQueryMetric;
 import datawave.webservice.result.VoidResponse;
 import org.junit.After;
 import org.junit.Before;

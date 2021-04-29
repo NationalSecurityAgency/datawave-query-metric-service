@@ -1,6 +1,7 @@
 package datawave.microservice.querymetric.handler;
 
-import datawave.webservice.query.metric.BaseQueryMetric;
+import datawave.microservice.querymetric.BaseQueryMetric;
+import datawave.webservice.query.Query;
 
 import java.util.Map;
 
@@ -11,6 +12,8 @@ public interface QueryMetricHandler<T extends BaseQueryMetric> {
     Map<String,String> getEventFields(BaseQueryMetric queryMetric);
     
     ContentQueryMetricsIngestHelper getQueryMetricsIngestHelper(boolean deleteMode);
+    
+    Query createQuery();
     
     void flush() throws Exception;
     

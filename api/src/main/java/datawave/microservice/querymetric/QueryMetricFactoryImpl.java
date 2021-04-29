@@ -1,7 +1,4 @@
-package datawave.webservice.query.cache;
-
-import datawave.webservice.query.metric.BaseQueryMetric;
-import datawave.webservice.query.metric.QueryMetric;
+package datawave.microservice.querymetric;
 
 public class QueryMetricFactoryImpl implements QueryMetricFactory {
     

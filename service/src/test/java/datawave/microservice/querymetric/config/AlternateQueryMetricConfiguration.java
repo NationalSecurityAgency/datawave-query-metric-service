@@ -4,7 +4,7 @@ import datawave.marking.MarkingFunctions;
 import datawave.microservice.querymetric.handler.ShardTableQueryMetricHandler;
 import datawave.microservice.querymetric.factory.QueryMetricQueryLogicFactory;
 import datawave.webservice.common.connection.AccumuloConnectionPool;
-import datawave.webservice.query.cache.QueryMetricFactory;
+import datawave.microservice.querymetric.QueryMetricFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.autoconfigure.cache.CacheType;

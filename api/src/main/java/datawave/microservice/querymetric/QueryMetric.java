@@ -1,7 +1,8 @@
-package datawave.webservice.query.metric;
+package datawave.microservice.querymetric;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.google.common.collect.Lists;
+import datawave.webservice.query.Query;
 import datawave.webservice.query.QueryImpl.Parameter;
 import datawave.webservice.query.result.event.HasMarkings;
 import io.protostuff.Input;
@@ -101,6 +102,22 @@ public class QueryMetric extends BaseQueryMetric implements Serializable, Messag
                 this.predictions.add(p.duplicate());
             }
         }
+    }
+    
+    @Override
+    public void populate(Query query) {
+        setQueryType(query.getClass());
+        setQueryId(query.getId().toString());
+        setUser(query.getOwner());
+        setUserDN(query.getUserDN());
+        setQuery(query.getQuery());
+        setQueryLogic(query.getQueryLogicName());
+        setBeginDate(query.getBeginDate());
+        setEndDate(query.getEndDate());
+        setQueryAuthorizations(query.getQueryAuthorizations());
+        setQueryName(query.getQueryName());
+        setParameters(query.getParameters());
+        // setColumnVisibility(query.getColumnVisibility());
     }
     
     public BaseQueryMetric duplicate() {

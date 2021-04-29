@@ -5,7 +5,7 @@ import com.hazelcast.core.MapStore;
 import com.hazelcast.core.MapStoreFactory;
 import com.hazelcast.map.impl.proxy.MapProxyImpl;
 import datawave.microservice.querymetric.handler.ShardTableQueryMetricHandler;
-import datawave.webservice.query.metric.BaseQueryMetric;
+import datawave.microservice.querymetric.BaseQueryMetric;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

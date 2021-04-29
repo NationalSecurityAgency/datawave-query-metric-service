@@ -1,7 +1,8 @@
-package datawave.webservice.query.metric;
+package datawave.microservice.querymetric;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import datawave.marking.MarkingFunctions;
+import datawave.webservice.query.Query;
 import datawave.webservice.query.QueryImpl.Parameter;
 import datawave.webservice.query.exception.QueryException;
 import datawave.webservice.query.result.event.HasMarkings;
@@ -968,4 +969,5 @@ public abstract class BaseQueryMetric implements HasMarkings, Serializable {
         return null;
     }
     
+    public abstract void populate(Query query);
 }

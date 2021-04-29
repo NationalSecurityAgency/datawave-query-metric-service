@@ -17,9 +17,9 @@ import datawave.query.util.DateIndexHelper;
 import datawave.query.util.DateIndexHelperFactory;
 import datawave.query.util.TypeMetadataHelper;
 import datawave.webservice.common.connection.AccumuloConnectionPool;
-import datawave.webservice.query.cache.QueryMetricFactory;
-import datawave.webservice.query.cache.QueryMetricFactoryImpl;
-import datawave.webservice.query.metric.BaseQueryMetric;
+import datawave.microservice.querymetric.QueryMetricFactory;
+import datawave.microservice.querymetric.QueryMetricFactoryImpl;
+import datawave.microservice.querymetric.BaseQueryMetric;
 import datawave.webservice.query.result.event.DefaultResponseObjectFactory;
 import datawave.webservice.query.result.event.ResponseObjectFactory;
 import org.apache.accumulo.core.client.Connector;
@@ -90,10 +90,18 @@ public class QueryMetricConfiguration {
     
     @Bean
     @ConditionalOnMissingBean
+    datawave.webservice.query.cache.QueryMetricFactory datawaveQueryMetricFactory() {
+        return new datawave.webservice.query.cache.QueryMetricFactoryImpl();
+    }
+    
+    @Bean
+    @ConditionalOnMissingBean
     public ShardTableQueryMetricHandler shardTableQueryMetricHandler(QueryMetricHandlerProperties queryMetricHandlerProperties,
                     @Qualifier("warehouse") AccumuloConnectionPool connectionPool, QueryMetricQueryLogicFactory logicFactory, QueryMetricFactory metricFactory,
                     MarkingFunctions markingFunctions) {
-        return new ShardTableQueryMetricHandler(queryMetricHandlerProperties, connectionPool, logicFactory, metricFactory, markingFunctions);
+        datawave.webservice.query.cache.QueryMetricFactory datawaveQueryMetricFactory = new datawave.webservice.query.cache.QueryMetricFactoryImpl();
+        return new ShardTableQueryMetricHandler(queryMetricHandlerProperties, connectionPool, logicFactory, metricFactory, datawaveQueryMetricFactory,
+                        markingFunctions);
     }
     
     @Bean
