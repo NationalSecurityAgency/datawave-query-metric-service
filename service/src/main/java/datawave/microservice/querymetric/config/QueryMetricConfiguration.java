@@ -10,8 +10,10 @@ import com.fasterxml.jackson.module.jaxb.JaxbAnnotationModule;
 import com.github.benmanes.caffeine.cache.CaffeineSpec;
 import datawave.marking.MarkingFunctions;
 import datawave.microservice.querymetric.handler.AccumuloConnectionTracking;
+import datawave.microservice.querymetric.handler.QueryGeometryHandler;
 import datawave.microservice.querymetric.handler.ShardTableQueryMetricHandler;
 import datawave.microservice.querymetric.factory.QueryMetricQueryLogicFactory;
+import datawave.microservice.querymetric.handler.SimpleQueryGeometryHandler;
 import datawave.query.composite.CompositeMetadataHelper;
 import datawave.query.util.DateIndexHelper;
 import datawave.query.util.DateIndexHelperFactory;
@@ -102,6 +104,12 @@ public class QueryMetricConfiguration {
         datawave.webservice.query.cache.QueryMetricFactory datawaveQueryMetricFactory = new datawave.webservice.query.cache.QueryMetricFactoryImpl();
         return new ShardTableQueryMetricHandler(queryMetricHandlerProperties, connectionPool, logicFactory, metricFactory, datawaveQueryMetricFactory,
                         markingFunctions);
+    }
+    
+    @Bean
+    @ConditionalOnMissingBean
+    public QueryGeometryHandler geometryHandler() {
+        return new SimpleQueryGeometryHandler();
     }
     
     @Bean

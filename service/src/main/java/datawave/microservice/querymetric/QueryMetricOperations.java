@@ -4,15 +4,18 @@ import com.hazelcast.map.impl.proxy.MapProxyImpl;
 import com.hazelcast.spring.cache.HazelcastCacheManager;
 import datawave.marking.MarkingFunctions;
 import datawave.microservice.authorization.user.ProxiedUserDetails;
+import datawave.microservice.querymetric.BaseQueryMetric.Lifecycle;
 import datawave.microservice.querymetric.config.QueryMetricHandlerProperties;
 import datawave.microservice.querymetric.config.TimelyProperties;
+import datawave.microservice.querymetric.handler.QueryGeometryHandler;
 import datawave.microservice.querymetric.handler.ShardTableQueryMetricHandler;
+import datawave.microservice.querymetric.handler.SimpleQueryGeometryHandler;
 import datawave.security.util.DnUtils;
 import datawave.util.timely.UdpClient;
 import datawave.webservice.query.exception.DatawaveErrorCode;
 import datawave.webservice.query.exception.QueryException;
 import datawave.webservice.query.exception.QueryExceptionType;
-import datawave.microservice.querymetric.BaseQueryMetric.Lifecycle;
+import datawave.webservice.query.map.QueryGeometryResponse;
 import datawave.webservice.result.VoidResponse;
 import io.swagger.annotations.ApiParam;
 import org.apache.accumulo.core.security.Authorizations;
@@ -50,6 +53,7 @@ public class QueryMetricOperations {
     private Logger log = LoggerFactory.getLogger(getClass());
     
     private ShardTableQueryMetricHandler handler;
+    private QueryGeometryHandler geometryHandler;
     private Cache incomingQueryMetricsCache;
     private boolean isHazelCast;
     private QueryMetricHandlerProperties queryMetricHandlerProperties;
@@ -58,9 +62,10 @@ public class QueryMetricOperations {
     private ReentrantLock caffeineLock = new ReentrantLock();
     
     @Autowired
-    public QueryMetricOperations(CacheManager cacheManager, ShardTableQueryMetricHandler handler, QueryMetricHandlerProperties queryMetricHandlerProperties,
-                    MarkingFunctions markingFunctions, TimelyProperties timelyProperties) {
+    public QueryMetricOperations(CacheManager cacheManager, ShardTableQueryMetricHandler handler, QueryGeometryHandler geometryHandler,
+                    QueryMetricHandlerProperties queryMetricHandlerProperties, MarkingFunctions markingFunctions, TimelyProperties timelyProperties) {
         this.handler = handler;
+        this.geometryHandler = geometryHandler;
         this.isHazelCast = cacheManager instanceof HazelcastCacheManager;
         this.incomingQueryMetricsCache = cacheManager.getCache(INCOMING_METRICS);
         this.queryMetricHandlerProperties = queryMetricHandlerProperties;
@@ -190,9 +195,34 @@ public class QueryMetricOperations {
         if (metricList.isEmpty()) {
             response.setHasResults(false);
         } else {
+            response.setGeoQuery(metricList.stream().anyMatch(SimpleQueryGeometryHandler::isGeoQuery));
             response.setHasResults(true);
         }
         return response;
+    }
+    
+    /**
+     * Returns metrics for the current users queries that are identified by the id
+     *
+     * @param queryId
+     *
+     * @return datawave.webservice.result.QueryMetricListResponse
+     *
+     * @HTTP 200 success
+     * @HTTP 500 internal server error
+     */
+    @PermitAll
+    @RequestMapping(path = "/id/{queryId}/map", method = {RequestMethod.GET, RequestMethod.POST},
+                    produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE, MediaType.TEXT_HTML_VALUE})
+    public QueryGeometryResponse map(@AuthenticationPrincipal ProxiedUserDetails currentUser, @PathVariable("queryId") String queryId) {
+        QueryGeometryResponse queryGeometryResponse = new QueryGeometryResponse();
+        BaseQueryMetricListResponse metricResponse = query(currentUser, queryId);
+        if (!metricResponse.getExceptions().isEmpty()) {
+            metricResponse.getExceptions().forEach(e -> queryGeometryResponse.addException(new QueryException(e.getMessage(), e.getCause(), e.getCode())));
+            return queryGeometryResponse;
+        } else {
+            return geometryHandler.getQueryGeometryResponse(queryId, metricResponse.getResult());
+        }
     }
     
     private UdpClient createUdpClient() {

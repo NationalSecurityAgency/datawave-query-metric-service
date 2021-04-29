@@ -117,7 +117,7 @@ public class QueryMetric extends BaseQueryMetric implements Serializable, Messag
         setQueryAuthorizations(query.getQueryAuthorizations());
         setQueryName(query.getQueryName());
         setParameters(query.getParameters());
-        // setColumnVisibility(query.getColumnVisibility());
+        setColumnVisibility(query.getColumnVisibility());
     }
     
     public BaseQueryMetric duplicate() {
