@@ -20,7 +20,7 @@
         <start-class>datawave.microservice.querymetric.QueryMetricService</start-class>
         <version.base-rest-responses>1.2</version.base-rest-responses>
         <version.cache-api>1.1.1</version.cache-api>
-        <version.datawave>3.2.1-SNAPSHOT</version.datawave>
+        <version.datawave>3.2.1</version.datawave>
         <version.in-memory-accumulo>1.9.2.3</version.in-memory-accumulo>
         <version.log4j-1.2-api>2.11.2</version.log4j-1.2-api>
         <version.microservice.hazelcast-client>1.5</version.microservice.hazelcast-client>
