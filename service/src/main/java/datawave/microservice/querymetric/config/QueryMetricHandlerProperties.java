@@ -10,12 +10,13 @@ import org.apache.commons.lang.StringUtils;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.nio.charset.Charset;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 
 @ConfigurationProperties(prefix = "datawave.query.metric.handler")
 public class QueryMetricHandlerProperties {
@@ -54,12 +55,14 @@ public class QueryMetricHandlerProperties {
             "FI_RANGES",
             "HOST",
             "LIFECYCLE",
+            "LOGIN_TIME",
             "NEGATIVE_SELECTORS",
             "NEXT_COUNT",
             "NUM_PAGES",
             "NUM_RESULTS",
             "NUM_UPDATES",
             "PARAMETERS",
+            "PLAN",
             "POSITIVE_SELECTORS",
             "PROXY_SERVERS",
             "QUERY",
@@ -80,12 +83,14 @@ public class QueryMetricHandlerProperties {
             "HOST",
             "NEGATIVE_SELECTORS",
             "PARAMETERS",
+            "PLAN",
             "POSITIVE_SELECTORS",
             "PROXY_SERVERS",
             "QUERY",
-            "QUERY_TYPE",
+            "QUERY_ID",
             "QUERY_LOGIC",
             "QUERY_NAME",
+            "QUERY_TYPE",
             "USER");
 
     protected List<String> additionalReverseIndexFields = Collections.EMPTY_LIST;
@@ -141,16 +146,16 @@ public class QueryMetricHandlerProperties {
         p.put("querymetrics.data.category.uuid.fields", "QUERY_ID");
         p.put("querymetrics.data.header", "none");
         p.put("querymetrics.data.field.length.threshold", Integer.toString(fieldLengthThreshold));
-        List<String> combinedIndexFields = new ArrayList<>(indexFields);
+        Set<String> combinedIndexFields = new TreeSet<>(indexFields);
         combinedIndexFields.addAll(additionalIndexFields);
         p.put("querymetrics.data.category.index", StringUtils.join(combinedIndexFields, ","));
-        List<String> combinedReverseIndexFields = new ArrayList<>(reverseIndexFields);
+        Set<String> combinedReverseIndexFields = new TreeSet<>(reverseIndexFields);
         combinedReverseIndexFields.addAll(additionalReverseIndexFields);
         p.put("querymetrics.data.category.index.reverse", StringUtils.join(combinedReverseIndexFields, ','));
         p.put("querymetrics.data.category.token.fieldname.designator", "");
         p.put("querymetrics.data.default.type.class", LcNoDiacriticsType.class.getCanonicalName());
         p.put("querymetrics.ingest.policy.enforcer.class", policyEnforcerClass);
-        List<String> combinedNumericFields = new ArrayList<>(numericFields);
+        Set<String> combinedNumericFields = new TreeSet<>(numericFields);
         combinedNumericFields.addAll(additionalNumericFields);
         combinedNumericFields.forEach(f -> {
             p.put("querymetrics." + f + ".data.field.type.class", NumberType.class.getCanonicalName());
