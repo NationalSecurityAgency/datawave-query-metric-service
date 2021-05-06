@@ -1,6 +1,7 @@
 package datawave.microservice.querymetric.handler;
 
 import datawave.microservice.querymetric.BaseQueryMetric;
+import datawave.microservice.querymetric.config.QueryMetricHandlerProperties;
 import datawave.query.jexl.JexlASTHelper;
 import datawave.query.jexl.visitors.GeoFeatureVisitor;
 import datawave.query.language.parser.ParseException;
@@ -10,10 +11,8 @@ import datawave.webservice.query.QueryImpl;
 import datawave.webservice.query.map.QueryGeometry;
 import datawave.webservice.query.map.QueryGeometryResponse;
 import org.apache.commons.jexl2.parser.JexlNode;
-import org.apache.deltaspike.core.api.config.ConfigProperty;
 import org.apache.log4j.Logger;
 
-import javax.inject.Inject;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -32,9 +31,11 @@ public class SimpleQueryGeometryHandler implements QueryGeometryHandler {
     
     private LuceneToJexlQueryParser parser = new LuceneToJexlQueryParser();
     
-    @Inject
-    @ConfigProperty(name = "dw.basemaps", defaultValue = "{}")
     private String basemaps;
+    
+    public SimpleQueryGeometryHandler(QueryMetricHandlerProperties queryMetricHandlerProperties) {
+        this.basemaps = queryMetricHandlerProperties.getBaseMaps();
+    }
     
     @Override
     public QueryGeometryResponse getQueryGeometryResponse(String id, List<? extends BaseQueryMetric> metrics) {

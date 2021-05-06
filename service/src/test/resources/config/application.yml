@@ -72,6 +72,7 @@ datawave:
         queryVisibility: PUBLIC
         defaultMetricMarkings:
           columnVisibility: PUBLIC
+        baseMaps: "{}"
       timely:
         enabled: false
         host: localhost

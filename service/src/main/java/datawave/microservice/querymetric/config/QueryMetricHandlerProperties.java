@@ -67,11 +67,11 @@ public class QueryMetricHandlerProperties {
             "PROXY_SERVERS",
             "QUERY",
             "QUERY_ID",
-            "QUERY_TYPE",
             "QUERY_LOGIC",
             "QUERY_NAME",
-            "SETUP_TIME",
+            "QUERY_TYPE",
             "SEEK_COUNT",
+            "SETUP_TIME",
             "SOURCE_COUNT",
             "USER");
 
@@ -97,10 +97,11 @@ public class QueryMetricHandlerProperties {
 
     protected List<String> numericFields = Arrays.asList(
             "CREATE_CALL_TIME",
-            "SETUP_TIME",
             "ELAPSED_TIME",
-            "NUM_RESULTS",
+            "LOGIN_TIME",
+            "SETUP_TIME",
             "NUM_PAGES",
+            "NUM_RESULTS",
             "NUM_UPDATES");
 
     protected List<String> additionalNumericFields = Collections.EMPTY_LIST;
@@ -111,6 +112,7 @@ public class QueryMetricHandlerProperties {
     protected int recordWriterMaxLatency = 60000;
     protected int recordWriterNumThreads = 4;
     protected String policyEnforcerClass = "datawave.policy.IngestPolicyEnforcer$NoOpIngestPolicyEnforcer";
+    protected String baseMaps = "{}";
     
     public Map<String,String> getProperties() {
         
@@ -124,10 +126,10 @@ public class QueryMetricHandlerProperties {
         byte[] encodedPassword = Base64.encodeBase64(password.getBytes(Charset.forName("UTF-8")));
         p.put("AccumuloRecordWriter.password", new String(encodedPassword, Charset.forName("UTF-8")));
         p.put("AccumuloRecordWriter.createtables", Boolean.toString(createTables));
-        p.put("QueryMetrics_e.table.config.class", ShardTableConfigHelper.class.getCanonicalName());
-        p.put("QueryMetrics_i.table.config.class", ShardTableConfigHelper.class.getCanonicalName());
-        p.put("QueryMetrics_r.table.config.class", ShardTableConfigHelper.class.getCanonicalName());
-        p.put("QueryMetrics_m.table.config.class", MetadataTableConfigHelper.class.getCanonicalName());
+        p.put(shardTableName + ".table.config.class", ShardTableConfigHelper.class.getCanonicalName());
+        p.put(indexTableName + ".table.config.class", ShardTableConfigHelper.class.getCanonicalName());
+        p.put(reverseIndexTableName + ".table.config.class", ShardTableConfigHelper.class.getCanonicalName());
+        p.put(metadataTableName + ".table.config.class", MetadataTableConfigHelper.class.getCanonicalName());
         p.put("num.shards", Integer.toString(numShards));
         p.put("sharded.table.names", shardTableName);
         p.put("shard.table.name", shardTableName);
@@ -404,5 +406,13 @@ public class QueryMetricHandlerProperties {
     
     public void setMetricAdminRole(String metricAdminRole) {
         this.metricAdminRole = metricAdminRole;
+    }
+    
+    public String getBaseMaps() {
+        return baseMaps;
+    }
+    
+    public void setBaseMaps(String baseMaps) {
+        this.baseMaps = baseMaps;
     }
 }

@@ -108,8 +108,8 @@ public class QueryMetricConfiguration {
     
     @Bean
     @ConditionalOnMissingBean
-    public QueryGeometryHandler geometryHandler() {
-        return new SimpleQueryGeometryHandler();
+    public QueryGeometryHandler geometryHandler(QueryMetricHandlerProperties queryMetricHandlerProperties) {
+        return new SimpleQueryGeometryHandler(queryMetricHandlerProperties);
     }
     
     @Bean
