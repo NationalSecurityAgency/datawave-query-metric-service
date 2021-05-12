@@ -7,6 +7,14 @@ spring:
       enforce-allowed-callers: false
       allowed-callers:
         - "cn=test a. user, ou=example developers, o=example corp, c=us<cn=example corp ca, o=example corp, c=us>"
+  cloud:
+    stream:
+      bindings:
+        queryMetricSource:
+          destination: queryMetricChannel
+        queryMetricSink:
+          destination: queryMetricChannel
+
 server:
   port: 0
   non-secure-port: 0
@@ -82,6 +90,11 @@ datawave:
           - HOST
           - QUERY_ID
           - QUERY_LOGIC
+      client:
+        transport: https
+        host: localhost
+        port: ${server.port}
+
   metadata:
     all-metadata-auths:
       - PRIVATE

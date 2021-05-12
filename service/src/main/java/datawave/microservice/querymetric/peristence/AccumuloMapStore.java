@@ -4,8 +4,10 @@ import com.hazelcast.core.MapLoader;
 import com.hazelcast.core.MapStore;
 import com.hazelcast.core.MapStoreFactory;
 import com.hazelcast.map.impl.proxy.MapProxyImpl;
-import datawave.microservice.querymetric.handler.ShardTableQueryMetricHandler;
 import datawave.microservice.querymetric.BaseQueryMetric;
+import datawave.microservice.querymetric.QueryMetricType;
+import datawave.microservice.querymetric.handler.ShardTableQueryMetricHandler;
+import datawave.microservice.querymetric.QueryMetricUpdate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,7 +24,7 @@ import java.util.Properties;
 @Component
 @ConditionalOnProperty(name = "hazelcast.server.enabled")
 @Qualifier("store")
-public class AccumuloMapStore<T extends BaseQueryMetric> extends AccumuloMapLoader<T> implements MapStore<String,T> {
+public class AccumuloMapStore<T extends BaseQueryMetric> extends AccumuloMapLoader<T> implements MapStore<String,QueryMetricUpdate<T>> {
     
     private static AccumuloMapStore instance;
     private Logger log = LoggerFactory.getLogger(getClass());
@@ -46,16 +48,19 @@ public class AccumuloMapStore<T extends BaseQueryMetric> extends AccumuloMapLoad
     }
     
     @Override
-    public void store(String queryId, T updatedMetric) {
+    public void store(String queryId, QueryMetricUpdate<T> updatedMetricHolder) {
         lastWrittenQueryMetricCache.lock(queryId);
         try {
-            T lastQueryMetric = (T) lastWrittenQueryMetricCache.get(queryId);
-            if (lastQueryMetric != null) {
-                updatedMetric = handler.combineMetrics(updatedMetric, lastQueryMetric);
-                handler.writeMetric(updatedMetric, Collections.singletonList(lastQueryMetric), lastQueryMetric.getLastUpdated(), true);
+            T updatedMetric = updatedMetricHolder.getMetric();
+            QueryMetricType metricType = updatedMetricHolder.getMetricType();
+            QueryMetricUpdate<T> lastQueryMetricUpdate = (QueryMetricUpdate<T>) lastWrittenQueryMetricCache.get(queryId);
+            if (lastQueryMetricUpdate != null) {
+                T lastQueryMetric = lastQueryMetricUpdate.getMetric();
+                updatedMetric = handler.combineMetrics(updatedMetric, lastQueryMetric, metricType);
+                handler.writeMetric(updatedMetricHolder.getMetric(), Collections.singletonList(lastQueryMetric), lastQueryMetric.getLastUpdated(), true);
             }
             handler.writeMetric(updatedMetric, Collections.singletonList(updatedMetric), updatedMetric.getLastUpdated(), false);
-            lastWrittenQueryMetricCache.set(queryId, updatedMetric);
+            lastWrittenQueryMetricCache.set(queryId, new QueryMetricUpdate(updatedMetric));
         } catch (Exception e) {
             log.error(e.getMessage(), e);
         } finally {
@@ -64,7 +69,7 @@ public class AccumuloMapStore<T extends BaseQueryMetric> extends AccumuloMapLoad
     }
     
     @Override
-    public void storeAll(Map<String,T> map) {
+    public void storeAll(Map<String,QueryMetricUpdate<T>> map) {
         map.forEach((queryId, updatedMetric) -> {
             try {
                 this.store(queryId, updatedMetric);

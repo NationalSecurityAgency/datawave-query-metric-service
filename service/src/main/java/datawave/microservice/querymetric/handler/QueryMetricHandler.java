@@ -1,13 +1,14 @@
 package datawave.microservice.querymetric.handler;
 
 import datawave.microservice.querymetric.BaseQueryMetric;
+import datawave.microservice.querymetric.QueryMetricType;
 import datawave.webservice.query.Query;
 
 import java.util.Map;
 
 public interface QueryMetricHandler<T extends BaseQueryMetric> {
     
-    T combineMetrics(T metric, T cachedQueryMetric) throws Exception;
+    T combineMetrics(T metric, T cachedQueryMetric, QueryMetricType metricType) throws Exception;
     
     Map<String,String> getEventFields(BaseQueryMetric queryMetric);
     

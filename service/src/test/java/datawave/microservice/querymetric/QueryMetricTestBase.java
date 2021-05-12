@@ -10,6 +10,7 @@ import com.hazelcast.spring.cache.HazelcastCacheManager;
 import datawave.marking.MarkingFunctions;
 import datawave.microservice.authorization.preauth.ProxiedEntityX509Filter;
 import datawave.microservice.authorization.user.ProxiedUserDetails;
+import datawave.microservice.querymetric.config.QueryMetricClientProperties;
 import datawave.microservice.querymetric.config.QueryMetricHandlerProperties;
 import datawave.microservice.querymetric.handler.ShardTableQueryMetricHandler;
 import datawave.security.authorization.DatawaveUser;
@@ -64,8 +65,6 @@ public class QueryMetricTestBase {
     protected static final SubjectIssuerDNPair ALLOWED_CALLER = SubjectIssuerDNPair.of("cn=test a. user, ou=example developers, o=example corp, c=us",
                     "cn=example corp ca, o=example corp, c=us");
     
-    protected static final String updateMetricUrl = "/querymetric/v1/updateMetric";
-    protected static final String updateMetricsUrl = "/querymetric/v1/updateMetrics";
     protected static final String getMetricsUrl = "/querymetric/v1/id/%s";
     
     @Autowired
@@ -92,6 +91,12 @@ public class QueryMetricTestBase {
     @Autowired
     protected QueryMetricFactory queryMetricFactory;
     
+    @Autowired
+    protected QueryMetricClient client;
+    
+    @Autowired
+    private QueryMetricClientProperties queryMetricClientProperties;
+    
     protected Cache incomingQueryMetricsCache;
     protected Cache lastWrittenQueryMetricCache;
     
@@ -114,6 +119,7 @@ public class QueryMetricTestBase {
     
     @Before
     public void setup() {
+        this.queryMetricClientProperties.setPort(webServicePort);
         this.restTemplate = restTemplateBuilder.build(RestTemplate.class);
         Collection<String> auths = Arrays.asList("PUBLIC", "A", "B", "C");
         this.metricMarkings = new HashMap<>();
@@ -205,8 +211,11 @@ public class QueryMetricTestBase {
             headers.add(ProxiedEntityX509Filter.ISSUER_DN_HEADER, trustedUser.getPrimaryUser().getDn().issuerDN());
         }
         headers.add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
-        
-        return new HttpEntity<>(objectMapper.writeValueAsString(body), headers);
+        if (body == null) {
+            return new HttpEntity<>(null, headers);
+        } else {
+            return new HttpEntity<>(objectMapper.writeValueAsString(body), headers);
+        }
     }
     
     protected void assertEquals(BaseQueryMetric m1, BaseQueryMetric m2) {

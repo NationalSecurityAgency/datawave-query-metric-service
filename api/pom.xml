@@ -20,13 +20,14 @@
         <version.accumulo-utils>1.3</version.accumulo-utils>
         <version.base-rest-responses>1.2</version.base-rest-responses>
         <version.commons-lang>2.6</version.commons-lang>
-        <version.datawave>3.2.1</version.datawave>
+        <version.datawave>3.2.2</version.datawave>
         <version.guava>27.1-jre</version.guava>
         <version.jackson>2.9.9</version.jackson>
         <version.jaxb-api>2.3.1</version.jaxb-api>
         <version.junit>4.12</version.junit>
         <version.protobuf-java>2.5.0</version.protobuf-java>
         <version.protostuff>1.6.2</version.protostuff>
+        <version.spring-cloud-bus>2.1.3.RELEASE</version.spring-cloud-bus>
     </properties>
     <dependencyManagement>
         <dependencies>
@@ -87,6 +88,17 @@
                 <groupId>javax.xml.bind</groupId>
                 <artifactId>jaxb-api</artifactId>
                 <version>${version.jaxb-api}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-bus</artifactId>
+                <version>${version.spring-cloud-bus}</version>
+                <exclusions>
+                    <exclusion>
+                        <artifactId>spring-boot-starter-logging</artifactId>
+                        <groupId>org.springframework.boot</groupId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>com.fasterxml.jackson</groupId>
@@ -167,6 +179,10 @@
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-bus</artifactId>
         </dependency>
     </dependencies>
     <repositories>

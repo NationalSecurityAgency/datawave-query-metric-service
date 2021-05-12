@@ -1,19 +1,16 @@
 package datawave.microservice.querymetric;
 
-import datawave.webservice.result.VoidResponse;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.http.HttpEntity;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.util.UriComponents;
-import org.springframework.web.util.UriComponentsBuilder;
 
-import java.util.Collections;
+import java.util.ArrayList;
+import java.util.List;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -32,33 +29,51 @@ public class QueryMetricAccessTest extends QueryMetricTestBase {
     
     @Test(expected = HttpClientErrorException.Forbidden.class)
     public void RejectNonAdminUserForUpdateMetric() throws Exception {
-        
-        UriComponents updateUri = UriComponentsBuilder.newInstance().scheme("http").host("localhost").port(webServicePort).path(updateMetricUrl).build();
-        HttpEntity requestEntity = createRequestEntity(null, nonAdminUser, createMetric());
-        restTemplate.postForEntity(updateUri.toUri(), requestEntity, VoidResponse.class);
+        // @formatter:off
+        client.submit(new QueryMetricClient.Request.Builder()
+                .withMetric(createMetric())
+                .withMetricType(QueryMetricType.COMPLETE)
+                .withUser(nonAdminUser)
+                .build());
+        // @formatter:on
     }
     
     @Test(expected = HttpClientErrorException.Forbidden.class)
     public void RejectNonAdminUserForUpdateMetrics() throws Exception {
-        
-        UriComponents updateUri = UriComponentsBuilder.newInstance().scheme("http").host("localhost").port(webServicePort).path(updateMetricsUrl).build();
-        HttpEntity requestEntity = createRequestEntity(null, nonAdminUser, Collections.singletonList(createMetric()));
-        restTemplate.postForEntity(updateUri.toUri(), requestEntity, VoidResponse.class);
+        List<BaseQueryMetric> metrics = new ArrayList<>();
+        metrics.add(createMetric());
+        metrics.add(createMetric());
+        // @formatter:off
+        client.submit(new QueryMetricClient.Request.Builder()
+                .withMetrics(metrics)
+                .withMetricType(QueryMetricType.COMPLETE)
+                .withUser(nonAdminUser)
+                .build());
+        // @formatter:on
     }
     
     @Test
     public void AcceptAdminUserForUpdateMetric() throws Exception {
-        
-        UriComponents updateUri = UriComponentsBuilder.newInstance().scheme("http").host("localhost").port(webServicePort).path(updateMetricUrl).build();
-        HttpEntity requestEntity = createRequestEntity(null, adminUser, createMetric());
-        restTemplate.postForEntity(updateUri.toUri(), requestEntity, VoidResponse.class);
+        // @formatter:off
+        client.submit(new QueryMetricClient.Request.Builder()
+                .withMetric(createMetric())
+                .withMetricType(QueryMetricType.COMPLETE)
+                .withUser(adminUser)
+                .build());
+        // @formatter:on
     }
     
     @Test
     public void AcceptAdminUserForUpdateMetrics() throws Exception {
-        
-        UriComponents updateUri = UriComponentsBuilder.newInstance().scheme("http").host("localhost").port(webServicePort).path(updateMetricsUrl).build();
-        HttpEntity requestEntity = createRequestEntity(null, adminUser, Collections.singletonList(createMetric()));
-        restTemplate.postForEntity(updateUri.toUri(), requestEntity, VoidResponse.class);
+        List<BaseQueryMetric> metrics = new ArrayList<>();
+        metrics.add(createMetric());
+        metrics.add(createMetric());
+        // @formatter:off
+        client.submit(new QueryMetricClient.Request.Builder()
+                .withMetrics(metrics)
+                .withMetricType(QueryMetricType.COMPLETE)
+                .withUser(adminUser)
+                .build());
+        // @formatter:on
     }
 }

@@ -34,7 +34,7 @@ public class HazelcastCachingTest extends QueryMetricTestBase {
             String queryId = createQueryId();
             BaseQueryMetric m = createMetric(queryId);
             shardTableQueryMetricHandler.writeMetric(m, Collections.singletonList(m), m.getLastUpdated(), false);
-            BaseQueryMetric metricFromReadThroughCache = lastWrittenQueryMetricCache.get(queryId, BaseQueryMetric.class);
+            BaseQueryMetric metricFromReadThroughCache = lastWrittenQueryMetricCache.get(queryId, QueryMetricUpdate.class).getMetric();
             assertEquals("read through cache failed", m, metricFromReadThroughCache);
         } catch (Exception e) {
             log.error(e.getMessage(), e);
@@ -49,7 +49,7 @@ public class HazelcastCachingTest extends QueryMetricTestBase {
         BaseQueryMetric m = createMetric(queryId);
         
         // use a native cache set vs Cache.put to prevent the fetching and return of Accumulo value
-        ((MapProxyImpl) incomingQueryMetricsCache.getNativeCache()).set(queryId, m);
+        ((MapProxyImpl) incomingQueryMetricsCache.getNativeCache()).set(queryId, new QueryMetricUpdate(m));
         BaseQueryMetric metricFromAccumulo = null;
         do {
             metricFromAccumulo = shardTableQueryMetricHandler.getQueryMetric(queryId);

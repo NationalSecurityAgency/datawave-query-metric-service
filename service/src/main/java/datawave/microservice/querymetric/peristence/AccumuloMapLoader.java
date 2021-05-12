@@ -2,8 +2,9 @@ package datawave.microservice.querymetric.peristence;
 
 import com.hazelcast.core.MapLoader;
 import com.hazelcast.core.MapStoreFactory;
-import datawave.microservice.querymetric.handler.ShardTableQueryMetricHandler;
 import datawave.microservice.querymetric.BaseQueryMetric;
+import datawave.microservice.querymetric.handler.ShardTableQueryMetricHandler;
+import datawave.microservice.querymetric.QueryMetricUpdate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,15 +20,15 @@ import java.util.Properties;
 @Component
 @ConditionalOnProperty(name = "hazelcast.server.enabled")
 @Qualifier("loader")
-public class AccumuloMapLoader<T extends BaseQueryMetric> implements MapLoader<String,T> {
+public class AccumuloMapLoader<T extends BaseQueryMetric> implements MapLoader<String,QueryMetricUpdate<T>> {
     
     private Logger log = LoggerFactory.getLogger(getClass());
     private static AccumuloMapLoader instance;
     protected ShardTableQueryMetricHandler<T> handler;
     
-    public static class Factory implements MapStoreFactory<String,BaseQueryMetric> {
+    public static class Factory implements MapStoreFactory<String,QueryMetricUpdate> {
         @Override
-        public MapLoader<String,BaseQueryMetric> newMapStore(String mapName, Properties properties) {
+        public MapLoader<String,QueryMetricUpdate> newMapStore(String mapName, Properties properties) {
             return AccumuloMapLoader.instance;
         }
     }
@@ -43,17 +44,22 @@ public class AccumuloMapLoader<T extends BaseQueryMetric> implements MapLoader<S
     }
     
     @Override
-    public T load(String s) {
-        return this.handler.getQueryMetric(s);
+    public QueryMetricUpdate load(String s) {
+        T metric = this.handler.getQueryMetric(s);
+        if (metric == null) {
+            return null;
+        } else {
+            return new QueryMetricUpdate(metric);
+        }
     }
     
     @Override
-    public Map<String,T> loadAll(Collection<String> keys) {
-        Map<String,T> metrics = new LinkedHashMap<>();
+    public Map<String,QueryMetricUpdate<T>> loadAll(Collection<String> keys) {
+        Map<String,QueryMetricUpdate<T>> metrics = new LinkedHashMap<>();
         keys.forEach(id -> {
-            T queryMetric = this.handler.getQueryMetric(id);
+            BaseQueryMetric queryMetric = this.handler.getQueryMetric(id);
             if (queryMetric != null) {
-                metrics.put(id, queryMetric);
+                metrics.put(id, new QueryMetricUpdate(queryMetric));
             }
         });
         return metrics;

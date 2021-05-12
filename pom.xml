@@ -13,6 +13,7 @@
     <url>https://code.nsa.gov/datawave-query-metric-service</url>
     <modules>
         <module>api</module>
+        <module>starter</module>
         <module>service</module>
     </modules>
     <scm>

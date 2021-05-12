@@ -6,6 +6,7 @@ import datawave.marking.MarkingFunctions;
 import datawave.microservice.authorization.user.ProxiedUserDetails;
 import datawave.microservice.querymetric.BaseQueryMetric.Lifecycle;
 import datawave.microservice.querymetric.config.QueryMetricHandlerProperties;
+import datawave.microservice.querymetric.config.QueryMetricSinkConfiguration.QueryMetricSinkBinding;
 import datawave.microservice.querymetric.config.TimelyProperties;
 import datawave.microservice.querymetric.handler.QueryGeometryHandler;
 import datawave.microservice.querymetric.handler.ShardTableQueryMetricHandler;
@@ -27,12 +28,15 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
+import org.springframework.cloud.stream.annotation.EnableBinding;
+import org.springframework.cloud.stream.annotation.StreamListener;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.annotation.security.PermitAll;
@@ -46,6 +50,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import static datawave.microservice.querymetric.config.HazelcastServerConfiguration.INCOMING_METRICS;
 
+@EnableBinding(QueryMetricSinkBinding.class)
 @RestController
 @RequestMapping(path = "/v1")
 public class QueryMetricOperations {
@@ -76,10 +81,11 @@ public class QueryMetricOperations {
     @RolesAllowed({"Administrator", "JBossAdministrator"})
     @RequestMapping(path = "/updateMetrics", method = {RequestMethod.POST}, consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE},
                     produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
-    public VoidResponse update(@RequestBody List<BaseQueryMetric> queryMetrics) {
+    public VoidResponse updateMetrics(@RequestBody List<BaseQueryMetric> queryMetrics,
+                    @RequestParam(value = "metricType", defaultValue = "DISTRIBUTED") QueryMetricType metricType) {
         VoidResponse response = new VoidResponse();
         for (BaseQueryMetric m : queryMetrics) {
-            response = update(m);
+            response = storeMetric(m, metricType);
             List<QueryExceptionType> exceptions = response.getExceptions();
             if (exceptions != null && !exceptions.isEmpty()) {
                 break;
@@ -91,12 +97,22 @@ public class QueryMetricOperations {
     @RolesAllowed({"Administrator", "JBossAdministrator"})
     @RequestMapping(path = "/updateMetric", method = {RequestMethod.POST}, consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE},
                     produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
-    public VoidResponse update(@RequestBody BaseQueryMetric queryMetric) {
+    public VoidResponse updateMetric(@RequestBody BaseQueryMetric queryMetric,
+                    @RequestParam(value = "metricType", defaultValue = "DISTRIBUTED") QueryMetricType metricType) {
+        return storeMetric(queryMetric, metricType);
+    }
+    
+    @StreamListener(QueryMetricSinkBinding.SINK_NAME)
+    public void handleEvent(QueryMetricUpdate update) {
+        storeMetric(update.getMetric(), update.getMetricType());
+    }
+    
+    public VoidResponse storeMetric(BaseQueryMetric queryMetric, QueryMetricType metricType) {
         
         VoidResponse response = new VoidResponse();
         try {
-            String queryId = queryMetric.getQueryId();
             Long lastPageNum = null;
+            String queryId = queryMetric.getQueryId();
             if (this.isHazelCast) {
                 // use a native cache set vs Cache.put to prevent the fetching and return of accumulo value
                 MapProxyImpl incomingQueryMetricsCacheHz = ((MapProxyImpl) incomingQueryMetricsCache.getNativeCache());
@@ -104,12 +120,12 @@ public class QueryMetricOperations {
                 incomingQueryMetricsCacheHz.lock(queryId);
                 try {
                     BaseQueryMetric updatedMetric = queryMetric;
-                    BaseQueryMetric lastQueryMetric = (BaseQueryMetric) incomingQueryMetricsCacheHz.get(queryId);
-                    if (lastQueryMetric != null) {
-                        updatedMetric = handler.combineMetrics(queryMetric, lastQueryMetric);
-                        lastPageNum = getLastPageNumber(lastQueryMetric);
+                    QueryMetricUpdate lastQueryMetricUpdate = (QueryMetricUpdate) incomingQueryMetricsCacheHz.get(queryId);
+                    if (lastQueryMetricUpdate != null) {
+                        updatedMetric = handler.combineMetrics(queryMetric, lastQueryMetricUpdate.getMetric(), metricType);
+                        lastPageNum = getLastPageNumber(lastQueryMetricUpdate.getMetric());
                     }
-                    incomingQueryMetricsCacheHz.set(queryId, updatedMetric);
+                    incomingQueryMetricsCacheHz.set(queryId, new QueryMetricUpdate(updatedMetric, metricType));
                     sendMetricsToTimely(updatedMetric, lastPageNum);
                 } finally {
                     incomingQueryMetricsCacheHz.unlock(queryId);
@@ -117,15 +133,16 @@ public class QueryMetricOperations {
             } else {
                 caffeineLock.lock();
                 try {
-                    BaseQueryMetric lastQueryMetric = incomingQueryMetricsCache.get(queryId, BaseQueryMetric.class);
+                    QueryMetricUpdate lastQueryMetricUpdate = incomingQueryMetricsCache.get(queryId, QueryMetricUpdate.class);
                     BaseQueryMetric updatedMetric = queryMetric;
-                    if (lastQueryMetric != null) {
-                        updatedMetric = handler.combineMetrics(queryMetric, lastQueryMetric);
+                    if (lastQueryMetricUpdate != null) {
+                        BaseQueryMetric lastQueryMetric = lastQueryMetricUpdate.getMetric();
+                        updatedMetric = handler.combineMetrics(queryMetric, lastQueryMetric, metricType);
                         handler.writeMetric(updatedMetric, Collections.singletonList(lastQueryMetric), lastQueryMetric.getLastUpdated(), true);
                         lastPageNum = getLastPageNumber(lastQueryMetric);
                     }
                     handler.writeMetric(updatedMetric, Collections.singletonList(updatedMetric), updatedMetric.getLastUpdated(), false);
-                    this.incomingQueryMetricsCache.put(queryId, updatedMetric);
+                    this.incomingQueryMetricsCache.put(queryId, new QueryMetricUpdate(updatedMetric, metricType));
                     sendMetricsToTimely(updatedMetric, lastPageNum);
                 } finally {
                     caffeineLock.unlock();
@@ -167,8 +184,9 @@ public class QueryMetricOperations {
         BaseQueryMetricListResponse response = new QueryMetricListResponse();
         List<BaseQueryMetric> metricList = new ArrayList<>();
         try {
-            BaseQueryMetric metric = incomingQueryMetricsCache.get(queryId, BaseQueryMetric.class);
-            if (metric != null) {
+            QueryMetricUpdate metricHolder = incomingQueryMetricsCache.get(queryId, QueryMetricUpdate.class);
+            if (metricHolder != null) {
+                BaseQueryMetric metric = metricHolder.getMetric();
                 String adminRole = queryMetricHandlerProperties.getMetricAdminRole();
                 boolean allowAllMetrics = adminRole == null;
                 boolean sameUser = false;
