@@ -40,6 +40,12 @@ public class QueryMetricHandlerProperties {
     protected String dateFormat = "yyyyMMdd HHmmss.S";
     protected int fieldLengthThreshold = 4049;
     protected String metricAdminRole;
+    protected boolean enableBloomFilter = false;
+    protected int recordWriterMaxMemory = 10000000;
+    protected int recordWriterMaxLatency = 60000;
+    protected int recordWriterNumThreads = 4;
+    protected String policyEnforcerClass = "datawave.policy.IngestPolicyEnforcer$NoOpIngestPolicyEnforcer";
+    protected String baseMaps = "{}";
     
     //@formatter:off
     protected List<String> indexFields = Arrays.asList(
@@ -106,13 +112,6 @@ public class QueryMetricHandlerProperties {
 
     protected List<String> additionalNumericFields = Collections.EMPTY_LIST;
     //@formatter:on
-    
-    protected boolean enableBloomFilter = false;
-    protected int recordWriterMaxMemory = 10000000;
-    protected int recordWriterMaxLatency = 60000;
-    protected int recordWriterNumThreads = 4;
-    protected String policyEnforcerClass = "datawave.policy.IngestPolicyEnforcer$NoOpIngestPolicyEnforcer";
-    protected String baseMaps = "{}";
     
     public Map<String,String> getProperties() {
         
