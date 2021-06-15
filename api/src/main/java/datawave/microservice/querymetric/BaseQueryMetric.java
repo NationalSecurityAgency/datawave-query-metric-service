@@ -747,6 +747,10 @@ public abstract class BaseQueryMetric implements HasMarkings, Serializable {
         this.host = host;
     }
     
+    public void addPageTime(long pagesize, long timeToReturn, long requestedTime, long returnedTime) {
+        addPageTime(this.host, pagesize, timeToReturn, requestedTime, returnedTime);
+    }
+    
     public void addPageTime(String host, long pagesize, long timeToReturn, long requestedTime, long returnedTime) {
         this.numPages++;
         this.numResults += pagesize;
