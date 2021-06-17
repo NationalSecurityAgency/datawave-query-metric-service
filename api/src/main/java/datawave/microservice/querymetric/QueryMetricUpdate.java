@@ -14,6 +14,11 @@ public class QueryMetricUpdate<T extends BaseQueryMetric> implements Serializabl
     @XmlElement
     private QueryMetricType metricType;
     
+    /* constructor for deserializing JSON messages */
+    public QueryMetricUpdate() {
+        
+    }
+    
     public QueryMetricUpdate(T metric, QueryMetricType metricType) {
         this.metric = metric;
         this.metricType = metricType;

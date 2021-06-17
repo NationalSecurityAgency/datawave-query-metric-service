@@ -14,6 +14,8 @@ spring:
           destination: queryMetricChannel
         queryMetricSink:
           destination: queryMetricChannel
+          group: queryMetricService
+      default-binder: rabbit
 
 server:
   port: 0
