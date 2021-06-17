@@ -7,7 +7,7 @@
         <version>1.7.1</version>
     </parent>
     <artifactId>spring-boot-starter-datawave-query-metric</artifactId>
-    <version>1.1</version>
+    <version>1.2-SNAPSHOT</version>
     <packaging>jar</packaging>
     <licenses>
         <license>
@@ -22,7 +22,7 @@
     </scm>
     <properties>
         <version.microservice.authorization-api>1.4</version.microservice.authorization-api>
-        <version.microservice.query-metric-api>1.1</version.microservice.query-metric-api>
+        <version.microservice.query-metric-api>1.2-SNAPSHOT</version.microservice.query-metric-api>
         <version.microservice.starter>1.6.3</version.microservice.starter>
     </properties>
     <dependencyManagement>
