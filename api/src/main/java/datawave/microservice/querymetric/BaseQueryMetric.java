@@ -1018,7 +1018,9 @@ public abstract class BaseQueryMetric implements HasMarkings, Serializable {
     @Override
     public Map<String,String> getMarkings() {
         Map<String,String> markings = new HashMap<>();
-        markings.put(MarkingFunctions.Default.COLUMN_VISIBILITY, this.columnVisibility);
+        if (this.columnVisibility != null) {
+            markings.put(MarkingFunctions.Default.COLUMN_VISIBILITY, this.columnVisibility);
+        }
         return markings;
     }
     
