@@ -3,8 +3,8 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>gov.nsa.datawave.microservice</groupId>
-        <artifactId>datawave-microservice-service-parent</artifactId>
-        <version>1.7.1</version>
+        <artifactId>datawave-microservice-parent</artifactId>
+        <version>1.8</version>
         <relativePath />
     </parent>
     <artifactId>query-metric-parent</artifactId>

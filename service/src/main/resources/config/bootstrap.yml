@@ -22,7 +22,7 @@ spring:
 
 # For the dev profile, check localhost for the config server by default
 spring:
-  profiles: 'dev'
+  config.activate.on-profile: 'dev'
   cloud:
     config:
       uri: '${CONFIG_SERVER_URL:http://localhost:8888/configserver}'
@@ -30,7 +30,7 @@ spring:
 ---
 
 spring:
-  profiles: 'consul'
+  config.activate.on-profile: 'consul'
   cloud:
     config:
       # Use Consul to locate the configuration server and bootstrap app config.
