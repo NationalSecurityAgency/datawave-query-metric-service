@@ -1,13 +1,13 @@
 package datawave.microservice.querymetric.peristence;
 
-import com.hazelcast.core.MapLoader;
-import com.hazelcast.core.MapStore;
-import com.hazelcast.core.MapStoreFactory;
+import com.hazelcast.map.MapLoader;
+import com.hazelcast.map.MapStore;
+import com.hazelcast.map.MapStoreFactory;
 import com.hazelcast.map.impl.proxy.MapProxyImpl;
 import datawave.microservice.querymetric.BaseQueryMetric;
 import datawave.microservice.querymetric.QueryMetricType;
-import datawave.microservice.querymetric.handler.ShardTableQueryMetricHandler;
 import datawave.microservice.querymetric.QueryMetricUpdate;
+import datawave.microservice.querymetric.handler.ShardTableQueryMetricHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

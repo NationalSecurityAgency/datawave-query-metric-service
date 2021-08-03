@@ -1,8 +1,8 @@
 package datawave.microservice.querymetric;
 
-import datawave.webservice.query.QueryImpl.Parameter;
 import datawave.microservice.querymetric.BaseQueryMetric.PageMetric;
 import datawave.microservice.querymetric.BaseQueryMetric.Prediction;
+import datawave.webservice.query.QueryImpl.Parameter;
 import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.commons.lang.StringUtils;
 

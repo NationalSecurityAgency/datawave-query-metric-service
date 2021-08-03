@@ -1,7 +1,7 @@
 package datawave.microservice.querymetric.peristence;
 
 import com.hazelcast.core.EntryEvent;
-import com.hazelcast.core.MapEvent;
+import com.hazelcast.map.MapEvent;
 import com.hazelcast.map.listener.EntryAddedListener;
 import com.hazelcast.map.listener.EntryEvictedListener;
 import com.hazelcast.map.listener.EntryLoadedListener;

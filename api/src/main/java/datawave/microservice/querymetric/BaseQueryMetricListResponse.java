@@ -1,7 +1,7 @@
 package datawave.microservice.querymetric;
 
-import datawave.webservice.HtmlProvider;
 import datawave.microservice.querymetric.BaseQueryMetric.PageMetric;
+import datawave.webservice.HtmlProvider;
 import datawave.webservice.result.BaseResponse;
 import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.commons.lang.StringUtils;

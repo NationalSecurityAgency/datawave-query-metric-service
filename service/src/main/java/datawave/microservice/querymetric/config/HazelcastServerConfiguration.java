@@ -1,5 +1,7 @@
 package datawave.microservice.querymetric.config;
 
+import com.hazelcast.cluster.MembershipEvent;
+import com.hazelcast.cluster.MembershipListener;
 import com.hazelcast.config.Config;
 import com.hazelcast.config.DiscoveryStrategyConfig;
 import com.hazelcast.config.JoinConfig;
@@ -8,9 +10,6 @@ import com.hazelcast.config.TcpIpConfig;
 import com.hazelcast.config.XmlConfigBuilder;
 import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
-import com.hazelcast.core.MemberAttributeEvent;
-import com.hazelcast.core.MembershipEvent;
-import com.hazelcast.core.MembershipListener;
 import com.hazelcast.kubernetes.HazelcastKubernetesDiscoveryStrategyFactory;
 import com.hazelcast.kubernetes.KubernetesProperties;
 import com.hazelcast.spi.discovery.integration.DiscoveryServiceProvider;
@@ -79,14 +78,9 @@ public class HazelcastServerConfiguration {
             public void memberRemoved(MembershipEvent membershipEvent) {
                 log.info("member removed: " + membershipEvent.getMember().getUuid() + ":" + membershipEvent.getMember().getAddress().toString());
             }
-            
-            @Override
-            public void memberAttributeChanged(MemberAttributeEvent memberAttributeEvent) {
-                
-            }
         });
         System.setProperty("hzAddress", instance.getCluster().getLocalMember().getAddress().toString());
-        System.setProperty("hzUuid", instance.getCluster().getLocalMember().getUuid());
+        System.setProperty("hzUuid", instance.getCluster().getLocalMember().getUuid().toString());
         return instance;
     }
     
@@ -171,7 +165,7 @@ public class HazelcastServerConfiguration {
         
         // Set up some default configuration. Do this after we read the XML configuration (which is really intended just to be cache configurations).
         if (!serverProperties.isSkipDefaultConfiguration()) {
-            config.getGroupConfig().setName(clusterName); // Set the cluster name
+            config.setClusterName(clusterName); // Set the cluster name
             config.setProperty("hazelcast.logging.type", "slf4j"); // Override the default log handler
             config.setProperty("hazelcast.rest.enabled", Boolean.TRUE.toString()); // Enable the REST endpoints so we can test/debug on them
             config.setProperty("hazelcast.phone.home.enabled", Boolean.FALSE.toString()); // Don't try to send stats back to Hazelcast
