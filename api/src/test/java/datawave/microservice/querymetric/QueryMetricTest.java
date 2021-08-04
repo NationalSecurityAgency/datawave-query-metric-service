@@ -112,7 +112,7 @@ public class QueryMetricTest {
         assertEquals(Lifecycle.INITIALIZED, queryMetric.getLifecycle());
         assertEquals("PUBLIC", queryMetric.getMarkings().get(MarkingFunctions.Default.COLUMN_VISIBILITY));
         assertEquals("negativeSelector1", queryMetric.getNegativeSelectors().get(0));
-        assertEquals(0, queryMetric.getNumPages());
+        assertEquals(1, queryMetric.getNumPages());
         assertEquals(0, queryMetric.getNumResults());
         assertEquals(0, queryMetric.getNumUpdates());
         assertEquals(0, queryMetric.getPageTimes().get(0).getCallTime());
