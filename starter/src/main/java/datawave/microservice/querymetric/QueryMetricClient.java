@@ -36,7 +36,7 @@ import java.util.List;
  */
 @Service
 @EnableBinding({QueryMetricSinkBinding.class, QueryMetricSourceBinding.class})
-@ConditionalOnProperty(name = "datawave.query.metric.client=enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(name = "datawave.query.metric.client.enabled", havingValue = "true", matchIfMissing = true)
 public class QueryMetricClient {
     
     private final Logger log = LoggerFactory.getLogger(this.getClass());
