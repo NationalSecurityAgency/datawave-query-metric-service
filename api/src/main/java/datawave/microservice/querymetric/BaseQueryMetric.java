@@ -178,7 +178,6 @@ public abstract class BaseQueryMetric implements HasMarkings, Serializable {
                 sb.append(host);
             }
             sb.append("/");
-            sb.append(pageNumber).append("/");
             sb.append(pagesize).append("/");
             sb.append(returnTime).append("/");
             sb.append(callTime).append("/");

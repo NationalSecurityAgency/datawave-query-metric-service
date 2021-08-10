@@ -252,7 +252,8 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> implements 
         event.setDataType(type);
         event.setDate(storedQueryMetric.getCreateDate().getTime());
         // get markings from metric, otherwise use the default markings
-        if (updatedQueryMetric.getMarkings() != null) {
+        Map<String,String> markings = updatedQueryMetric.getMarkings();
+        if (markings != null && !markings.isEmpty()) {
             try {
                 event.setVisibility(this.markingFunctions.translateToColumnVisibility(updatedQueryMetric.getMarkings()));
             } catch (MarkingFunctions.Exception e) {

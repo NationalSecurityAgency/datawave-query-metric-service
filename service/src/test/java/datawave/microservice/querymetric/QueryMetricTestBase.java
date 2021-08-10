@@ -218,14 +218,14 @@ public class QueryMetricTestBase {
         }
     }
     
-    protected void assertEquals(BaseQueryMetric m1, BaseQueryMetric m2) {
+    public static void assertEquals(BaseQueryMetric m1, BaseQueryMetric m2) {
         assertEquals("", m1, m2);
     }
     
     /*
      * This method compares the fields of BaseQueryMetric one by one so that the discrepancy is obvious It also rounds all Date objects to
      */
-    protected void assertEquals(String message, BaseQueryMetric m1, BaseQueryMetric m2) {
+    public static void assertEquals(String message, BaseQueryMetric m1, BaseQueryMetric m2) {
         if (null == m2) {
             Assert.fail(message + ": actual metric is null");
         } else if (m1 == m2) {
@@ -270,7 +270,7 @@ public class QueryMetricTestBase {
         }
     }
     
-    protected boolean assertObjectsEqual(Object o1, Object o2) {
+    public static boolean assertObjectsEqual(Object o1, Object o2) {
         if (o1 == null && o2 == null) {
             return true;
         } else if (o1 == null && o2 != null) {

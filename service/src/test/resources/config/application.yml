@@ -93,6 +93,7 @@ datawave:
           - QUERY_ID
           - QUERY_LOGIC
       client:
+        enabled: true
         transport: https
         host: localhost
         port: ${server.port}
