@@ -15,12 +15,12 @@ import datawave.security.util.DnUtils;
 import datawave.util.timely.UdpClient;
 import datawave.webservice.query.exception.DatawaveErrorCode;
 import datawave.webservice.query.exception.QueryException;
-import datawave.webservice.query.exception.QueryExceptionType;
 import datawave.webservice.query.map.QueryGeometryResponse;
 import datawave.webservice.result.VoidResponse;
 import io.swagger.annotations.ApiParam;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
+import org.apache.accumulo.core.security.VisibilityEvaluator;
 import org.apache.accumulo.core.security.VisibilityEvaluator;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
@@ -29,8 +29,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.cloud.stream.annotation.EnableBinding;
+import org.springframework.cloud.stream.annotation.Output;
 import org.springframework.cloud.stream.annotation.StreamListener;
 import org.springframework.http.MediaType;
+import org.springframework.integration.support.MessageBuilder;
+import org.springframework.messaging.MessageChannel;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -49,6 +52,7 @@ import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
 
 import static datawave.microservice.querymetric.config.HazelcastServerConfiguration.INCOMING_METRICS;
+import static datawave.microservice.querymetric.config.QueryMetricSourceConfiguration.QueryMetricSourceBinding.SOURCE_NAME;
 
 @EnableBinding(QueryMetricSinkBinding.class)
 @RestController
@@ -66,6 +70,10 @@ public class QueryMetricOperations {
     private TimelyProperties timelyProperties;
     private ReentrantLock caffeineLock = new ReentrantLock();
     
+    @Output(SOURCE_NAME)
+    @Autowired
+    private MessageChannel output;
+    
     @Autowired
     public QueryMetricOperations(CacheManager cacheManager, ShardTableQueryMetricHandler handler, QueryGeometryHandler geometryHandler,
                     QueryMetricHandlerProperties queryMetricHandlerProperties, MarkingFunctions markingFunctions, TimelyProperties timelyProperties) {
@@ -78,6 +86,8 @@ public class QueryMetricOperations {
         this.timelyProperties = timelyProperties;
     }
     
+    // Messages that arrive via http/https get placed on the message queue
+    // to ensure a quick response and to maintain a single queue of work
     @RolesAllowed({"Administrator", "JBossAdministrator"})
     @RequestMapping(path = "/updateMetrics", method = {RequestMethod.POST}, consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE},
                     produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
@@ -85,21 +95,20 @@ public class QueryMetricOperations {
                     @RequestParam(value = "metricType", defaultValue = "DISTRIBUTED") QueryMetricType metricType) {
         VoidResponse response = new VoidResponse();
         for (BaseQueryMetric m : queryMetrics) {
-            response = storeMetric(m, metricType);
-            List<QueryExceptionType> exceptions = response.getExceptions();
-            if (exceptions != null && !exceptions.isEmpty()) {
-                break;
-            }
+            output.send(MessageBuilder.withPayload(new QueryMetricUpdate(m, metricType)).build());
         }
         return response;
     }
     
+    // Messages that arrive via http/https get placed on the message queue
+    // to ensure a quick response and to maintain a single queue of work
     @RolesAllowed({"Administrator", "JBossAdministrator"})
     @RequestMapping(path = "/updateMetric", method = {RequestMethod.POST}, consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE},
                     produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
     public VoidResponse updateMetric(@RequestBody BaseQueryMetric queryMetric,
                     @RequestParam(value = "metricType", defaultValue = "DISTRIBUTED") QueryMetricType metricType) {
-        return storeMetric(queryMetric, metricType);
+        output.send(MessageBuilder.withPayload(new QueryMetricUpdate(queryMetric, metricType)).build());
+        return new VoidResponse();
     }
     
     @StreamListener(QueryMetricSinkBinding.SINK_NAME)
@@ -177,7 +186,8 @@ public class QueryMetricOperations {
      * @HTTP 500 internal server error
      */
     @PermitAll
-    @RequestMapping(path = "/id/{queryId}", method = {RequestMethod.GET}, produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
+    @RequestMapping(path = "/id/{queryId}", method = {RequestMethod.GET},
+                    produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE, MediaType.TEXT_HTML_VALUE})
     public BaseQueryMetricListResponse query(@AuthenticationPrincipal ProxiedUserDetails currentUser,
                     @ApiParam("queryId to return") @PathVariable("queryId") String queryId) {
         
