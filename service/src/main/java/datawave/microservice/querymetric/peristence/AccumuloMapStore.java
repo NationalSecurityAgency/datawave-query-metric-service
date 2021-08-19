@@ -1,9 +1,9 @@
 package datawave.microservice.querymetric.peristence;
 
+import com.hazelcast.core.IMap;
 import com.hazelcast.core.MapLoader;
 import com.hazelcast.core.MapStore;
 import com.hazelcast.core.MapStoreFactory;
-import com.hazelcast.map.impl.proxy.MapProxyImpl;
 import datawave.microservice.querymetric.BaseQueryMetric;
 import datawave.microservice.querymetric.QueryMetricType;
 import datawave.microservice.querymetric.handler.ShardTableQueryMetricHandler;
@@ -28,7 +28,7 @@ public class AccumuloMapStore<T extends BaseQueryMetric> extends AccumuloMapLoad
     
     private static AccumuloMapStore instance;
     private Logger log = LoggerFactory.getLogger(getClass());
-    private MapProxyImpl lastWrittenQueryMetricCache;
+    private IMap<Object,Object> lastWrittenQueryMetricCache;
     
     public static class Factory implements MapStoreFactory<String,BaseQueryMetric> {
         @Override
@@ -44,7 +44,7 @@ public class AccumuloMapStore<T extends BaseQueryMetric> extends AccumuloMapLoad
     }
     
     public void setLastWrittenQueryMetricCache(Cache lastWrittenQueryMetricCache) {
-        this.lastWrittenQueryMetricCache = (MapProxyImpl) lastWrittenQueryMetricCache.getNativeCache();
+        this.lastWrittenQueryMetricCache = (IMap<Object,Object>) lastWrittenQueryMetricCache.getNativeCache();
     }
     
     @Override

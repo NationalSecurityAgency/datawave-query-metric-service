@@ -1,6 +1,6 @@
 package datawave.microservice.querymetric;
 
-import com.hazelcast.map.impl.proxy.MapProxyImpl;
+import com.hazelcast.core.IMap;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -49,7 +49,7 @@ public class HazelcastCachingTest extends QueryMetricTestBase {
         BaseQueryMetric m = createMetric(queryId);
         
         // use a native cache set vs Cache.put to prevent the fetching and return of Accumulo value
-        ((MapProxyImpl) incomingQueryMetricsCache.getNativeCache()).set(queryId, new QueryMetricUpdate(m));
+        ((IMap<Object,Object>) incomingQueryMetricsCache.getNativeCache()).set(queryId, new QueryMetricUpdate(m));
         BaseQueryMetric metricFromAccumulo = null;
         do {
             metricFromAccumulo = shardTableQueryMetricHandler.getQueryMetric(queryId);

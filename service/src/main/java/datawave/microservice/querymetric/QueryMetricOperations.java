@@ -1,6 +1,6 @@
 package datawave.microservice.querymetric;
 
-import com.hazelcast.map.impl.proxy.MapProxyImpl;
+import com.hazelcast.core.IMap;
 import com.hazelcast.spring.cache.HazelcastCacheManager;
 import datawave.marking.MarkingFunctions;
 import datawave.microservice.authorization.user.ProxiedUserDetails;
@@ -20,7 +20,6 @@ import datawave.webservice.result.VoidResponse;
 import io.swagger.annotations.ApiParam;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
-import org.apache.accumulo.core.security.VisibilityEvaluator;
 import org.apache.accumulo.core.security.VisibilityEvaluator;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
@@ -95,6 +94,7 @@ public class QueryMetricOperations {
                     @RequestParam(value = "metricType", defaultValue = "DISTRIBUTED") QueryMetricType metricType) {
         VoidResponse response = new VoidResponse();
         for (BaseQueryMetric m : queryMetrics) {
+            log.trace("received metric update via REST: " + m.toString());
             output.send(MessageBuilder.withPayload(new QueryMetricUpdate(m, metricType)).build());
         }
         return response;
@@ -107,6 +107,7 @@ public class QueryMetricOperations {
                     produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
     public VoidResponse updateMetric(@RequestBody BaseQueryMetric queryMetric,
                     @RequestParam(value = "metricType", defaultValue = "DISTRIBUTED") QueryMetricType metricType) {
+        log.trace("received metric update via REST: " + queryMetric.toString());
         output.send(MessageBuilder.withPayload(new QueryMetricUpdate(queryMetric, metricType)).build());
         return new VoidResponse();
     }
@@ -118,13 +119,14 @@ public class QueryMetricOperations {
     
     public VoidResponse storeMetric(BaseQueryMetric queryMetric, QueryMetricType metricType) {
         
+        log.trace("storing metric update: " + queryMetric.toString());
         VoidResponse response = new VoidResponse();
         try {
             Long lastPageNum = null;
             String queryId = queryMetric.getQueryId();
             if (this.isHazelCast) {
                 // use a native cache set vs Cache.put to prevent the fetching and return of accumulo value
-                MapProxyImpl incomingQueryMetricsCacheHz = ((MapProxyImpl) incomingQueryMetricsCache.getNativeCache());
+                IMap<Object,Object> incomingQueryMetricsCacheHz = ((IMap<Object,Object>) incomingQueryMetricsCache.getNativeCache());
                 
                 incomingQueryMetricsCacheHz.lock(queryId);
                 try {

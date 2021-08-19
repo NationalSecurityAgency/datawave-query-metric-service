@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.hazelcast.config.Config;
 import com.hazelcast.config.MapStoreConfig;
-import com.hazelcast.map.impl.proxy.MapProxyImpl;
+import com.hazelcast.core.IMap;
 import com.hazelcast.spring.cache.HazelcastCacheManager;
 import datawave.marking.MarkingFunctions;
 import datawave.microservice.authorization.preauth.ProxiedEntityX509Filter;
@@ -355,7 +355,7 @@ public class QueryMetricTestBase {
         // only wait on value if this is a write-behind cache
         if (writeDelaySeconds > 0) {
             boolean found = false;
-            MapProxyImpl hzCache = ((MapProxyImpl) lastWrittenCache.getNativeCache());
+            IMap<Object,Object> hzCache = ((IMap<Object,Object>) lastWrittenCache.getNativeCache());
             while (!found && System.currentTimeMillis() < (now + (1000 * (writeDelaySeconds + 1)))) {
                 found = hzCache.containsKey(queryId);
                 if (!found) {
