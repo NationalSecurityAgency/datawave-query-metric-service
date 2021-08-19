@@ -1,6 +1,6 @@
 package datawave.microservice.querymetric;
 
-import com.hazelcast.map.impl.proxy.MapProxyImpl;
+import com.hazelcast.map.IMap;
 import com.hazelcast.spring.cache.HazelcastCacheManager;
 import datawave.marking.MarkingFunctions;
 import datawave.microservice.authorization.user.ProxiedUserDetails;
@@ -115,7 +115,7 @@ public class QueryMetricOperations {
             String queryId = queryMetric.getQueryId();
             if (this.isHazelCast) {
                 // use a native cache set vs Cache.put to prevent the fetching and return of accumulo value
-                MapProxyImpl incomingQueryMetricsCacheHz = ((MapProxyImpl) incomingQueryMetricsCache.getNativeCache());
+                IMap<Object,Object> incomingQueryMetricsCacheHz = ((IMap<Object,Object>) incomingQueryMetricsCache.getNativeCache());
                 
                 incomingQueryMetricsCacheHz.lock(queryId);
                 try {
