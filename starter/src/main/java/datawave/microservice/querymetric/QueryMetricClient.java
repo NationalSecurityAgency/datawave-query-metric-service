@@ -16,7 +16,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.web.client.RestTemplateBuilder;
-import org.springframework.cloud.stream.annotation.EnableBinding;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -35,7 +34,6 @@ import java.util.List;
  * @see Request
  */
 @Service
-@EnableBinding({QueryMetricSinkBinding.class, QueryMetricSourceBinding.class})
 @ConditionalOnProperty(name = "datawave.query.metric.client.enabled", havingValue = "true", matchIfMissing = true)
 public class QueryMetricClient {
     
@@ -57,8 +55,8 @@ public class QueryMetricClient {
     
     @Autowired
     public QueryMetricClient(RestTemplateBuilder restTemplateBuilder, QueryMetricClientProperties queryMetricClientProperties,
-                    QueryMetricSourceBinding queryMetricSourceBinding, QueryMetricSinkBinding queryMetricSinkBinding, ObjectMapper objectMapper,
-                    JWTTokenHandler jwtTokenHandler) {
+                    @Autowired(required = false) QueryMetricSourceBinding queryMetricSourceBinding,
+                    @Autowired(required = false) QueryMetricSinkBinding queryMetricSinkBinding, ObjectMapper objectMapper, JWTTokenHandler jwtTokenHandler) {
         this.restTemplateBuilder = restTemplateBuilder;
         this.queryMetricClientProperties = queryMetricClientProperties;
         this.queryMetricSourceBinding = queryMetricSourceBinding;
