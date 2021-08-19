@@ -40,6 +40,10 @@
                         <artifactId>log4j</artifactId>
                         <groupId>log4j</groupId>
                     </exclusion>
+                    <exclusion>
+                        <artifactId>*</artifactId>
+                        <groupId>org.eclipse.jetty</groupId>
+                    </exclusion>
                 </exclusions>
             </dependency>
             <dependency>
@@ -86,6 +90,10 @@
                     <exclusion>
                         <artifactId>jsp-api</artifactId>
                         <groupId>javax.servlet.jsp</groupId>
+                    </exclusion>
+                    <exclusion>
+                        <artifactId>*</artifactId>
+                        <groupId>org.eclipse.jetty</groupId>
                     </exclusion>
                 </exclusions>
             </dependency>
