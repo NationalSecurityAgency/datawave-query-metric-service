@@ -17,7 +17,7 @@ import datawave.ingest.mapreduce.job.BulkIngestKey;
 import datawave.ingest.mapreduce.job.writer.LiveContextWriter;
 import datawave.ingest.table.config.TableConfigHelper;
 import datawave.marking.MarkingFunctions;
-import datawave.microservice.common.connection.AccumuloConnectionFactory.Priority;
+import datawave.webservice.common.connection.AccumuloConnectionFactory.Priority;
 import datawave.microservice.query.logic.QueryLogic;
 import datawave.microservice.querymetric.BaseQueryMetric;
 import datawave.microservice.querymetric.BaseQueryMetric.Lifecycle;
