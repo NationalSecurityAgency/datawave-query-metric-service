@@ -5,13 +5,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import datawave.microservice.authorization.preauth.ProxiedEntityX509Filter;
 import datawave.microservice.authorization.user.ProxiedUserDetails;
 import datawave.microservice.querymetric.config.QueryMetricClientProperties;
-import datawave.microservice.querymetric.config.QueryMetricSourceConfiguration.QueryMetricSourceBinding;
 import datawave.microservice.querymetric.config.QueryMetricTransportType;
+import datawave.microservice.querymetric.function.QueryMetricSupplier;
 import datawave.security.authorization.JWTTokenHandler;
 import datawave.webservice.result.VoidResponse;
 import org.apache.commons.lang.builder.ToStringBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -37,16 +38,16 @@ public class QueryMetricClient {
     
     private QueryMetricClientProperties queryMetricClientProperties;
     
-    private ObjectMapper objectMapper;
+    private QueryMetricSupplier queryMetricSupplier;
     
-    private QueryMetricSourceBinding queryMetricSourceBinding;
+    private ObjectMapper objectMapper;
     
     private JWTTokenHandler jwtTokenHandler;
     
     public QueryMetricClient(RestTemplateBuilder restTemplateBuilder, QueryMetricClientProperties queryMetricClientProperties,
-                    QueryMetricSourceBinding queryMetricSourceBinding, ObjectMapper objectMapper, JWTTokenHandler jwtTokenHandler) {
+                    @Autowired(required = false) QueryMetricSupplier queryMetricSupplier, ObjectMapper objectMapper, JWTTokenHandler jwtTokenHandler) {
         this.queryMetricClientProperties = queryMetricClientProperties;
-        this.queryMetricSourceBinding = queryMetricSourceBinding;
+        this.queryMetricSupplier = queryMetricSupplier;
         this.objectMapper = objectMapper;
         this.restTemplate = restTemplateBuilder.build();
         this.jwtTokenHandler = jwtTokenHandler;
@@ -71,7 +72,7 @@ public class QueryMetricClient {
     private void submitViaMessage(Request request) {
         for (BaseQueryMetric metric : request.metrics) {
             QueryMetricUpdate metricUpdate = new QueryMetricUpdate(metric, request.metricType);
-            queryMetricSourceBinding.queryMetricSource().send(MessageBuilder.withPayload(metricUpdate).build());
+            queryMetricSupplier.send(MessageBuilder.withPayload(metricUpdate).build());
         }
     }
     

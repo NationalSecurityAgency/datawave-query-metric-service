@@ -7,15 +7,6 @@ spring:
       enforce-allowed-callers: false
       allowed-callers:
         - "cn=test a. user, ou=example developers, o=example corp, c=us<cn=example corp ca, o=example corp, c=us>"
-  cloud:
-    stream:
-      bindings:
-        queryMetricSource:
-          destination: queryMetricChannel
-        queryMetricSink:
-          destination: queryMetricChannel
-          group: queryMetricService
-      default-binder: rabbit
 
 server:
   port: 0
@@ -94,7 +85,6 @@ datawave:
           - QUERY_LOGIC
       client:
         enabled: true
-        transport: message_test
         host: localhost
         port: ${server.port}
 

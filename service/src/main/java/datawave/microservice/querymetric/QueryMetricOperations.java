@@ -6,8 +6,8 @@ import datawave.marking.MarkingFunctions;
 import datawave.microservice.authorization.user.ProxiedUserDetails;
 import datawave.microservice.querymetric.BaseQueryMetric.Lifecycle;
 import datawave.microservice.querymetric.config.QueryMetricHandlerProperties;
-import datawave.microservice.querymetric.config.QueryMetricSinkConfiguration.QueryMetricSinkBinding;
 import datawave.microservice.querymetric.config.TimelyProperties;
+import datawave.microservice.querymetric.function.QueryMetricSupplier;
 import datawave.microservice.querymetric.handler.QueryGeometryHandler;
 import datawave.microservice.querymetric.handler.ShardTableQueryMetricHandler;
 import datawave.microservice.querymetric.handler.SimpleQueryGeometryHandler;
@@ -27,12 +27,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
-import org.springframework.cloud.stream.annotation.EnableBinding;
-import org.springframework.cloud.stream.annotation.Output;
-import org.springframework.cloud.stream.annotation.StreamListener;
 import org.springframework.http.MediaType;
 import org.springframework.integration.support.MessageBuilder;
-import org.springframework.messaging.MessageChannel;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -51,9 +47,7 @@ import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
 
 import static datawave.microservice.querymetric.config.HazelcastServerConfiguration.INCOMING_METRICS;
-import static datawave.microservice.querymetric.config.QueryMetricSourceConfiguration.QueryMetricSourceBinding.SOURCE_NAME;
 
-@EnableBinding(QueryMetricSinkBinding.class)
 @RestController
 @RequestMapping(path = "/v1")
 public class QueryMetricOperations {
@@ -68,14 +62,12 @@ public class QueryMetricOperations {
     private MarkingFunctions markingFunctions;
     private TimelyProperties timelyProperties;
     private ReentrantLock caffeineLock = new ReentrantLock();
-    
-    @Output(SOURCE_NAME)
-    @Autowired
-    private MessageChannel output;
+    private QueryMetricSupplier queryMetricSupplier;
     
     @Autowired
     public QueryMetricOperations(CacheManager cacheManager, ShardTableQueryMetricHandler handler, QueryGeometryHandler geometryHandler,
-                    QueryMetricHandlerProperties queryMetricHandlerProperties, MarkingFunctions markingFunctions, TimelyProperties timelyProperties) {
+                    QueryMetricHandlerProperties queryMetricHandlerProperties, MarkingFunctions markingFunctions, TimelyProperties timelyProperties,
+                    QueryMetricSupplier queryMetricSupplier) {
         this.handler = handler;
         this.geometryHandler = geometryHandler;
         this.isHazelCast = cacheManager instanceof HazelcastCacheManager;
@@ -83,6 +75,7 @@ public class QueryMetricOperations {
         this.queryMetricHandlerProperties = queryMetricHandlerProperties;
         this.markingFunctions = markingFunctions;
         this.timelyProperties = timelyProperties;
+        this.queryMetricSupplier = queryMetricSupplier;
     }
     
     // Messages that arrive via http/https get placed on the message queue
@@ -95,7 +88,7 @@ public class QueryMetricOperations {
         VoidResponse response = new VoidResponse();
         for (BaseQueryMetric m : queryMetrics) {
             log.trace("received metric update via REST: " + m.toString());
-            output.send(MessageBuilder.withPayload(new QueryMetricUpdate(m, metricType)).build());
+            this.queryMetricSupplier.send(MessageBuilder.withPayload(new QueryMetricUpdate(m, metricType)).build());
         }
         return response;
     }
@@ -108,13 +101,8 @@ public class QueryMetricOperations {
     public VoidResponse updateMetric(@RequestBody BaseQueryMetric queryMetric,
                     @RequestParam(value = "metricType", defaultValue = "DISTRIBUTED") QueryMetricType metricType) {
         log.trace("received metric update via REST: " + queryMetric.toString());
-        output.send(MessageBuilder.withPayload(new QueryMetricUpdate(queryMetric, metricType)).build());
+        this.queryMetricSupplier.send(MessageBuilder.withPayload(new QueryMetricUpdate(queryMetric, metricType)).build());
         return new VoidResponse();
-    }
-    
-    @StreamListener(QueryMetricSinkBinding.SINK_NAME)
-    public void handleEvent(QueryMetricUpdate update) {
-        storeMetric(update.getMetric(), update.getMetricType());
     }
     
     public VoidResponse storeMetric(BaseQueryMetric queryMetric, QueryMetricType metricType) {

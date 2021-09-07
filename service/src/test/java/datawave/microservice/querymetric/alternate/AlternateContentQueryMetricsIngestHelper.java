@@ -1,4 +1,4 @@
-package datawave.microservice.querymetric.config;
+package datawave.microservice.querymetric.alternate;
 
 import com.google.common.collect.Multimap;
 import datawave.microservice.querymetric.handler.ContentQueryMetricsIngestHelper;

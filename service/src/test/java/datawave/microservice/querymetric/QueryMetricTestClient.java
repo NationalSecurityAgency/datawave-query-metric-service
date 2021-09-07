@@ -2,12 +2,11 @@ package datawave.microservice.querymetric;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import datawave.microservice.querymetric.config.QueryMetricClientProperties;
-import datawave.microservice.querymetric.config.QueryMetricSinkConfiguration.QueryMetricSinkBinding;
-import datawave.microservice.querymetric.config.QueryMetricSourceConfiguration.QueryMetricSourceBinding;
 import datawave.microservice.querymetric.config.QueryMetricTransportType;
+import datawave.microservice.querymetric.function.QueryMetricConsumer;
+import datawave.microservice.querymetric.function.QueryMetricSupplier;
 import datawave.security.authorization.JWTTokenHandler;
 import org.springframework.boot.web.client.RestTemplateBuilder;
-import org.springframework.messaging.support.MessageBuilder;
 
 /* Rest and spring cloud stream client for submitting query metric updates to the query metric service
  *
@@ -15,14 +14,14 @@ import org.springframework.messaging.support.MessageBuilder;
 */
 public class QueryMetricTestClient extends QueryMetricClient {
     
-    private QueryMetricSinkBinding queryMetricSinkBinding;
+    private QueryMetricConsumer queryMetricConsumer;
     private QueryMetricClientProperties queryMetricClientProperties;
     
     public QueryMetricTestClient(RestTemplateBuilder restTemplateBuilder, QueryMetricClientProperties queryMetricClientProperties,
-                    QueryMetricSourceBinding queryMetricSourceBinding, QueryMetricSinkBinding queryMetricSinkBinding, ObjectMapper objectMapper,
+                    QueryMetricSupplier queryMetricSupplier, QueryMetricConsumer queryMetricConsumer, ObjectMapper objectMapper,
                     JWTTokenHandler jwtTokenHandler) {
-        super(restTemplateBuilder, queryMetricClientProperties, queryMetricSourceBinding, objectMapper, jwtTokenHandler);
-        this.queryMetricSinkBinding = queryMetricSinkBinding;
+        super(restTemplateBuilder, queryMetricClientProperties, queryMetricSupplier, objectMapper, jwtTokenHandler);
+        this.queryMetricConsumer = queryMetricConsumer;
         this.queryMetricClientProperties = queryMetricClientProperties;
     }
     
@@ -33,17 +32,15 @@ public class QueryMetricTestClient extends QueryMetricClient {
         if (request.metricType == null) {
             throw new IllegalArgumentException("Request must contain a query metric type");
         }
-        if (queryMetricClientProperties.getTransport().equals(QueryMetricTransportType.MESSAGE_TEST)) {
-            submitViaMessageTest(request);
-        } else {
+        
+        if (queryMetricClientProperties.getTransport().equals(QueryMetricTransportType.HTTP)
+                        || queryMetricClientProperties.getTransport().equals(QueryMetricTransportType.HTTPS)) {
             super.submit(request);
-        }
-    }
-    
-    private void submitViaMessageTest(Request request) {
-        for (BaseQueryMetric metric : request.metrics) {
-            QueryMetricUpdate metricUpdate = new QueryMetricUpdate(metric, request.metricType);
-            queryMetricSinkBinding.queryMetricSink().send(MessageBuilder.withPayload(metricUpdate).build());
+        } else {
+            for (BaseQueryMetric metric : request.metrics) {
+                QueryMetricUpdate metricUpdate = new QueryMetricUpdate(metric, request.metricType);
+                queryMetricConsumer.accept(metricUpdate);
+            }
         }
     }
 }

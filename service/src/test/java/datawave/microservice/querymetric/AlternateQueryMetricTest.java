@@ -1,6 +1,6 @@
 package datawave.microservice.querymetric;
 
-import datawave.microservice.querymetric.config.AlternateQueryMetric;
+import datawave.microservice.querymetric.alternate.AlternateQueryMetric;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;

@@ -2,6 +2,7 @@ package datawave.microservice.querymetric.config;
 
 import datawave.accumulo.inmemory.InMemoryInstance;
 import datawave.microservice.config.accumulo.AccumuloProperties;
+import datawave.microservice.querymetric.alternate.AlternateQueryMetricSupplier;
 import datawave.microservice.querymetric.factory.WrappedAccumuloConnectionPoolFactory;
 import datawave.webservice.common.connection.AccumuloConnectionPool;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -20,6 +21,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Profile;
 
 @ImportAutoConfiguration({RefreshAutoConfiguration.class})
@@ -58,5 +60,11 @@ public class QueryMetricTestConfiguration {
     @Qualifier("warehouse")
     public Connector memoryWarehouseConnector(@Qualifier("warehouse") Instance instance) throws AccumuloSecurityException, AccumuloException {
         return instance.getConnector(accumuloProperties.getUsername(), new PasswordToken(accumuloProperties.getPassword()));
+    }
+    
+    @Bean
+    @Primary
+    public AlternateQueryMetricSupplier alternateQueryMetricSupplier() {
+        return new AlternateQueryMetricSupplier();
     }
 }

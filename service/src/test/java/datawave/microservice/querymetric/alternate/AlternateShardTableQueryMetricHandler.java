@@ -1,11 +1,12 @@
-package datawave.microservice.querymetric.config;
+package datawave.microservice.querymetric.alternate;
 
 import datawave.marking.MarkingFunctions;
+import datawave.microservice.querymetric.QueryMetricFactory;
+import datawave.microservice.querymetric.config.QueryMetricHandlerProperties;
+import datawave.microservice.querymetric.factory.QueryMetricQueryLogicFactory;
 import datawave.microservice.querymetric.handler.ContentQueryMetricsIngestHelper;
 import datawave.microservice.querymetric.handler.ShardTableQueryMetricHandler;
-import datawave.microservice.querymetric.factory.QueryMetricQueryLogicFactory;
 import datawave.webservice.common.connection.AccumuloConnectionPool;
-import datawave.microservice.querymetric.QueryMetricFactory;
 import datawave.webservice.query.result.event.EventBase;
 import datawave.webservice.query.result.event.FieldBase;
 import org.springframework.beans.factory.annotation.Qualifier;

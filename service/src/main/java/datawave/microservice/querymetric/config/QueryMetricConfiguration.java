@@ -9,19 +9,21 @@ import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.fasterxml.jackson.module.jaxb.JaxbAnnotationModule;
 import com.github.benmanes.caffeine.cache.CaffeineSpec;
 import datawave.marking.MarkingFunctions;
+import datawave.microservice.querymetric.BaseQueryMetric;
+import datawave.microservice.querymetric.QueryMetricFactory;
+import datawave.microservice.querymetric.QueryMetricFactoryImpl;
+import datawave.microservice.querymetric.QueryMetricOperations;
+import datawave.microservice.querymetric.factory.QueryMetricQueryLogicFactory;
+import datawave.microservice.querymetric.function.QueryMetricConsumer;
 import datawave.microservice.querymetric.handler.AccumuloConnectionTracking;
 import datawave.microservice.querymetric.handler.QueryGeometryHandler;
 import datawave.microservice.querymetric.handler.ShardTableQueryMetricHandler;
-import datawave.microservice.querymetric.factory.QueryMetricQueryLogicFactory;
 import datawave.microservice.querymetric.handler.SimpleQueryGeometryHandler;
 import datawave.query.composite.CompositeMetadataHelper;
 import datawave.query.util.DateIndexHelper;
 import datawave.query.util.DateIndexHelperFactory;
 import datawave.query.util.TypeMetadataHelper;
 import datawave.webservice.common.connection.AccumuloConnectionPool;
-import datawave.microservice.querymetric.QueryMetricFactory;
-import datawave.microservice.querymetric.QueryMetricFactoryImpl;
-import datawave.microservice.querymetric.BaseQueryMetric;
 import datawave.webservice.query.result.event.DefaultResponseObjectFactory;
 import datawave.webservice.query.result.event.ResponseObjectFactory;
 import org.apache.accumulo.core.client.Connector;
@@ -44,6 +46,11 @@ import static datawave.query.util.MetadataHelperFactory.ALL_AUTHS_PROPERTY;
 @Configuration
 @EnableConfigurationProperties({QueryMetricHandlerProperties.class, MetadataProperties.class, TimelyProperties.class})
 public class QueryMetricConfiguration {
+    
+    @Bean
+    public QueryMetricConsumer queryMetricSink(QueryMetricOperations queryMetricOperations) {
+        return new QueryMetricConsumer(queryMetricOperations);
+    }
     
     @Bean
     public ObjectMapper objectMapper(QueryMetricFactory metricFactory) {
