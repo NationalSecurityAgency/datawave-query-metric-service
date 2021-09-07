@@ -6,7 +6,6 @@ import datawave.marking.MarkingFunctions;
 import datawave.microservice.authorization.user.ProxiedUserDetails;
 import datawave.microservice.querymetric.BaseQueryMetric.Lifecycle;
 import datawave.microservice.querymetric.config.QueryMetricHandlerProperties;
-import datawave.microservice.querymetric.config.QueryMetricSinkConfiguration.QueryMetricSinkBinding;
 import datawave.microservice.querymetric.config.TimelyProperties;
 import datawave.microservice.querymetric.handler.QueryGeometryHandler;
 import datawave.microservice.querymetric.handler.ShardTableQueryMetricHandler;
@@ -28,8 +27,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
-import org.springframework.cloud.stream.annotation.EnableBinding;
-import org.springframework.cloud.stream.annotation.StreamListener;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -50,7 +47,6 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import static datawave.microservice.querymetric.config.HazelcastServerConfiguration.INCOMING_METRICS;
 
-@EnableBinding(QueryMetricSinkBinding.class)
 @RestController
 @RequestMapping(path = "/v1")
 public class QueryMetricOperations {
@@ -100,11 +96,6 @@ public class QueryMetricOperations {
     public VoidResponse updateMetric(@RequestBody BaseQueryMetric queryMetric,
                     @RequestParam(value = "metricType", defaultValue = "DISTRIBUTED") QueryMetricType metricType) {
         return storeMetric(queryMetric, metricType);
-    }
-    
-    @StreamListener(QueryMetricSinkBinding.SINK_NAME)
-    public void handleEvent(QueryMetricUpdate update) {
-        storeMetric(update.getMetric(), update.getMetricType());
     }
     
     public VoidResponse storeMetric(BaseQueryMetric queryMetric, QueryMetricType metricType) {

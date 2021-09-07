@@ -13,7 +13,9 @@ import datawave.microservice.query.result.event.DefaultResponseObjectFactory;
 import datawave.microservice.querymetric.BaseQueryMetric;
 import datawave.microservice.querymetric.QueryMetricFactory;
 import datawave.microservice.querymetric.QueryMetricFactoryImpl;
+import datawave.microservice.querymetric.QueryMetricOperations;
 import datawave.microservice.querymetric.factory.QueryMetricQueryLogicFactory;
+import datawave.microservice.querymetric.function.QueryMetricConsumer;
 import datawave.microservice.querymetric.handler.AccumuloConnectionTracking;
 import datawave.microservice.querymetric.handler.QueryGeometryHandler;
 import datawave.microservice.querymetric.handler.ShardTableQueryMetricHandler;
@@ -44,6 +46,11 @@ import static datawave.query.util.MetadataHelperFactory.ALL_AUTHS_PROPERTY;
 @Configuration
 @EnableConfigurationProperties({QueryMetricHandlerProperties.class, MetadataProperties.class, TimelyProperties.class})
 public class QueryMetricConfiguration {
+    
+    @Bean
+    public QueryMetricConsumer queryMetricSink(QueryMetricOperations queryMetricOperations) {
+        return new QueryMetricConsumer(queryMetricOperations);
+    }
     
     @Bean
     public ObjectMapper objectMapper(QueryMetricFactory metricFactory) {

@@ -2,4 +2,4 @@ datawave:
   query:
     metric:
       client:
-        transport: message_test
+        transport: message
