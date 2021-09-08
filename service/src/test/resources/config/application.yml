@@ -94,7 +94,7 @@ datawave:
           - QUERY_LOGIC
       client:
         enabled: true
-        transport: https
+        transport: message_test
         host: localhost
         port: ${server.port}
 

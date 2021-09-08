@@ -16,7 +16,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ActiveProfiles({"MessagingTest", "QueryMetricTest", "message", "hazelcast-writethrough"})
+@ActiveProfiles({"MessagingTest", "QueryMetricTest", "hazelcast-writethrough"})
 public class MessagingTest extends QueryMetricTestBase {
     
     @Before

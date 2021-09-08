@@ -14,8 +14,8 @@ import java.util.List;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ActiveProfiles({"QueryMetricAccessTest", "QueryMetricTest", "http", "hazelcast-writethrough"})
-public class QueryMetricAccessTest extends QueryMetricTestBase {
+@ActiveProfiles({"QueryMetricHttpTest", "QueryMetricTest", "http", "hazelcast-writebehind"})
+public class QueryMetricHttpTest extends QueryMetricTestBase {
     
     @Before
     public void setup() {

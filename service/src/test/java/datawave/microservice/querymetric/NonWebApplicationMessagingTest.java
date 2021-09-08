@@ -23,7 +23,7 @@ import static datawave.microservice.querymetric.config.HazelcastServerConfigurat
  */
 @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
-@ActiveProfiles({"NonWebApplicationMessagingTest", "QueryMetricTest", "message"})
+@ActiveProfiles({"NonWebApplicationMessagingTest", "QueryMetricTest"})
 public class NonWebApplicationMessagingTest {
     
     @Autowired

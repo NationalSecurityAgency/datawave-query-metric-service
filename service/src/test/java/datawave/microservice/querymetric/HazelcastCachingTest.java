@@ -14,7 +14,7 @@ import java.util.Collections;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ActiveProfiles({"HazelcastCachingTest", "QueryMetricTest", "http", "hazelcast-writethrough"})
+@ActiveProfiles({"HazelcastCachingTest", "QueryMetricTest", "hazelcast-writethrough"})
 public class HazelcastCachingTest extends QueryMetricTestBase {
     
     @Before
