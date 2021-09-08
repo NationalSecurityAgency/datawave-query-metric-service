@@ -12,7 +12,6 @@ import datawave.webservice.result.VoidResponse;
 import org.apache.commons.lang.builder.ToStringBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -44,13 +43,13 @@ public class QueryMetricClient {
     
     private JWTTokenHandler jwtTokenHandler;
     
-    @Autowired
     public QueryMetricClient(RestTemplateBuilder restTemplateBuilder, QueryMetricClientProperties queryMetricClientProperties,
-                    QueryMetricSourceBinding queryMetricSourceBinding, ObjectMapper objectMapper) {
+                    QueryMetricSourceBinding queryMetricSourceBinding, ObjectMapper objectMapper, JWTTokenHandler jwtTokenHandler) {
         this.queryMetricClientProperties = queryMetricClientProperties;
         this.queryMetricSourceBinding = queryMetricSourceBinding;
         this.objectMapper = objectMapper;
         this.restTemplate = restTemplateBuilder.build();
+        this.jwtTokenHandler = jwtTokenHandler;
     }
     
     public void submit(Request request) throws Exception {
@@ -109,10 +108,6 @@ public class QueryMetricClient {
                 .build();
         // @formatter:on
         restTemplate.postForEntity(metricUpdateUri.toUri(), requestEntity, VoidResponse.class);
-    }
-    
-    public void setJwtTokenHandler(JWTTokenHandler jwtTokenHandler) {
-        this.jwtTokenHandler = jwtTokenHandler;
     }
     
     protected HttpEntity createRequestEntity(ProxiedUserDetails user, ProxiedUserDetails trustedUser, Object body) throws JsonProcessingException {

@@ -11,27 +11,21 @@ import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.cloud.stream.annotation.EnableBinding;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 
 @Configuration
+@ConditionalOnProperty(name = "datawave.query.metric.client.enabled", havingValue = "true", matchIfMissing = true)
 @EnableConfigurationProperties({QueryMetricClientProperties.class})
 @EnableBinding({QueryMetricSinkConfiguration.QueryMetricSinkBinding.class, QueryMetricSourceConfiguration.QueryMetricSourceBinding.class})
 public class QueryMetricClientTestConfiguration {
     
-    // A JWTTokenHandler is only necessary for HTTP and HTTPS transportTypes
-    // and should not cause an autowire failure if it is not present
-    @Autowired(required = false)
-    private JWTTokenHandler jwtTokenHandler;
-    
     @Bean
-    @ConditionalOnProperty(name = "datawave.query.metric.client.enabled", havingValue = "true", matchIfMissing = true)
-    QueryMetricClient queryMetricClient(RestTemplateBuilder restTemplateBuilder, QueryMetricClientProperties queryMetricClientProperties,
+    @Primary
+    QueryMetricClient queryMetricTestClient(RestTemplateBuilder restTemplateBuilder, QueryMetricClientProperties queryMetricClientProperties,
                     QueryMetricSourceConfiguration.QueryMetricSourceBinding queryMetricSourceBinding,
-                    QueryMetricSinkConfiguration.QueryMetricSinkBinding queryMetricSinkBinding, ObjectMapper objectMapper) {
-        QueryMetricClient queryMetricClient = new QueryMetricTestClient(restTemplateBuilder, queryMetricClientProperties, queryMetricSourceBinding,
-                        queryMetricSinkBinding, objectMapper);
-        if (this.jwtTokenHandler != null) {
-            queryMetricClient.setJwtTokenHandler(this.jwtTokenHandler);
-        }
-        return queryMetricClient;
+                    QueryMetricSinkConfiguration.QueryMetricSinkBinding queryMetricSinkBinding, ObjectMapper objectMapper,
+                    @Autowired(required = false) JWTTokenHandler jwtTokenHandler) {
+        return new QueryMetricTestClient(restTemplateBuilder, queryMetricClientProperties, queryMetricSourceBinding, queryMetricSinkBinding, objectMapper,
+                        jwtTokenHandler);
     }
 }

@@ -5,6 +5,7 @@ import datawave.microservice.querymetric.config.QueryMetricClientProperties;
 import datawave.microservice.querymetric.config.QueryMetricSinkConfiguration.QueryMetricSinkBinding;
 import datawave.microservice.querymetric.config.QueryMetricSourceConfiguration.QueryMetricSourceBinding;
 import datawave.microservice.querymetric.config.QueryMetricTransportType;
+import datawave.security.authorization.JWTTokenHandler;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.messaging.support.MessageBuilder;
 
@@ -18,8 +19,9 @@ public class QueryMetricTestClient extends QueryMetricClient {
     private QueryMetricClientProperties queryMetricClientProperties;
     
     public QueryMetricTestClient(RestTemplateBuilder restTemplateBuilder, QueryMetricClientProperties queryMetricClientProperties,
-                    QueryMetricSourceBinding queryMetricSourceBinding, QueryMetricSinkBinding queryMetricSinkBinding, ObjectMapper objectMapper) {
-        super(restTemplateBuilder, queryMetricClientProperties, queryMetricSourceBinding, objectMapper);
+                    QueryMetricSourceBinding queryMetricSourceBinding, QueryMetricSinkBinding queryMetricSinkBinding, ObjectMapper objectMapper,
+                    JWTTokenHandler jwtTokenHandler) {
+        super(restTemplateBuilder, queryMetricClientProperties, queryMetricSourceBinding, objectMapper, jwtTokenHandler);
         this.queryMetricSinkBinding = queryMetricSinkBinding;
         this.queryMetricClientProperties = queryMetricClientProperties;
     }
