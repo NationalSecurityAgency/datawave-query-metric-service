@@ -8,6 +8,7 @@ import datawave.microservice.querymetric.BaseQueryMetric.Lifecycle;
 import datawave.microservice.querymetric.config.QueryMetricHandlerProperties;
 import datawave.microservice.querymetric.config.QueryMetricSinkConfiguration.QueryMetricSinkBinding;
 import datawave.microservice.querymetric.config.TimelyProperties;
+import datawave.microservice.querymetric.factory.BaseQueryMetricListResponseFactory;
 import datawave.microservice.querymetric.handler.QueryGeometryHandler;
 import datawave.microservice.querymetric.handler.ShardTableQueryMetricHandler;
 import datawave.microservice.querymetric.handler.SimpleQueryGeometryHandler;
@@ -67,6 +68,7 @@ public class QueryMetricOperations {
     private QueryMetricHandlerProperties queryMetricHandlerProperties;
     private MarkingFunctions markingFunctions;
     private TimelyProperties timelyProperties;
+    private BaseQueryMetricListResponseFactory queryMetricListResponseFactory;
     private ReentrantLock caffeineLock = new ReentrantLock();
     
     @Output(SOURCE_NAME)
@@ -75,13 +77,15 @@ public class QueryMetricOperations {
     
     @Autowired
     public QueryMetricOperations(CacheManager cacheManager, ShardTableQueryMetricHandler handler, QueryGeometryHandler geometryHandler,
-                    QueryMetricHandlerProperties queryMetricHandlerProperties, MarkingFunctions markingFunctions, TimelyProperties timelyProperties) {
+                    QueryMetricHandlerProperties queryMetricHandlerProperties, MarkingFunctions markingFunctions,
+                    BaseQueryMetricListResponseFactory queryMetricListResponseFactory, TimelyProperties timelyProperties) {
         this.handler = handler;
         this.geometryHandler = geometryHandler;
         this.isHazelCast = cacheManager instanceof HazelcastCacheManager;
         this.incomingQueryMetricsCache = cacheManager.getCache(INCOMING_METRICS);
         this.queryMetricHandlerProperties = queryMetricHandlerProperties;
         this.markingFunctions = markingFunctions;
+        this.queryMetricListResponseFactory = queryMetricListResponseFactory;
         this.timelyProperties = timelyProperties;
     }
     
@@ -193,7 +197,7 @@ public class QueryMetricOperations {
     public BaseQueryMetricListResponse query(@AuthenticationPrincipal ProxiedUserDetails currentUser,
                     @ApiParam("queryId to return") @PathVariable("queryId") String queryId) {
         
-        BaseQueryMetricListResponse response = new QueryMetricListResponse();
+        BaseQueryMetricListResponse response = this.queryMetricListResponseFactory.createDetailedResponse();
         List<BaseQueryMetric> metricList = new ArrayList<>();
         try {
             QueryMetricUpdate metricHolder = incomingQueryMetricsCache.get(queryId, QueryMetricUpdate.class);

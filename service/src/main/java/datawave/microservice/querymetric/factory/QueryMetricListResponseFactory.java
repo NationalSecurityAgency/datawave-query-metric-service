@@ -1,0 +1,19 @@
+package datawave.microservice.querymetric.factory;
+
+import datawave.microservice.querymetric.BaseQueryMetricListResponse;
+import datawave.microservice.querymetric.QueryMetric;
+import datawave.microservice.querymetric.QueryMetricListResponse;
+import datawave.microservice.querymetric.QueryMetricsDetailListResponse;
+
+public class QueryMetricListResponseFactory implements BaseQueryMetricListResponseFactory {
+    
+    @Override
+    public BaseQueryMetricListResponse<QueryMetric> createResponse() {
+        return new QueryMetricListResponse();
+    }
+    
+    @Override
+    public BaseQueryMetricListResponse<QueryMetric> createDetailedResponse() {
+        return new QueryMetricsDetailListResponse();
+    }
+}
