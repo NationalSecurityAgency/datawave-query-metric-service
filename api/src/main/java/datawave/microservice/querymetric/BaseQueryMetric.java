@@ -42,7 +42,7 @@ public abstract class BaseQueryMetric implements HasMarkings, Serializable {
         @XmlElement
         private long pagesize = 0;
         @XmlElement
-        private long returnTime = 0;
+        private long returnTime = -1;
         @XmlElement
         private long callTime = -1;
         @XmlElement
@@ -62,30 +62,30 @@ public abstract class BaseQueryMetric implements HasMarkings, Serializable {
             
         }
         
-        public PageMetric(String host, long pagesize, long returnTime, long callTime, long serializationTime, long bytesWritten, long pageRequested,
-                        long pageReturned, long loginTime) {
+        public PageMetric(String host, long pagesize, long returnTime, long pageRequested, long pageReturned, long loginTime, long callTime,
+                        long serializationTime, long bytesWritten) {
             this.host = host;
             this.pagesize = pagesize;
-            this.callTime = callTime;
-            this.serializationTime = serializationTime;
-            this.bytesWritten = bytesWritten;
             this.returnTime = returnTime;
             this.pageRequested = pageRequested;
             this.pageReturned = pageReturned;
             this.loginTime = loginTime;
+            this.callTime = callTime;
+            this.serializationTime = serializationTime;
+            this.bytesWritten = bytesWritten;
         }
         
         public PageMetric(PageMetric o) {
             this.host = o.host;
             this.pagesize = o.pagesize;
             this.returnTime = o.returnTime;
+            this.pageRequested = o.pageRequested;
+            this.pageReturned = o.pageReturned;
+            this.loginTime = o.loginTime;
             this.callTime = o.callTime;
             this.serializationTime = o.serializationTime;
             this.bytesWritten = o.bytesWritten;
-            this.pageRequested = o.pageRequested;
-            this.pageReturned = o.pageReturned;
             this.pageNumber = o.pageNumber;
-            this.loginTime = o.loginTime;
         }
         
         public PageMetric duplicate() {
@@ -194,19 +194,24 @@ public abstract class BaseQueryMetric implements HasMarkings, Serializable {
             PageMetric pageMetric = null;
             if (parts.length == 9) {
                 String host = parts[0].length() == 0 ? null : parts[0];
-                pageMetric = new PageMetric(host, Long.parseLong(parts[1]), Long.parseLong(parts[2]), Long.parseLong(parts[3]), Long.parseLong(parts[4]),
-                                Long.parseLong(parts[5]), Long.parseLong(parts[6]), Long.parseLong(parts[7]), Long.parseLong(parts[8]));
+                // host/pageSize/returnTime/callTime/serializationTime/bytesWritten/pageRequested/pageReturned/loginTime
+                pageMetric = new PageMetric(host, Long.parseLong(parts[1]), Long.parseLong(parts[2]), Long.parseLong(parts[6]), Long.parseLong(parts[7]),
+                                Long.parseLong(parts[8]), Long.parseLong(parts[3]), Long.parseLong(parts[4]), Long.parseLong(parts[5]));
             } else if (parts.length == 8) {
-                pageMetric = new PageMetric(null, Long.parseLong(parts[0]), Long.parseLong(parts[1]), Long.parseLong(parts[2]), Long.parseLong(parts[3]),
-                                Long.parseLong(parts[4]), Long.parseLong(parts[5]), Long.parseLong(parts[6]), Long.parseLong(parts[7]));
+                // /pageSize/returnTime/callTime/serializationTime/bytesWritten/pageRequested/pageReturned/loginTime
+                pageMetric = new PageMetric(null, Long.parseLong(parts[0]), Long.parseLong(parts[1]), Long.parseLong(parts[5]), Long.parseLong(parts[6]),
+                                Long.parseLong(parts[7]), Long.parseLong(parts[2]), Long.parseLong(parts[3]), Long.parseLong(parts[4]));
             } else if (parts.length == 7) {
-                pageMetric = new PageMetric(null, Long.parseLong(parts[0]), Long.parseLong(parts[1]), Long.parseLong(parts[2]), Long.parseLong(parts[3]),
-                                Long.parseLong(parts[4]), Long.parseLong(parts[5]), Long.parseLong(parts[6]), -1);
+                // pageSize/returnTime/callTime/serializationTime/bytesWritten/pageRequested/pageReturned
+                pageMetric = new PageMetric(null, Long.parseLong(parts[0]), Long.parseLong(parts[1]), Long.parseLong(parts[5]), Long.parseLong(parts[6]), -1,
+                                Long.parseLong(parts[2]), Long.parseLong(parts[3]), Long.parseLong(parts[4]));
             } else if (parts.length == 5) {
-                pageMetric = new PageMetric(null, Long.parseLong(parts[0]), Long.parseLong(parts[1]), Long.parseLong(parts[2]), Long.parseLong(parts[3]),
-                                Long.parseLong(parts[4]), 0l, 0l, -1);
+                // pageSize/returnTime/callTime/serializationTime/bytesWritten
+                pageMetric = new PageMetric(null, Long.parseLong(parts[0]), Long.parseLong(parts[1]), 0, 0, -1, Long.parseLong(parts[2]),
+                                Long.parseLong(parts[3]), Long.parseLong(parts[4]));
             } else if (parts.length == 2) {
-                pageMetric = new PageMetric(null, Long.parseLong(parts[0]), Long.parseLong(parts[1]), -1, -1, -1, 0l, 0l, -1);
+                // pageSize/returnTime
+                pageMetric = new PageMetric(null, Long.parseLong(parts[0]), Long.parseLong(parts[1]), 0, 0, -1, 0, 0, -1);
             }
             return pageMetric;
         }
@@ -753,7 +758,7 @@ public abstract class BaseQueryMetric implements HasMarkings, Serializable {
     public void addPageTime(String host, long pagesize, long timeToReturn, long requestedTime, long returnedTime) {
         this.numPages++;
         this.numResults += pagesize;
-        PageMetric pageMetric = new PageMetric(host, pagesize, timeToReturn, requestedTime, returnedTime, -1, 0, 0, -1);
+        PageMetric pageMetric = new PageMetric(host, pagesize, timeToReturn, requestedTime, returnedTime, -1, -1, -1, -1);
         pageMetric.setPageNumber(this.numPages);
         this.pageTimes.add(pageMetric);
     }
