@@ -1,4 +1,4 @@
-package datawave.microservice.querymetric.alternate;
+package datawave.microservice.querymetric.config;
 
 import datawave.microservice.querymetric.QueryMetric;
 
