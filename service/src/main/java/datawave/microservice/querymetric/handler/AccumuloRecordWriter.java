@@ -1,7 +1,7 @@
 package datawave.microservice.querymetric.handler;
 
 import datawave.common.util.ArgumentChecker;
-import datawave.webservice.common.connection.AccumuloConnectionPool;
+import datawave.services.common.connection.AccumuloConnectionPool;
 import datawave.webservice.common.logging.ThreadConfigurableLogger;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
