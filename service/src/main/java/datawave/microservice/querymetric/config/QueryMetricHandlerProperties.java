@@ -21,7 +21,7 @@ import java.util.TreeSet;
 @ConfigurationProperties(prefix = "datawave.query.metric.handler")
 public class QueryMetricHandlerProperties {
     
-    protected Map<String,String> defaultMetricMarkings;
+    protected String defaultMetricVisibility;
     protected String queryVisibility;
     protected String zookeepers;
     protected String instanceName;
@@ -167,12 +167,12 @@ public class QueryMetricHandlerProperties {
         return p;
     }
     
-    public void setDefaultMetricMarkings(Map<String,String> defaultMetricMarkings) {
-        this.defaultMetricMarkings = defaultMetricMarkings;
+    public void setDefaultMetricVisibility(String defaultMetricVisibility) {
+        this.defaultMetricVisibility = defaultMetricVisibility;
     }
     
-    public Map<String,String> getDefaultMetricMarkings() {
-        return defaultMetricMarkings;
+    public String getDefaultMetricVisibility() {
+        return defaultMetricVisibility;
     }
     
     public void setQueryVisibility(String queryVisibility) {

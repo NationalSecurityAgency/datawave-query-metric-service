@@ -160,25 +160,25 @@ public class QueryMetricTest {
     
     @Test
     public void testPageMetricParsing1() {
-        PageMetric pmRef1 = new PageMetric("localhost", 2500, 2000, 3500, 3600, 1000, 2200, 3000, 10000);
-        // host/pageSize/returnTime/callTime/serializationTime/bytesWritten/pageRequested/pageReturned/loginTime
-        String pmText1 = "localhost/2500/2000/2200/3000/10000/3500/3600/1000";
+        PageMetric pmRef1 = new PageMetric("localhost", "aa-bb-cc-dd", 2500, 2000, 3500, 3600, 1000, 2200, 3000, 10000);
+        // host/pageUuid/pageSize/returnTime/callTime/serializationTime/bytesWritten/pageRequested/pageReturned/loginTime
+        String pmText1 = "localhost/aa-bb-cc-dd/2500/2000/2200/3000/10000/3500/3600/1000";
         PageMetric pm1 = PageMetric.parse(pmText1);
         assertEquals("page metrics not equal", pmRef1, pm1);
     }
     
     @Test
     public void testPageMetricParsing2() {
-        PageMetric pmRef1 = new PageMetric(null, 2500, 2000, 3500, 3600, 1000, 2200, 3000, 10000);
-        // /pageSize/returnTime/callTime/serializationTime/bytesWritten/pageRequested/pageReturned/loginTime
-        String pmText1 = "/2500/2000/2200/3000/10000/3500/3600/1000";
+        PageMetric pmRef1 = new PageMetric(null, "aa-bb-cc-dd", 2500, 2000, 3500, 3600, 1000, 2200, 3000, 10000);
+        // /pageUuid/pageSize/returnTime/callTime/serializationTime/bytesWritten/pageRequested/pageReturned/loginTime
+        String pmText1 = "/aa-bb-cc-dd/2500/2000/2200/3000/10000/3500/3600/1000";
         PageMetric pm1 = PageMetric.parse(pmText1);
         assertEquals("page metrics not equal", pmRef1, pm1);
     }
     
     @Test
     public void testPageMetricParsingLegacy1() {
-        PageMetric pmRef1 = new PageMetric(null, 2500, 2000, 3500, 3600, -1, 2200, 3000, 10000);
+        PageMetric pmRef1 = new PageMetric(null, null, 2500, 2000, 3500, 3600, -1, 2200, 3000, 10000);
         // pageSize/returnTime/callTime/serializationTime/bytesWritten/pageRequested/pageReturned
         String pmText1 = "2500/2000/2200/3000/10000/3500/3600";
         PageMetric pm1 = PageMetric.parse(pmText1);
@@ -187,7 +187,7 @@ public class QueryMetricTest {
     
     @Test
     public void testPageMetricParsingLegacy2() {
-        PageMetric pmRef1 = new PageMetric(null, 2500, 2000, 0, 0, -1, 2200, 3000, 10000);
+        PageMetric pmRef1 = new PageMetric(null, null, 2500, 2000, 0, 0, -1, 2200, 3000, 10000);
         // pageSize/returnTime/callTime/serializationTime/bytesWritten
         String pmText1 = "2500/2000/2200/3000/10000";
         PageMetric pm1 = PageMetric.parse(pmText1);
@@ -196,7 +196,7 @@ public class QueryMetricTest {
     
     @Test
     public void testPageMetricParsingLegacy3() {
-        PageMetric pmRef1 = new PageMetric(null, 2500, 2000, 0, 0, -1, 0, 0, -1);
+        PageMetric pmRef1 = new PageMetric(null, null, 2500, 2000, 0, 0, -1, 0, 0, -1);
         // pageSize/returnTime
         String pmText1 = "2500/2000";
         PageMetric pm1 = PageMetric.parse(pmText1);

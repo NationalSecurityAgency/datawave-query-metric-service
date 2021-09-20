@@ -1,12 +1,10 @@
 package datawave.microservice.querymetric.factory;
 
 import datawave.microservice.querymetric.BaseQueryMetricListResponse;
-import datawave.microservice.querymetric.QueryMetric;
 
-public interface BaseQueryMetricListResponseFactory {
+public interface BaseQueryMetricListResponseFactory<T extends BaseQueryMetricListResponse> {
     
-    BaseQueryMetricListResponse<QueryMetric> createResponse();
+    T createResponse();
     
-    BaseQueryMetricListResponse<QueryMetric> createDetailedResponse();
-    
+    T createDetailedResponse();
 }

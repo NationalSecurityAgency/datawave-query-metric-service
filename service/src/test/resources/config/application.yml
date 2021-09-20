@@ -80,8 +80,7 @@ datawave:
         recordWriterNumThreads: 4
         enableBloomFilter: false
         queryVisibility: PUBLIC
-        defaultMetricMarkings:
-          columnVisibility: PUBLIC
+        defaultMetricVisibility: (PUBLIC)
         baseMaps: "{}"
       timely:
         enabled: false

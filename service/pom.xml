@@ -17,7 +17,6 @@
         <url>https://github.com/NationalSecurityAgency/datawave-query-metric-service</url>
     </scm>
     <properties>
-        <spring.cloud.stream.version>2.1.4.RELEASE</spring.cloud.stream.version>
         <start-class>datawave.microservice.querymetric.QueryMetricService</start-class>
         <version.base-rest-responses>1.2</version.base-rest-responses>
         <version.cache-api>1.1.1</version.cache-api>
@@ -28,6 +27,7 @@
         <version.microservice.metadata-utils>1.6</version.microservice.metadata-utils>
         <version.microservice.starter>1.6.5</version.microservice.starter>
         <version.slf4j-log4j12>1.7.30</version.slf4j-log4j12>
+        <version.spring.cloud.stream>2.1.4.RELEASE</version.spring.cloud.stream>
         <version.validation-api>2.0.2</version.validation-api>
     </properties>
     <dependencyManagement>
@@ -185,7 +185,7 @@
             <dependency>
                 <groupId>org.springframework.cloud</groupId>
                 <artifactId>spring-cloud-stream-test-support</artifactId>
-                <version>${spring.cloud.stream.version}</version>
+                <version>${version.spring.cloud.stream}</version>
             </dependency>
             <dependency>
                 <groupId>gov.nsa.datawave.microservice</groupId>

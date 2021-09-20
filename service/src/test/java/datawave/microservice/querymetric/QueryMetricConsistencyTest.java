@@ -131,6 +131,7 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
                 .withUser(adminUser)
                 .build());
         // @formatter:on
+        m = createMetric(queryId);
         m.setCreateDate(new Date(now - 1000));
         m.setLastUpdated(new Date(now - 1000));
         m.setSourceCount(100);
@@ -139,6 +140,9 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
         m.setYieldCount(100);
         m.setDocRanges(100);
         m.setFiRanges(100);
+        pm = new BaseQueryMetric.PageMetric("localhost", 1000, 1000, 1000, 1000, 2000, 0, 0, -1);
+        pm.setPageNumber(1);
+        m.addPageMetric(pm);
         // @formatter:off
         client.submit(new QueryMetricClient.Request.Builder()
                 .withMetric(m)
