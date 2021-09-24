@@ -3,7 +3,7 @@ package datawave.microservice.querymetric.handler;
 import datawave.microservice.querymetric.QueryMetric;
 import datawave.microservice.querymetric.config.QueryMetricHandlerProperties;
 import datawave.query.jexl.visitors.GeoFeatureVisitor;
-import datawave.webservice.common.logging.ThreadConfigurableLogger;
+import datawave.services.common.logging.ThreadConfigurableLogger;
 import datawave.webservice.query.QueryImpl;
 import datawave.webservice.query.exception.QueryExceptionType;
 import datawave.webservice.query.map.QueryGeometry;

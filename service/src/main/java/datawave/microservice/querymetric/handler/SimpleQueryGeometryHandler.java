@@ -6,7 +6,7 @@ import datawave.query.jexl.JexlASTHelper;
 import datawave.query.jexl.visitors.GeoFeatureVisitor;
 import datawave.query.language.parser.ParseException;
 import datawave.query.language.parser.jexl.LuceneToJexlQueryParser;
-import datawave.webservice.common.logging.ThreadConfigurableLogger;
+import datawave.services.common.logging.ThreadConfigurableLogger;
 import datawave.webservice.query.QueryImpl;
 import datawave.webservice.query.map.QueryGeometry;
 import datawave.webservice.query.map.QueryGeometryResponse;
