@@ -12,7 +12,7 @@ public class QueryMetricListResponseFactory implements BaseQueryMetricListRespon
     }
     
     @Override
-    public BaseQueryMetricListResponse createDetailedResponse() {
+    public QueryMetricsDetailListResponse createDetailedResponse() {
         return new QueryMetricsDetailListResponse();
     }
 }
