@@ -251,11 +251,11 @@ public class QueryMetricOperations {
     public QueryGeometryResponse map(@AuthenticationPrincipal ProxiedUserDetails currentUser, @PathVariable("queryId") String queryId) {
         QueryGeometryResponse queryGeometryResponse = new QueryGeometryResponse();
         BaseQueryMetricListResponse metricResponse = query(currentUser, queryId);
-        if (!metricResponse.getExceptions().isEmpty()) {
+        if (metricResponse.getExceptions() == null || metricResponse.getExceptions().isEmpty()) {
+            return geometryHandler.getQueryGeometryResponse(queryId, metricResponse.getResult());
+        } else {
             metricResponse.getExceptions().forEach(e -> queryGeometryResponse.addException(new QueryException(e.getMessage(), e.getCause(), e.getCode())));
             return queryGeometryResponse;
-        } else {
-            return geometryHandler.getQueryGeometryResponse(queryId, metricResponse.getResult());
         }
     }
     
