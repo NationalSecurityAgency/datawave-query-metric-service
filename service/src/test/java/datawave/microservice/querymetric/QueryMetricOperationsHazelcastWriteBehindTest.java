@@ -13,7 +13,7 @@ import org.springframework.test.context.junit4.SpringRunner;
  */
 @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ActiveProfiles({"QueryMetricOperationsHazelcastWriteBehindTest", "QueryMetricTest", "http", "hazelcast-writebehind"})
+@ActiveProfiles({"QueryMetricOperationsHazelcastWriteBehindTest", "QueryMetricTest", "MessageRouting", "hazelcast-writebehind"})
 public class QueryMetricOperationsHazelcastWriteBehindTest extends QueryMetricOperationsTest {
     
     @Before

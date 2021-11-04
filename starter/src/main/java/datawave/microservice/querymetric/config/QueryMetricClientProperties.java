@@ -4,11 +4,20 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @ConfigurationProperties(prefix = "datawave.query.metric.client")
 public class QueryMetricClientProperties {
+    private boolean enabled;
     private QueryMetricTransportType transport = QueryMetricTransportType.MESSAGE;
     private String host = "localhost";
     private int port = 8443;
     private String updateMetricUrl = "/querymetric/v1/updateMetric";
     private String updateMetricsUrl = "/querymetric/v1/updateMetrics";
+    
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+    }
+    
+    public boolean isEnabled() {
+        return enabled;
+    }
     
     public void setTransport(QueryMetricTransportType transport) {
         this.transport = transport;

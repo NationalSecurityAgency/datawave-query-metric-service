@@ -38,3 +38,8 @@ spring:
     # Allow the default Consul host to be overridden via an environment variable
     consul:
       host: ${CONSUL_HOST:localhost}
+      discovery:
+        scheme: https
+        instance-id: ${spring.application.name}:${vcap.application.instance_id:${spring.application.instance_id:${random.value}}}
+        health-check-path: ${server.servlet.context-path}${management.endpoints.web.base-path}/health
+        health-check-interval: 15s

@@ -12,7 +12,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ActiveProfiles({"AlternateQueryMetricTest", "QueryMetricTest", "http", "hazelcast-writethrough"})
+@ActiveProfiles({"AlternateQueryMetricTest", "QueryMetricTest", "MessageRouting", "hazelcast-writethrough"})
 public class AlternateQueryMetricTest extends QueryMetricTestBase {
     
     @Before

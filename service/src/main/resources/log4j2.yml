@@ -21,8 +21,8 @@ Configuration:
 
     RollingFile:
       - name: File
-        fileName: "${sys:logDir}/querymetrics-service.log"
-        filePattern: "${sys:logDir}/querymetrics-service.log.%d{yyyy-MM-dd}-%i.gz"
+        fileName: "${sys:logDir}/querymetric-service.log"
+        filePattern: "${sys:logDir}/querymetric-service.log.%d{yyyy-MM-dd}-%i.gz"
         append: true
         bufferedIO: true
         bufferSize: 8192

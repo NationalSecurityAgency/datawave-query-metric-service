@@ -1,4 +1,5 @@
 target/
+service/logs/**
 logs/**
 **/.DS_Store
 

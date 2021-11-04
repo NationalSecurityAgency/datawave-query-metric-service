@@ -9,11 +9,12 @@ import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.fasterxml.jackson.module.jaxb.JaxbAnnotationModule;
 import com.github.benmanes.caffeine.cache.CaffeineSpec;
 import datawave.marking.MarkingFunctions;
-import datawave.services.query.result.event.DefaultResponseObjectFactory;
 import datawave.microservice.querymetric.BaseQueryMetric;
 import datawave.microservice.querymetric.QueryMetricFactory;
 import datawave.microservice.querymetric.QueryMetricFactoryImpl;
 import datawave.microservice.querymetric.QueryMetricOperations;
+import datawave.microservice.querymetric.factory.BaseQueryMetricListResponseFactory;
+import datawave.microservice.querymetric.factory.QueryMetricListResponseFactory;
 import datawave.microservice.querymetric.factory.QueryMetricQueryLogicFactory;
 import datawave.microservice.querymetric.function.QueryMetricConsumer;
 import datawave.microservice.querymetric.handler.AccumuloConnectionTracking;
@@ -25,6 +26,7 @@ import datawave.query.util.DateIndexHelper;
 import datawave.query.util.DateIndexHelperFactory;
 import datawave.query.util.TypeMetadataHelper;
 import datawave.services.common.connection.AccumuloConnectionPool;
+import datawave.services.query.result.event.DefaultResponseObjectFactory;
 import datawave.webservice.query.result.event.ResponseObjectFactory;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.security.Authorizations;
@@ -148,5 +150,10 @@ public class QueryMetricConfiguration {
         Map<String,String> trackingMap = AccumuloConnectionTracking.getTrackingMap(Thread.currentThread().getStackTrace());
         Connector connector = connectionPool.borrowObject(trackingMap);
         return new CompositeMetadataHelper(connector, queryMetricHandlerProperties.getMetadataTableName(), allMetadataAuths);
+    }
+    
+    @Bean
+    public BaseQueryMetricListResponseFactory queryMetricListResponseFactory() {
+        return new QueryMetricListResponseFactory();
     }
 }

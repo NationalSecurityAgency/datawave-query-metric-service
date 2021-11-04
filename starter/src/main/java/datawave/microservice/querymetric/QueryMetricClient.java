@@ -38,8 +38,6 @@ public class QueryMetricClient {
     
     private final Logger log = LoggerFactory.getLogger(this.getClass());
     
-    private RestTemplateBuilder restTemplateBuilder;
-    
     private RestTemplate restTemplate;
     
     private QueryMetricClientProperties queryMetricClientProperties;
@@ -48,17 +46,17 @@ public class QueryMetricClient {
     
     private ObjectMapper objectMapper;
     
-    protected JWTTokenHandler jwtTokenHandler;
+    private JWTTokenHandler jwtTokenHandler;
     
-    @Autowired
     public QueryMetricClient(RestTemplateBuilder restTemplateBuilder, QueryMetricClientProperties queryMetricClientProperties,
-                    @Autowired(required = false) QueryMetricSupplier queryMetricSupplier, ObjectMapper objectMapper, JWTTokenHandler jwtTokenHandler) {
-        this.restTemplateBuilder = restTemplateBuilder;
+                    @Autowired(required = false) QueryMetricSupplier queryMetricSupplier, ObjectMapper objectMapper,
+                    @Autowired(required = false) JWTTokenHandler jwtTokenHandler) {
         this.queryMetricClientProperties = queryMetricClientProperties;
         this.queryMetricSupplier = queryMetricSupplier;
+        
         this.objectMapper = objectMapper;
-        this.jwtTokenHandler = jwtTokenHandler;
         this.restTemplate = restTemplateBuilder.build();
+        this.jwtTokenHandler = jwtTokenHandler;
     }
     
     public void submit(Request request) throws Exception {
@@ -68,12 +66,10 @@ public class QueryMetricClient {
         if (request.metricType == null) {
             throw new IllegalArgumentException("Request must contain a query metric type");
         }
-        switch (queryMetricClientProperties.getTransport()) {
-            case MESSAGE:
-                submitViaMessage(request);
-                break;
-            default:
-                submitViaRest(request);
+        if (queryMetricClientProperties.getTransport() == QueryMetricTransportType.MESSAGE) {
+            submitViaMessage(request);
+        } else {
+            submitViaRest(request);
         }
     }
     
@@ -88,9 +84,12 @@ public class QueryMetricClient {
         if (request.user == null && request.trustedUser == null) {
             throw new IllegalArgumentException("Request must contain either user or trustedUser to use HTTP/HTTPS transport");
         }
+        QueryMetricTransportType transportType = queryMetricClientProperties.getTransport();
+        if (this.jwtTokenHandler == null) {
+            throw new IllegalArgumentException("jwtTokenHandler can not be null with transportType " + transportType.toString());
+        }
         QueryMetricType metricType = request.metricType;
-        QueryMetricTransportType transport = this.queryMetricClientProperties.getTransport();
-        String scheme = transport.equals(QueryMetricTransportType.HTTPS) ? "https" : "http";
+        String scheme = transportType.equals(QueryMetricTransportType.HTTPS) ? "https" : "http";
         String host = this.queryMetricClientProperties.getHost();
         int port = this.queryMetricClientProperties.getPort();
         String url;
@@ -120,7 +119,7 @@ public class QueryMetricClient {
         
         HttpHeaders headers = new HttpHeaders();
         if (this.jwtTokenHandler != null && user != null) {
-            String token = jwtTokenHandler.createTokenFromUsers(user.getUsername(), user.getProxiedUsers());
+            String token = this.jwtTokenHandler.createTokenFromUsers(user.getUsername(), user.getProxiedUsers());
             headers.add("Authorization", "Bearer " + token);
         }
         if (trustedUser != null) {

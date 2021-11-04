@@ -45,21 +45,27 @@ public class AccumuloMapLoader<T extends BaseQueryMetric> implements MapLoader<S
     
     @Override
     public QueryMetricUpdate load(String s) {
-        T metric = this.handler.getQueryMetric(s);
-        if (metric == null) {
-            return null;
-        } else {
-            return new QueryMetricUpdate(metric);
+        T metric = null;
+        try {
+            metric = this.handler.getQueryMetric(s);
+        } catch (Exception e) {
+            log.error(e.getMessage(), e);
         }
+        return metric == null ? null : new QueryMetricUpdate(metric);
     }
     
     @Override
     public Map<String,QueryMetricUpdate<T>> loadAll(Collection<String> keys) {
         Map<String,QueryMetricUpdate<T>> metrics = new LinkedHashMap<>();
         keys.forEach(id -> {
-            BaseQueryMetric queryMetric = this.handler.getQueryMetric(id);
-            if (queryMetric != null) {
-                metrics.put(id, new QueryMetricUpdate(queryMetric));
+            BaseQueryMetric queryMetric;
+            try {
+                queryMetric = this.handler.getQueryMetric(id);
+                if (queryMetric != null) {
+                    metrics.put(id, new QueryMetricUpdate(queryMetric));
+                }
+            } catch (Exception e) {
+                log.error(e.getMessage(), e);
             }
         });
         return metrics;

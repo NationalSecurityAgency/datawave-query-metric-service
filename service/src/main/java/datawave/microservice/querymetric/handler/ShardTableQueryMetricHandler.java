@@ -252,15 +252,16 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> implements 
         event.setDataType(type);
         event.setDate(storedQueryMetric.getCreateDate().getTime());
         // get markings from metric, otherwise use the default markings
-        if (updatedQueryMetric.getMarkings() != null) {
+        Map<String,String> markings = updatedQueryMetric.getMarkings();
+        if (markings != null && !markings.isEmpty()) {
             try {
                 event.setVisibility(this.markingFunctions.translateToColumnVisibility(updatedQueryMetric.getMarkings()));
             } catch (MarkingFunctions.Exception e) {
                 log.error(e.getMessage(), e);
-                event.setSecurityMarkings(this.queryMetricHandlerProperties.getDefaultMetricMarkings());
+                event.setVisibility(this.queryMetricHandlerProperties.getDefaultMetricVisibility());
             }
         } else {
-            event.setSecurityMarkings(this.queryMetricHandlerProperties.getDefaultMetricMarkings());
+            event.setVisibility(this.queryMetricHandlerProperties.getDefaultMetricVisibility());
         }
         event.setAuxData(storedQueryMetric);
         event.setRawRecordNumber(1000L);
@@ -346,6 +347,47 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> implements 
         return lastPage;
     }
     
+    private PageMetric combinePageMetrics(PageMetric updated, PageMetric stored) {
+        if (stored == null) {
+            return updated;
+        }
+        String updatedUuid = updated.getPageUuid();
+        String storedUuid = stored.getPageUuid();
+        if (updatedUuid != null && storedUuid != null && !updatedUuid.equals(storedUuid)) {
+            throw new IllegalStateException(
+                            "can not combine page metrics with different pageUuids: " + "updated:" + updated.getPageUuid() + " stored:" + stored.getPageUuid());
+        }
+        PageMetric pm = new PageMetric(stored);
+        if (pm.getHost() == null) {
+            pm.setHost(updated.getHost());
+        }
+        if (pm.getPagesize() == 0) {
+            pm.setPagesize(updated.getPagesize());
+        }
+        if (pm.getReturnTime() == -1) {
+            pm.setReturnTime(updated.getReturnTime());
+        }
+        if (pm.getCallTime() == -1) {
+            pm.setCallTime(updated.getCallTime());
+        }
+        if (pm.getSerializationTime() == -1) {
+            pm.setSerializationTime(updated.getSerializationTime());
+        }
+        if (pm.getBytesWritten() == -1) {
+            pm.setBytesWritten(updated.getBytesWritten());
+        }
+        if (pm.getPageRequested() == 0) {
+            pm.setPageRequested(updated.getPageRequested());
+        }
+        if (pm.getPageReturned() == 0) {
+            pm.setPageReturned(updated.getPageReturned());
+        }
+        if (pm.getLoginTime() == -1) {
+            pm.setLoginTime(updated.getLoginTime());
+        }
+        return pm;
+    }
+    
     @SuppressWarnings("unchecked")
     @Override
     public T combineMetrics(T updatedQueryMetric, T cachedQueryMetric, QueryMetricType metricType) throws Exception {
@@ -385,26 +427,49 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> implements 
                 }
                 
                 // Map page numbers to page metrics and update
-                Map<Long,PageMetric> storedPageMetricMap = new TreeMap<>();
+                Map<Long,PageMetric> storedPagesByPageNumMap = new TreeMap<>();
+                Map<String,PageMetric> storedPagesByUuidMap = new TreeMap<>();
                 if (cachedQueryMetric.getPageTimes() != null) {
-                    cachedQueryMetric.getPageTimes().forEach(pm -> storedPageMetricMap.put(pm.getPageNumber(), pm));
+                    cachedQueryMetric.getPageTimes().forEach(pm -> {
+                        storedPagesByPageNumMap.put(pm.getPageNumber(), pm);
+                        if (pm.getPageUuid() != null) {
+                            storedPagesByUuidMap.put(pm.getPageUuid(), pm);
+                        }
+                    });
+                    
                 }
                 // combine all of the page metrics from the cached metric and the updated metric
                 if (updatedQueryMetric.getPageTimes() != null) {
                     long pageNum = getLastPageNumber(cachedQueryMetric) + 1;
-                    for (PageMetric pm : updatedQueryMetric.getPageTimes()) {
+                    for (PageMetric updatedPage : updatedQueryMetric.getPageTimes()) {
+                        PageMetric storedPage = null;
+                        if (updatedPage.getPageUuid() != null) {
+                            storedPage = storedPagesByUuidMap.get(updatedPage.getPageUuid());
+                        }
                         if (metricType.equals(QueryMetricType.DISTRIBUTED)) {
-                            // assume that page metrics
-                            pm.setPageNumber(pageNum);
-                            storedPageMetricMap.put(pageNum, pm);
-                            pageNum++;
+                            if (storedPage != null) {
+                                // updatedPage found by pageUuid
+                                updatedPage = combinePageMetrics(updatedPage, storedPage);
+                                storedPagesByPageNumMap.put(updatedPage.getPageNumber(), updatedPage);
+                            } else {
+                                // assume that this is the next page in sequence
+                                updatedPage.setPageNumber(pageNum);
+                                storedPagesByPageNumMap.put(pageNum, updatedPage);
+                                pageNum++;
+                            }
                         } else {
+                            if (storedPage == null) {
+                                storedPage = storedPagesByPageNumMap.get(updatedPage.getPageNumber());
+                            }
+                            if (storedPage != null) {
+                                updatedPage = combinePageMetrics(updatedPage, storedPage);
+                            }
                             // page metrics are mapped to their page number to prevent duplicates
-                            storedPageMetricMap.put(pm.getPageNumber(), pm);
+                            storedPagesByPageNumMap.put(updatedPage.getPageNumber(), updatedPage);
                         }
                     }
                 }
-                cachedQueryMetric.setPageTimes(new ArrayList<>(storedPageMetricMap.values()));
+                cachedQueryMetric.setPageTimes(new ArrayList<>(storedPagesByPageNumMap.values()));
                 cachedQueryMetric.setNumUpdates(cachedQueryMetric.getNumUpdates() + 1);
                 
                 // only update once

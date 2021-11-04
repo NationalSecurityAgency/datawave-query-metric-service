@@ -13,7 +13,7 @@ import org.springframework.test.context.junit4.SpringRunner;
  */
 @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ActiveProfiles({"QueryMetricOperationsCaffeineTest", "QueryMetricTest", "http"})
+@ActiveProfiles({"QueryMetricOperationsCaffeineTest", "QueryMetricTest", "MessageRouting"})
 public class QueryMetricOperationsCaffeineTest extends QueryMetricOperationsTest {
     
     @Before

@@ -47,8 +47,8 @@ public class QueryMetricsDetailListResponse extends QueryMetricListResponse {
         builder.append("</tr>\n");
         
         pageTimesBuilder.append("<table>\n");
-        pageTimesBuilder.append("<tr><th>Page requested</th><th>Page returned</th><th>Response time (ms)</th><th>Page size</th><th>Call time (ms)</th>");
-        pageTimesBuilder.append("<th>Login time (ms)</th><th>Serialization time (ms)</th>");
+        pageTimesBuilder.append("<tr><th>Page number</th><th>Page requested</th><th>Page returned</th><th>Response time (ms)</th>");
+        pageTimesBuilder.append("<th>Page size</th><th>Call time (ms)</th><th>Login time (ms)</th><th>Serialization time (ms)</th>");
         pageTimesBuilder.append("<th>Bytes written (uncompressed)</th></tr>");
         
         TreeMap<Date,QueryMetric> metricMap = new TreeMap<Date,QueryMetric>(Collections.reverseOrder());
@@ -148,10 +148,15 @@ public class QueryMetricsDetailListResponse extends QueryMetricListResponse {
                     pageReturnedStr = sdf.format(new Date(pageReturned));
                 }
                 
-                pageTimesBuilder.append("<td>").append(pageRequestedStr).append("</td><td>").append(pageReturnedStr).append("</td><td>")
-                                .append(p.getReturnTime()).append("</td><td>").append(p.getPagesize()).append("</td><td>").append(numToString(p.getCallTime()))
-                                .append("</td><td>").append(numToString(p.getLoginTime())).append("</td><td>").append(numToString(p.getSerializationTime()))
-                                .append("</td><td>").append(numToString(p.getBytesWritten())).append("</td></tr>");
+                pageTimesBuilder.append("<td>").append(numToString(p.getPageNumber())).append("</td>");
+                pageTimesBuilder.append("<td>").append(pageRequestedStr).append("</td>");
+                pageTimesBuilder.append("<td>").append(pageReturnedStr).append("</td>");
+                pageTimesBuilder.append("<td>").append(p.getReturnTime()).append("</td>");
+                pageTimesBuilder.append("<td>").append(p.getPagesize()).append("</td>");
+                pageTimesBuilder.append("<td>").append(numToString(p.getCallTime())).append("</td>");
+                pageTimesBuilder.append("<td>").append(numToString(p.getLoginTime())).append("</td>");
+                pageTimesBuilder.append("<td>").append(numToString(p.getSerializationTime())).append("</td>");
+                pageTimesBuilder.append("<td>").append(numToString(p.getBytesWritten())).append("</td></tr>");
             }
             builder.append("<td>").append(count).append("</td>\n");
             builder.append("<td>").append(numToString(callTime)).append("</td>\n");

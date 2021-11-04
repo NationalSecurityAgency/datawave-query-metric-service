@@ -1,9 +1,9 @@
 package datawave.microservice.querymetric.peristence;
 
+import com.hazelcast.map.IMap;
 import com.hazelcast.map.MapLoader;
 import com.hazelcast.map.MapStore;
 import com.hazelcast.map.MapStoreFactory;
-import com.hazelcast.map.impl.proxy.MapProxyImpl;
 import datawave.microservice.querymetric.BaseQueryMetric;
 import datawave.microservice.querymetric.QueryMetricType;
 import datawave.microservice.querymetric.QueryMetricUpdate;
@@ -28,7 +28,7 @@ public class AccumuloMapStore<T extends BaseQueryMetric> extends AccumuloMapLoad
     
     private static AccumuloMapStore instance;
     private Logger log = LoggerFactory.getLogger(getClass());
-    private MapProxyImpl lastWrittenQueryMetricCache;
+    private IMap<Object,Object> lastWrittenQueryMetricCache;
     
     public static class Factory implements MapStoreFactory<String,BaseQueryMetric> {
         @Override
@@ -44,7 +44,7 @@ public class AccumuloMapStore<T extends BaseQueryMetric> extends AccumuloMapLoad
     }
     
     public void setLastWrittenQueryMetricCache(Cache lastWrittenQueryMetricCache) {
-        this.lastWrittenQueryMetricCache = (MapProxyImpl) lastWrittenQueryMetricCache.getNativeCache();
+        this.lastWrittenQueryMetricCache = (IMap<Object,Object>) lastWrittenQueryMetricCache.getNativeCache();
     }
     
     @Override
@@ -57,8 +57,9 @@ public class AccumuloMapStore<T extends BaseQueryMetric> extends AccumuloMapLoad
             if (lastQueryMetricUpdate != null) {
                 T lastQueryMetric = lastQueryMetricUpdate.getMetric();
                 updatedMetric = handler.combineMetrics(updatedMetric, lastQueryMetric, metricType);
-                handler.writeMetric(updatedMetricHolder.getMetric(), Collections.singletonList(lastQueryMetric), lastQueryMetric.getLastUpdated(), true);
+                handler.writeMetric(updatedMetric, Collections.singletonList(lastQueryMetric), lastQueryMetric.getLastUpdated(), true);
             }
+            log.trace("writing metric to accumulo: " + queryId + " - " + updatedMetricHolder.getMetric());
             handler.writeMetric(updatedMetric, Collections.singletonList(updatedMetric), updatedMetric.getLastUpdated(), false);
             lastWrittenQueryMetricCache.set(queryId, new QueryMetricUpdate(updatedMetric));
         } catch (Exception e) {

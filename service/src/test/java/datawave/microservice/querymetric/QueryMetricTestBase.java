@@ -5,13 +5,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.hazelcast.config.Config;
 import com.hazelcast.config.MapStoreConfig;
-import com.hazelcast.map.impl.proxy.MapProxyImpl;
+import com.hazelcast.map.IMap;
 import com.hazelcast.spring.cache.HazelcastCacheManager;
 import datawave.marking.MarkingFunctions;
 import datawave.microservice.authorization.preauth.ProxiedEntityX509Filter;
 import datawave.microservice.authorization.user.ProxiedUserDetails;
 import datawave.microservice.querymetric.config.QueryMetricClientProperties;
 import datawave.microservice.querymetric.config.QueryMetricHandlerProperties;
+import datawave.microservice.querymetric.function.QueryMetricSupplier;
 import datawave.microservice.querymetric.handler.ShardTableQueryMetricHandler;
 import datawave.security.authorization.DatawaveUser;
 import datawave.security.authorization.JWTTokenHandler;
@@ -39,9 +40,16 @@ import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.boot.web.server.LocalServerPort;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.context.annotation.Primary;
+import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.messaging.Message;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.ArrayList;
@@ -218,14 +226,14 @@ public class QueryMetricTestBase {
         }
     }
     
-    protected void assertEquals(BaseQueryMetric m1, BaseQueryMetric m2) {
+    public static void assertEquals(BaseQueryMetric m1, BaseQueryMetric m2) {
         assertEquals("", m1, m2);
     }
     
     /*
      * This method compares the fields of BaseQueryMetric one by one so that the discrepancy is obvious It also rounds all Date objects to
      */
-    protected void assertEquals(String message, BaseQueryMetric m1, BaseQueryMetric m2) {
+    public static void assertEquals(String message, BaseQueryMetric m1, BaseQueryMetric m2) {
         if (null == m2) {
             Assert.fail(message + ": actual metric is null");
         } else if (m1 == m2) {
@@ -270,7 +278,7 @@ public class QueryMetricTestBase {
         }
     }
     
-    protected boolean assertObjectsEqual(Object o1, Object o2) {
+    public static boolean assertObjectsEqual(Object o1, Object o2) {
         if (o1 == null && o2 == null) {
             return true;
         } else if (o1 == null && o2 != null) {
@@ -355,7 +363,7 @@ public class QueryMetricTestBase {
         // only wait on value if this is a write-behind cache
         if (writeDelaySeconds > 0) {
             boolean found = false;
-            MapProxyImpl hzCache = ((MapProxyImpl) lastWrittenCache.getNativeCache());
+            IMap<Object,Object> hzCache = ((IMap<Object,Object>) lastWrittenCache.getNativeCache());
             while (!found && System.currentTimeMillis() < (now + (1000 * (writeDelaySeconds + 1)))) {
                 found = hzCache.containsKey(queryId);
                 if (!found) {
@@ -364,6 +372,23 @@ public class QueryMetricTestBase {
                     } catch (InterruptedException e) {}
                 }
             }
+        }
+    }
+    
+    @Configuration
+    @Profile("MessageRouting")
+    @ComponentScan(basePackages = "datawave.microservice")
+    public static class MessagingTestConfiguration {
+        @Primary
+        @Bean
+        public QueryMetricSupplier testQueryMetricSource(@Lazy QueryMetricOperations queryMetricOperations) {
+            return new QueryMetricSupplier() {
+                @Override
+                public boolean send(Message<QueryMetricUpdate> queryMetricUpdate) {
+                    queryMetricOperations.storeMetric(queryMetricUpdate.getPayload().getMetric(), queryMetricUpdate.getPayload().getMetricType());
+                    return true;
+                }
+            };
         }
     }
 }

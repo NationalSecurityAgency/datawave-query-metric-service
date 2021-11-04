@@ -71,8 +71,7 @@ datawave:
         recordWriterNumThreads: 4
         enableBloomFilter: false
         queryVisibility: PUBLIC
-        defaultMetricMarkings:
-          columnVisibility: PUBLIC
+        defaultMetricVisibility: (PUBLIC)
         baseMaps: "{}"
       timely:
         enabled: false
@@ -84,7 +83,8 @@ datawave:
           - QUERY_ID
           - QUERY_LOGIC
       client:
-        transport: https
+        enabled: true
+        transport: message
         host: localhost
         port: ${server.port}
 

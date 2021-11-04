@@ -1,5 +1,0 @@
-datawave:
-  query:
-    metric:
-      client:
-        transport: message

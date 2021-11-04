@@ -7,6 +7,8 @@ import datawave.microservice.authorization.user.ProxiedUserDetails;
 import datawave.microservice.querymetric.BaseQueryMetric.Lifecycle;
 import datawave.microservice.querymetric.config.QueryMetricHandlerProperties;
 import datawave.microservice.querymetric.config.TimelyProperties;
+import datawave.microservice.querymetric.factory.BaseQueryMetricListResponseFactory;
+import datawave.microservice.querymetric.function.QueryMetricSupplier;
 import datawave.microservice.querymetric.handler.QueryGeometryHandler;
 import datawave.microservice.querymetric.handler.ShardTableQueryMetricHandler;
 import datawave.microservice.querymetric.handler.SimpleQueryGeometryHandler;
@@ -14,7 +16,6 @@ import datawave.security.util.DnUtils;
 import datawave.util.timely.UdpClient;
 import datawave.webservice.query.exception.DatawaveErrorCode;
 import datawave.webservice.query.exception.QueryException;
-import datawave.webservice.query.exception.QueryExceptionType;
 import datawave.webservice.query.map.QueryGeometryResponse;
 import datawave.webservice.result.VoidResponse;
 import io.swagger.annotations.ApiParam;
@@ -28,6 +29,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.http.MediaType;
+import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -60,20 +62,29 @@ public class QueryMetricOperations {
     private QueryMetricHandlerProperties queryMetricHandlerProperties;
     private MarkingFunctions markingFunctions;
     private TimelyProperties timelyProperties;
+    private BaseQueryMetricListResponseFactory queryMetricListResponseFactory;
     private ReentrantLock caffeineLock = new ReentrantLock();
+    
+    private final QueryMetricSupplier queryMetricSupplier;
     
     @Autowired
     public QueryMetricOperations(CacheManager cacheManager, ShardTableQueryMetricHandler handler, QueryGeometryHandler geometryHandler,
-                    QueryMetricHandlerProperties queryMetricHandlerProperties, MarkingFunctions markingFunctions, TimelyProperties timelyProperties) {
+                    QueryMetricHandlerProperties queryMetricHandlerProperties, MarkingFunctions markingFunctions,
+                    BaseQueryMetricListResponseFactory queryMetricListResponseFactory, TimelyProperties timelyProperties,
+                    QueryMetricSupplier queryMetricSupplier) {
         this.handler = handler;
         this.geometryHandler = geometryHandler;
         this.isHazelCast = cacheManager instanceof HazelcastCacheManager;
         this.incomingQueryMetricsCache = cacheManager.getCache(INCOMING_METRICS);
         this.queryMetricHandlerProperties = queryMetricHandlerProperties;
         this.markingFunctions = markingFunctions;
+        this.queryMetricListResponseFactory = queryMetricListResponseFactory;
         this.timelyProperties = timelyProperties;
+        this.queryMetricSupplier = queryMetricSupplier;
     }
     
+    // Messages that arrive via http/https get placed on the message queue
+    // to ensure a quick response and to maintain a single queue of work
     @RolesAllowed({"Administrator", "JBossAdministrator"})
     @RequestMapping(path = "/updateMetrics", method = {RequestMethod.POST}, consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE},
                     produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
@@ -81,25 +92,27 @@ public class QueryMetricOperations {
                     @RequestParam(value = "metricType", defaultValue = "DISTRIBUTED") QueryMetricType metricType) {
         VoidResponse response = new VoidResponse();
         for (BaseQueryMetric m : queryMetrics) {
-            response = storeMetric(m, metricType);
-            List<QueryExceptionType> exceptions = response.getExceptions();
-            if (exceptions != null && !exceptions.isEmpty()) {
-                break;
-            }
+            log.trace("received metric update via REST: " + m.toString());
+            queryMetricSupplier.send(MessageBuilder.withPayload(new QueryMetricUpdate(m, metricType)).build());
         }
         return response;
     }
     
+    // Messages that arrive via http/https get placed on the message queue
+    // to ensure a quick response and to maintain a single queue of work
     @RolesAllowed({"Administrator", "JBossAdministrator"})
     @RequestMapping(path = "/updateMetric", method = {RequestMethod.POST}, consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE},
                     produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
     public VoidResponse updateMetric(@RequestBody BaseQueryMetric queryMetric,
                     @RequestParam(value = "metricType", defaultValue = "DISTRIBUTED") QueryMetricType metricType) {
-        return storeMetric(queryMetric, metricType);
+        log.trace("received metric update via REST: " + queryMetric.toString());
+        queryMetricSupplier.send(MessageBuilder.withPayload(new QueryMetricUpdate(queryMetric, metricType)).build());
+        return new VoidResponse();
     }
     
     public VoidResponse storeMetric(BaseQueryMetric queryMetric, QueryMetricType metricType) {
         
+        log.trace("storing metric update: " + queryMetric.toString());
         VoidResponse response = new VoidResponse();
         try {
             Long lastPageNum = null;
@@ -168,11 +181,12 @@ public class QueryMetricOperations {
      * @HTTP 500 internal server error
      */
     @PermitAll
-    @RequestMapping(path = "/id/{queryId}", method = {RequestMethod.GET}, produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
+    @RequestMapping(path = "/id/{queryId}", method = {RequestMethod.GET},
+                    produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE, MediaType.TEXT_HTML_VALUE})
     public BaseQueryMetricListResponse query(@AuthenticationPrincipal ProxiedUserDetails currentUser,
                     @ApiParam("queryId to return") @PathVariable("queryId") String queryId) {
         
-        BaseQueryMetricListResponse response = new QueryMetricListResponse();
+        BaseQueryMetricListResponse response = this.queryMetricListResponseFactory.createDetailedResponse();
         List<BaseQueryMetric> metricList = new ArrayList<>();
         try {
             QueryMetricUpdate metricHolder = incomingQueryMetricsCache.get(queryId, QueryMetricUpdate.class);
