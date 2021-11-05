@@ -11,7 +11,6 @@ import datawave.microservice.querymetric.QueryMetricUpdate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.cache.Cache;
 import org.springframework.stereotype.Component;
@@ -21,9 +20,8 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Properties;
 
-@Component
+@Component("store")
 @ConditionalOnProperty(name = "hazelcast.server.enabled")
-@Qualifier("store")
 public class AccumuloMapStore<T extends BaseQueryMetric> extends AccumuloMapLoader<T> implements MapStore<String,QueryMetricUpdate<T>> {
     
     private static AccumuloMapStore instance;
@@ -39,7 +37,7 @@ public class AccumuloMapStore<T extends BaseQueryMetric> extends AccumuloMapLoad
     
     @Autowired
     public AccumuloMapStore(ShardTableQueryMetricHandler handler) {
-        super(handler);
+        this.handler = handler;
         AccumuloMapStore.instance = this;
     }
     
