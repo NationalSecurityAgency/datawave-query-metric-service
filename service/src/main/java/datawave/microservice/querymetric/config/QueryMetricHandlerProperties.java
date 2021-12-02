@@ -39,7 +39,6 @@ public class QueryMetricHandlerProperties {
     protected String dateField = "CREATE_DATE";
     protected String dateFormat = "yyyyMMdd HHmmss.S";
     protected int fieldLengthThreshold = 4049;
-    protected String metricAdminRole;
     protected boolean enableBloomFilter = false;
     protected int recordWriterMaxMemory = 10000000;
     protected int recordWriterMaxLatency = 60000;
@@ -397,14 +396,6 @@ public class QueryMetricHandlerProperties {
     
     public void setPolicyEnforcerClass(String policyEnforcerClass) {
         this.policyEnforcerClass = policyEnforcerClass;
-    }
-    
-    public String getMetricAdminRole() {
-        return metricAdminRole;
-    }
-    
-    public void setMetricAdminRole(String metricAdminRole) {
-        this.metricAdminRole = metricAdminRole;
     }
     
     public String getBaseMaps() {

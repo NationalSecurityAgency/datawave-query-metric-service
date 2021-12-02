@@ -23,6 +23,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.security.VisibilityEvaluator;
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.time.DateUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,14 +46,21 @@ import org.springframework.web.bind.annotation.RestController;
 import javax.annotation.security.PermitAll;
 import javax.annotation.security.RolesAllowed;
 import java.text.DecimalFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 import java.util.concurrent.locks.ReentrantLock;
 
 import static datawave.microservice.querymetric.config.HazelcastServerConfiguration.INCOMING_METRICS;
 import static datawave.microservice.querymetric.config.QueryMetricSourceConfiguration.QueryMetricSourceBinding.SOURCE_NAME;
+import static datawave.microservice.querymetric.QueryMetricOperations.DEFAULT_DATETIME.BEGIN;
+import static datawave.microservice.querymetric.QueryMetricOperations.DEFAULT_DATETIME.END;
 
 @EnableBinding(QueryMetricSinkBinding.class)
 @RestController
@@ -70,7 +78,11 @@ public class QueryMetricOperations {
     private TimelyProperties timelyProperties;
     private BaseQueryMetricListResponseFactory queryMetricListResponseFactory;
     private ReentrantLock caffeineLock = new ReentrantLock();
-    
+
+    enum DEFAULT_DATETIME {
+        BEGIN, END
+    }
+
     @Output(SOURCE_NAME)
     @Autowired
     private MessageChannel output;
@@ -203,14 +215,13 @@ public class QueryMetricOperations {
             QueryMetricUpdate metricHolder = incomingQueryMetricsCache.get(queryId, QueryMetricUpdate.class);
             if (metricHolder != null) {
                 BaseQueryMetric metric = metricHolder.getMetric();
-                String adminRole = queryMetricHandlerProperties.getMetricAdminRole();
-                boolean allowAllMetrics = adminRole == null;
+                boolean allowAllMetrics = false;
                 boolean sameUser = false;
                 if (currentUser != null) {
                     String metricUser = metric.getUser();
                     String requestingUser = DnUtils.getShortName(currentUser.getPrimaryUser().getName());
                     sameUser = metricUser != null && metricUser.equals(requestingUser);
-                    allowAllMetrics = allowAllMetrics || currentUser.getPrimaryUser().getRoles().contains(adminRole);
+                    allowAllMetrics = currentUser.getPrimaryUser().getRoles().contains("MetricsAdministrator");
                 }
                 // since we are using the incomingQueryMetricsCache, we need to make sure that the
                 // requesting user has the necessary Authorizations to view the requested query metric
@@ -258,6 +269,110 @@ public class QueryMetricOperations {
             return queryGeometryResponse;
         }
     }
+
+    private static Date parseDate(String dateString, DEFAULT_DATETIME defaultDateTime) throws IllegalArgumentException {
+        try {
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd HHmmss.SSS");
+            sdf.setTimeZone(TimeZone.getTimeZone("GMT"));
+            if (StringUtils.isBlank(dateString)) {
+                dateString = sdf.format(new Date());
+            } else {
+                dateString = dateString.trim();
+            }
+            if (dateString.length() == 8) {
+                dateString = dateString + (defaultDateTime.equals(BEGIN) ? " 000000.000" : " 235959.999");
+            } else if (dateString.length() == 15) {
+                dateString = dateString + (defaultDateTime.equals(BEGIN) ? ".000" : ".999");
+            }
+            return sdf.parse(dateString);
+        } catch (ParseException e) {
+            throw new IllegalArgumentException("Unable to parse date parameter - valid formats: yyyyMMdd | yyyyMMdd HHmmss | yyyyMMdd HHmmss.SSS");
+        }
+    }
+    
+    private QueryMetricsSummaryResponse queryMetricsSummary(Date begin, Date end, ProxiedUserDetails currentUser, boolean onlyCurrentUser) {
+        
+        if (null == end) {
+            end = new Date();
+        } else {
+            end = DateUtils.truncate(end, Calendar.SECOND);
+        }
+        Calendar ninetyDaysBeforeEnd = Calendar.getInstance();
+        ninetyDaysBeforeEnd.setTime(end);
+        ninetyDaysBeforeEnd.add(Calendar.DATE, -90);
+        if (null == begin) {
+            // midnight of ninety days before end
+            begin = DateUtils.truncate(ninetyDaysBeforeEnd, Calendar.DATE).getTime();
+        } else {
+            begin = DateUtils.truncate(begin, Calendar.SECOND);
+        }
+        QueryMetricsSummaryResponse response;
+        if (end.before(begin)) {
+            response = new QueryMetricsSummaryResponse();
+            String s = "begin date can not be after end date";
+            response.addException(new QueryException(DatawaveErrorCode.BEGIN_DATE_AFTER_END_DATE, new IllegalArgumentException(s), s));
+        } else {
+            response = handler.getQueryMetricsSummary(begin, end, currentUser, onlyCurrentUser);
+        }
+        return response;
+    }
+    
+    /**
+     * Returns a summary of the query metrics
+     * 
+     * @param begin
+     *            formatted date/time (yyyyMMdd | yyyyMMdd HHmmss | yyyyMMdd HHmmss.SSS)
+     * @param end
+     *            formatted date/time (yyyyMMdd | yyyyMMdd HHmmss | yyyyMMdd HHmmss.SSS)
+     * @return datawave.microservice.querymetric.QueryMetricsSummaryResponse
+     *
+     * @HTTP 200 success
+     * @HTTP 500 internal server error
+     */
+    @RolesAllowed({"Administrator", "JBossAdministrator", "MetricsAdministrator"})
+    @RequestMapping(path = "/summary/all", method = {RequestMethod.GET},
+                    produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE, MediaType.TEXT_HTML_VALUE})
+    public QueryMetricsSummaryResponse getQueryMetricsSummary(@AuthenticationPrincipal ProxiedUserDetails currentUser,
+                    @RequestParam(required = false) String begin, @RequestParam(required = false) String end) {
+        
+        try {
+            Date beginDate = parseDate(begin, BEGIN);
+            Date endDate = parseDate(end, END);
+            return queryMetricsSummary(beginDate, endDate, currentUser, false);
+        } catch (Exception e) {
+            QueryMetricsSummaryResponse response = new QueryMetricsSummaryResponse();
+            response.addException(e);
+            return response;
+        }
+    }
+    
+    /**
+     * Returns a summary of the requesting user's query metrics
+     * 
+     * @param begin
+     *            formatted date/time (yyyyMMdd | yyyyMMdd HHmmss | yyyyMMdd HHmmss.SSS)
+     * @param end
+     *            formatted date/time (yyyyMMdd | yyyyMMdd HHmmss | yyyyMMdd HHmmss.SSS)
+     * @return datawave.microservice.querymetric.QueryMetricsSummaryResponse
+     *
+     * @HTTP 200 success
+     * @HTTP 500 internal server error
+     */
+    @PermitAll
+    @RequestMapping(path = "/summary/user", method = {RequestMethod.GET},
+                    produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE, MediaType.TEXT_HTML_VALUE})
+    public QueryMetricsSummaryResponse getQueryMetricsUserSummary(@AuthenticationPrincipal ProxiedUserDetails currentUser,
+                    @RequestParam(required = false) String begin, @RequestParam(required = false) String end) {
+        try {
+            Date beginDate = parseDate(begin, BEGIN);
+            Date endDate = parseDate(end, END);
+            return queryMetricsSummary(beginDate, endDate, currentUser, true);
+        } catch (Exception e) {
+            QueryMetricsSummaryResponse response = new QueryMetricsSummaryResponse();
+            response.addException(e);
+            return response;
+        }
+    }
     
     private UdpClient createUdpClient() {
         if (timelyProperties != null && StringUtils.isNotBlank(timelyProperties.getHost())) {
@@ -273,7 +388,6 @@ public class QueryMetricOperations {
             UdpClient timelyClient = createUdpClient();
             if (queryMetric.getQueryType().equalsIgnoreCase("RunningQuery")) {
                 try {
-                    String queryId = queryMetric.getQueryId();
                     Lifecycle lifecycle = queryMetric.getLifecycle();
                     Map<String,String> metricValues = handler.getEventFields(queryMetric);
                     long createDate = queryMetric.getCreateDate().getTime();

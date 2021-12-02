@@ -17,17 +17,20 @@ import datawave.ingest.mapreduce.job.BulkIngestKey;
 import datawave.ingest.mapreduce.job.writer.LiveContextWriter;
 import datawave.ingest.table.config.TableConfigHelper;
 import datawave.marking.MarkingFunctions;
+import datawave.microservice.authorization.user.ProxiedUserDetails;
 import datawave.microservice.querymetric.BaseQueryMetric;
 import datawave.microservice.querymetric.BaseQueryMetric.Lifecycle;
 import datawave.microservice.querymetric.BaseQueryMetric.PageMetric;
 import datawave.microservice.querymetric.QueryMetricFactory;
 import datawave.microservice.querymetric.QueryMetricType;
+import datawave.microservice.querymetric.QueryMetricsSummaryResponse;
 import datawave.microservice.querymetric.config.QueryMetricHandlerProperties;
 import datawave.microservice.querymetric.factory.QueryMetricQueryLogicFactory;
 import datawave.query.iterator.QueryOptions;
 import datawave.security.authorization.DatawavePrincipal;
 import datawave.security.authorization.DatawaveUser;
 import datawave.security.authorization.SubjectIssuerDNPair;
+import datawave.security.util.AuthorizationsUtil;
 import datawave.webservice.common.connection.AccumuloConnectionFactory.Priority;
 import datawave.webservice.common.connection.AccumuloConnectionPool;
 import datawave.webservice.common.logging.ThreadConfigurableLogger;
@@ -90,7 +93,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import static datawave.security.authorization.DatawaveUser.UserType.USER;
 
-public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> implements QueryMetricHandler<T> {
+public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends BaseQueryMetricHandler<T> {
     private static final Logger log = ThreadConfigurableLogger.getLogger(ShardTableQueryMetricHandler.class.getName());
     
     private static final String QUERY_METRICS_LOGIC_NAME = "QueryMetricsQuery";
@@ -928,5 +931,44 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> implements 
     @Override
     public ContentQueryMetricsIngestHelper getQueryMetricsIngestHelper(boolean deleteMode) {
         return new ContentQueryMetricsIngestHelper(deleteMode);
+    }
+    
+    @Override
+    public QueryMetricsSummaryResponse getQueryMetricsSummary(Date begin, Date end, ProxiedUserDetails currentUser, boolean onlyCurrentUser) {
+        QueryMetricsSummaryResponse response = new QueryMetricsSummaryResponse();
+        
+        try {
+            enableLogs(false);
+            // this method is open to any user
+            DatawaveUser datawaveUser = currentUser.getPrimaryUser();
+            Collection<? extends Collection<String>> authorizations = Collections.singletonList(datawaveUser.getAuths());
+            Query query = createQuery();
+            query.setBeginDate(begin);
+            query.setEndDate(end);
+            query.setQueryLogicName(QUERY_METRICS_LOGIC_NAME);
+            if (onlyCurrentUser) {
+                String user = datawavePrincipal.getShortName();
+                query.setQuery("USER == '" + user + "'");
+            } else {
+                query.setQuery("((_Bounded_ = true) && (USER > 'A' && USER < 'ZZZZZZZ'))");
+            }
+            query.setQueryName(QUERY_METRICS_LOGIC_NAME);
+            query.setColumnVisibility(queryMetricHandlerProperties.getQueryVisibility());
+            query.setQueryAuthorizations(AuthorizationsUtil.buildAuthorizationString(authorizations));
+            query.setExpirationDate(DateUtils.addDays(new Date(), 1));
+            query.setPagesize(1000);
+            query.setUserDN(datawavePrincipal.getShortName());
+            query.setId(UUID.randomUUID());
+            query.setParameters(ImmutableMap.of(QueryOptions.INCLUDE_GROUPING_CONTEXT, "true"));
+            
+            List<T> queryMetrics = getQueryMetrics(response, query);
+            response = processQueryMetricsSummary(queryMetrics, end);
+        } catch (IOException e) {
+            log.error(e.getMessage(), e);
+        } finally {
+            enableLogs(true);
+        }
+        
+        return response;
     }
 }
