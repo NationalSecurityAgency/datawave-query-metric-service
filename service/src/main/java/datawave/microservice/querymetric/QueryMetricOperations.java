@@ -78,11 +78,11 @@ public class QueryMetricOperations {
     private TimelyProperties timelyProperties;
     private BaseQueryMetricListResponseFactory queryMetricListResponseFactory;
     private ReentrantLock caffeineLock = new ReentrantLock();
-
+    
     enum DEFAULT_DATETIME {
         BEGIN, END
     }
-
+    
     @Output(SOURCE_NAME)
     @Autowired
     private MessageChannel output;
@@ -269,7 +269,7 @@ public class QueryMetricOperations {
             return queryGeometryResponse;
         }
     }
-
+    
     private static Date parseDate(String dateString, DEFAULT_DATETIME defaultDateTime) throws IllegalArgumentException {
         try {
             SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd HHmmss.SSS");
