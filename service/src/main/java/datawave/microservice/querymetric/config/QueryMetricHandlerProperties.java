@@ -8,7 +8,9 @@ import datawave.microservice.querymetric.handler.ContentQueryMetricsIngestHelper
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.validation.annotation.Validated;
 
+import javax.validation.constraints.Positive;
 import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Collections;
@@ -18,6 +20,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
+@Validated
 @ConfigurationProperties(prefix = "datawave.query.metric.handler")
 public class QueryMetricHandlerProperties {
     
@@ -40,7 +43,9 @@ public class QueryMetricHandlerProperties {
     protected String dateFormat = "yyyyMMdd HHmmss.S";
     protected int fieldLengthThreshold = 4049;
     protected boolean enableBloomFilter = false;
+    @Positive
     protected int recordWriterMaxMemory = 10000000;
+    @Positive
     protected int recordWriterMaxLatency = 60000;
     protected int recordWriterNumThreads = 4;
     protected String policyEnforcerClass = "datawave.policy.IngestPolicyEnforcer$NoOpIngestPolicyEnforcer";

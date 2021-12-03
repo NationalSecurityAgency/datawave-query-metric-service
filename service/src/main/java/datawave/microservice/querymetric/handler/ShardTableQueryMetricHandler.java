@@ -31,6 +31,7 @@ import datawave.security.authorization.DatawavePrincipal;
 import datawave.security.authorization.DatawaveUser;
 import datawave.security.authorization.SubjectIssuerDNPair;
 import datawave.security.util.AuthorizationsUtil;
+import datawave.security.util.DnUtils;
 import datawave.webservice.common.connection.AccumuloConnectionFactory.Priority;
 import datawave.webservice.common.connection.AccumuloConnectionPool;
 import datawave.webservice.common.logging.ThreadConfigurableLogger;
@@ -75,6 +76,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -682,6 +684,7 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
     public T toMetric(EventBase event) {
         SimpleDateFormat sdf_date_time1 = new SimpleDateFormat("yyyyMMdd HHmmss");
         SimpleDateFormat sdf_date_time2 = new SimpleDateFormat("yyyyMMdd HHmmss");
+        SimpleDateFormat sdf_date_time3 = new SimpleDateFormat("yyyyMMdd");
         
         List<String> excludedFields = Arrays.asList("ELAPSED_TIME", "RECORD_ID", "NUM_PAGES", "NUM_RESULTS");
         
@@ -691,6 +694,7 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
             m.setMarkings(event.getMarkings());
             TreeMap<Long,PageMetric> pageMetrics = Maps.newTreeMap();
             
+            boolean createDateSet = false;
             for (FieldBase f : field) {
                 String fieldName = f.getName();
                 String fieldValue = f.getValueString();
@@ -706,6 +710,7 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
                         try {
                             Date d = sdf_date_time2.parse(fieldValue);
                             m.setCreateDate(d);
+                            createDateSet = true;
                         } catch (Exception e) {
                             log.error(e.getMessage());
                         }
@@ -820,6 +825,15 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
                     } else {
                         log.debug("encountered unanticipated field name: " + fieldName);
                     }
+                }
+            }
+            // if createDate has not been set, try to parse it from the event row
+            if (!createDateSet) {
+                try {
+                    String dateStr = event.getMetadata().getRow().substring(0, 8);
+                    m.setCreateDate(sdf_date_time3.parse(dateStr));
+                } catch (ParseException e) {
+                    
                 }
             }
             m.setPageTimes(new ArrayList<>(pageMetrics.values()));
@@ -941,14 +955,22 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
             enableLogs(false);
             // this method is open to any user
             DatawaveUser datawaveUser = currentUser.getPrimaryUser();
-            Collection<? extends Collection<String>> authorizations = Collections.singletonList(datawaveUser.getAuths());
+            String datawaveUserShortName = DnUtils.getShortName(datawaveUser.getName());
+            Collection<String> userAuths = new ArrayList<>(datawaveUser.getAuths());
+            if (connectorAuthorizations != null) {
+                Collection<String> connectorAuths = new ArrayList<>();
+                Arrays.stream(StringUtils.split(connectorAuthorizations, ',')).forEach(a -> {
+                    connectorAuths.add(a);
+                });
+                userAuths.retainAll(connectorAuths);
+            }
+            Collection<? extends Collection<String>> authorizations = Collections.singletonList(userAuths);
             Query query = createQuery();
             query.setBeginDate(begin);
             query.setEndDate(end);
             query.setQueryLogicName(QUERY_METRICS_LOGIC_NAME);
             if (onlyCurrentUser) {
-                String user = datawavePrincipal.getShortName();
-                query.setQuery("USER == '" + user + "'");
+                query.setQuery("USER == '" + datawaveUserShortName + "'");
             } else {
                 query.setQuery("((_Bounded_ = true) && (USER > 'A' && USER < 'ZZZZZZZ'))");
             }
@@ -957,18 +979,20 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
             query.setQueryAuthorizations(AuthorizationsUtil.buildAuthorizationString(authorizations));
             query.setExpirationDate(DateUtils.addDays(new Date(), 1));
             query.setPagesize(1000);
-            query.setUserDN(datawavePrincipal.getShortName());
+            query.setUserDN(datawaveUserShortName);
             query.setId(UUID.randomUUID());
             query.setParameters(ImmutableMap.of(QueryOptions.INCLUDE_GROUPING_CONTEXT, "true"));
             
             List<T> queryMetrics = getQueryMetrics(response, query);
-            response = processQueryMetricsSummary(queryMetrics, end);
+            List<QueryExceptionType> exceptions = response.getExceptions();
+            if (exceptions == null || exceptions.isEmpty()) {
+                response = processQueryMetricsSummary(queryMetrics, end);
+            }
         } catch (IOException e) {
             log.error(e.getMessage(), e);
         } finally {
             enableLogs(true);
         }
-        
         return response;
     }
 }

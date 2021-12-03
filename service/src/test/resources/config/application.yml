@@ -76,7 +76,7 @@ datawave:
         metadataTableName: QueryMetrics_m
         metadataDefaultAuths: PUBLIC
         recordWriterMaxMemory: 100000
-        recordWriterMaxLatency: 0
+        recordWriterMaxLatency: 10
         recordWriterNumThreads: 4
         enableBloomFilter: false
         queryVisibility: PUBLIC

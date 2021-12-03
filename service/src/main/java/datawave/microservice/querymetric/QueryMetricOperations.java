@@ -5,7 +5,6 @@ import com.hazelcast.spring.cache.HazelcastCacheManager;
 import datawave.marking.MarkingFunctions;
 import datawave.microservice.authorization.user.ProxiedUserDetails;
 import datawave.microservice.querymetric.BaseQueryMetric.Lifecycle;
-import datawave.microservice.querymetric.config.QueryMetricHandlerProperties;
 import datawave.microservice.querymetric.config.QueryMetricSinkConfiguration.QueryMetricSinkBinding;
 import datawave.microservice.querymetric.config.TimelyProperties;
 import datawave.microservice.querymetric.factory.BaseQueryMetricListResponseFactory;
@@ -23,7 +22,6 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.security.VisibilityEvaluator;
 import org.apache.commons.lang.StringUtils;
-import org.apache.commons.lang.time.DateUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -57,10 +55,10 @@ import java.util.Map;
 import java.util.TimeZone;
 import java.util.concurrent.locks.ReentrantLock;
 
-import static datawave.microservice.querymetric.config.HazelcastServerConfiguration.INCOMING_METRICS;
-import static datawave.microservice.querymetric.config.QueryMetricSourceConfiguration.QueryMetricSourceBinding.SOURCE_NAME;
 import static datawave.microservice.querymetric.QueryMetricOperations.DEFAULT_DATETIME.BEGIN;
 import static datawave.microservice.querymetric.QueryMetricOperations.DEFAULT_DATETIME.END;
+import static datawave.microservice.querymetric.config.HazelcastServerConfiguration.INCOMING_METRICS;
+import static datawave.microservice.querymetric.config.QueryMetricSourceConfiguration.QueryMetricSourceBinding.SOURCE_NAME;
 
 @EnableBinding(QueryMetricSinkBinding.class)
 @RestController
@@ -73,7 +71,6 @@ public class QueryMetricOperations {
     private QueryGeometryHandler geometryHandler;
     private Cache incomingQueryMetricsCache;
     private boolean isHazelCast;
-    private QueryMetricHandlerProperties queryMetricHandlerProperties;
     private MarkingFunctions markingFunctions;
     private TimelyProperties timelyProperties;
     private BaseQueryMetricListResponseFactory queryMetricListResponseFactory;
@@ -89,13 +86,11 @@ public class QueryMetricOperations {
     
     @Autowired
     public QueryMetricOperations(CacheManager cacheManager, ShardTableQueryMetricHandler handler, QueryGeometryHandler geometryHandler,
-                    QueryMetricHandlerProperties queryMetricHandlerProperties, MarkingFunctions markingFunctions,
-                    BaseQueryMetricListResponseFactory queryMetricListResponseFactory, TimelyProperties timelyProperties) {
+                    MarkingFunctions markingFunctions, BaseQueryMetricListResponseFactory queryMetricListResponseFactory, TimelyProperties timelyProperties) {
         this.handler = handler;
         this.geometryHandler = geometryHandler;
         this.isHazelCast = cacheManager instanceof HazelcastCacheManager;
         this.incomingQueryMetricsCache = cacheManager.getCache(INCOMING_METRICS);
-        this.queryMetricHandlerProperties = queryMetricHandlerProperties;
         this.markingFunctions = markingFunctions;
         this.queryMetricListResponseFactory = queryMetricListResponseFactory;
         this.timelyProperties = timelyProperties;
@@ -271,22 +266,24 @@ public class QueryMetricOperations {
     }
     
     private static Date parseDate(String dateString, DEFAULT_DATETIME defaultDateTime) throws IllegalArgumentException {
-        try {
-            SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd HHmmss.SSS");
-            sdf.setTimeZone(TimeZone.getTimeZone("GMT"));
-            if (StringUtils.isBlank(dateString)) {
-                dateString = sdf.format(new Date());
-            } else {
+        if (StringUtils.isBlank(dateString)) {
+            return null;
+        } else {
+            try {
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd HHmmss.SSS");
+                sdf.setTimeZone(TimeZone.getTimeZone("GMT"));
                 dateString = dateString.trim();
+                if (dateString.length() == 8) {
+                    dateString = dateString + (defaultDateTime.equals(BEGIN) ? " 000000.000" : " 235959.999");
+                } else if (dateString.length() == 15) {
+                    dateString = dateString + (defaultDateTime.equals(BEGIN) ? ".000" : ".999");
+                }
+                return sdf.parse(dateString);
+            } catch (ParseException e) {
+                String parameter = defaultDateTime.equals(BEGIN) ? "begin" : "end";
+                throw new IllegalArgumentException(
+                                "Unable to parse parameter '" + parameter + "' - valid formats: yyyyMMdd | yyyyMMdd HHmmss | yyyyMMdd HHmmss.SSS");
             }
-            if (dateString.length() == 8) {
-                dateString = dateString + (defaultDateTime.equals(BEGIN) ? " 000000.000" : " 235959.999");
-            } else if (dateString.length() == 15) {
-                dateString = dateString + (defaultDateTime.equals(BEGIN) ? ".000" : ".999");
-            }
-            return sdf.parse(dateString);
-        } catch (ParseException e) {
-            throw new IllegalArgumentException("Unable to parse date parameter - valid formats: yyyyMMdd | yyyyMMdd HHmmss | yyyyMMdd HHmmss.SSS");
         }
     }
     
@@ -294,17 +291,13 @@ public class QueryMetricOperations {
         
         if (null == end) {
             end = new Date();
-        } else {
-            end = DateUtils.truncate(end, Calendar.SECOND);
         }
         Calendar ninetyDaysBeforeEnd = Calendar.getInstance();
         ninetyDaysBeforeEnd.setTime(end);
         ninetyDaysBeforeEnd.add(Calendar.DATE, -90);
         if (null == begin) {
-            // midnight of ninety days before end
-            begin = DateUtils.truncate(ninetyDaysBeforeEnd, Calendar.DATE).getTime();
-        } else {
-            begin = DateUtils.truncate(begin, Calendar.SECOND);
+            // ninety days before end
+            begin = ninetyDaysBeforeEnd.getTime();
         }
         QueryMetricsSummaryResponse response;
         if (end.before(begin)) {
@@ -336,9 +329,7 @@ public class QueryMetricOperations {
                     @RequestParam(required = false) String begin, @RequestParam(required = false) String end) {
         
         try {
-            Date beginDate = parseDate(begin, BEGIN);
-            Date endDate = parseDate(end, END);
-            return queryMetricsSummary(beginDate, endDate, currentUser, false);
+            return queryMetricsSummary(parseDate(begin, BEGIN), parseDate(end, END), currentUser, false);
         } catch (Exception e) {
             QueryMetricsSummaryResponse response = new QueryMetricsSummaryResponse();
             response.addException(e);
@@ -364,9 +355,7 @@ public class QueryMetricOperations {
     public QueryMetricsSummaryResponse getQueryMetricsUserSummary(@AuthenticationPrincipal ProxiedUserDetails currentUser,
                     @RequestParam(required = false) String begin, @RequestParam(required = false) String end) {
         try {
-            Date beginDate = parseDate(begin, BEGIN);
-            Date endDate = parseDate(end, END);
-            return queryMetricsSummary(beginDate, endDate, currentUser, true);
+            return queryMetricsSummary(parseDate(begin, BEGIN), parseDate(end, END), currentUser, true);
         } catch (Exception e) {
             QueryMetricsSummaryResponse response = new QueryMetricsSummaryResponse();
             response.addException(e);
