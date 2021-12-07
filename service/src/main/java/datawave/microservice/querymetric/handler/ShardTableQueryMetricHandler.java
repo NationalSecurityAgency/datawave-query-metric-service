@@ -98,13 +98,12 @@ import static datawave.security.authorization.DatawaveUser.UserType.USER;
 public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends BaseQueryMetricHandler<T> {
     private static final Logger log = ThreadConfigurableLogger.getLogger(ShardTableQueryMetricHandler.class.getName());
     
-    private static final String QUERY_METRICS_LOGIC_NAME = "QueryMetricsQuery";
-    
+    protected static final String QUERY_METRICS_LOGIC_NAME = "QueryMetricsQuery";
+    protected String connectorAuthorizations = null;
+
     private AccumuloConnectionPool connectionPool;
     private QueryMetricHandlerProperties queryMetricHandlerProperties;
-    
-    private String connectorAuthorizations = null;
-    
+
     @SuppressWarnings("FieldCanBeLocal")
     private final String JOB_ID = "job_201109071404_1";
     
