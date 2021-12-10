@@ -100,10 +100,10 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
     
     protected static final String QUERY_METRICS_LOGIC_NAME = "QueryMetricsQuery";
     protected String connectorAuthorizations = null;
-
+    
     private AccumuloConnectionPool connectionPool;
     private QueryMetricHandlerProperties queryMetricHandlerProperties;
-
+    
     @SuppressWarnings("FieldCanBeLocal")
     private final String JOB_ID = "job_201109071404_1";
     
@@ -989,6 +989,7 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
             }
         } catch (IOException e) {
             log.error(e.getMessage(), e);
+            response.addException(e);
         } finally {
             enableLogs(true);
         }

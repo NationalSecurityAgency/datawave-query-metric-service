@@ -11,10 +11,11 @@ import org.springframework.cache.CacheManager;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
+import javax.inject.Named;
 import java.util.HashMap;
 import java.util.Map;
 
-import static datawave.microservice.querymetric.config.HazelcastServerConfiguration.INCOMING_METRICS;
+import static datawave.microservice.querymetric.config.HazelcastMetricCacheConfiguration.INCOMING_METRICS;
 
 /*
  * This class tests that a QueryMetricClient can be created and used with messaging
@@ -33,6 +34,7 @@ public class NonWebApplicationMessagingTest {
     private QueryMetricFactory queryMetricFactory;
     
     @Autowired
+    @Named("queryMetricCacheManager")
     protected CacheManager cacheManager;
     
     private Cache incomingQueryMetricsCache;

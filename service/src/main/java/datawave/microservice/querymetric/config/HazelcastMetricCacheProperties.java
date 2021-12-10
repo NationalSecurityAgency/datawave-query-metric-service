@@ -4,7 +4,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.NestedConfigurationProperty;
 
 @ConfigurationProperties(prefix = "hazelcast.server")
-public class HazelcastServerProperties {
+public class HazelcastMetricCacheProperties {
     
     /**
      * The initial delay in seconds to wait before attempting to merge split-brain clusters. If multiple nodes are started simultaneously, it is possible they

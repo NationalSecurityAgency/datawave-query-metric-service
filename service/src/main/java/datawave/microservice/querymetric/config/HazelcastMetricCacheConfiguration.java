@@ -31,21 +31,27 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.util.Collection;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 @Configuration
-@ConditionalOnProperty(name = "hazelcast.server.enabled")
-@EnableConfigurationProperties({HazelcastServerProperties.class})
-public class HazelcastServerConfiguration {
+@ConditionalOnProperty(name = "hazelcast.server.enabled", havingValue = "true")
+@EnableConfigurationProperties({HazelcastMetricCacheProperties.class})
+public class HazelcastMetricCacheConfiguration {
     
-    private Logger log = Logger.getLogger(HazelcastServerConfiguration.class);
+    private Logger log = Logger.getLogger(HazelcastMetricCacheConfiguration.class);
     public static final String LAST_WRITTEN_METRICS = "lastWrittenQueryMetrics";
     public static final String INCOMING_METRICS = "incomingQueryMetrics";
     
     @Value("${spring.application.name}")
     private String clusterName;
+    
+    @Bean(name = "queryMetricCacheManager")
+    public HazelcastCacheManager queryMetricCacheManager(HazelcastInstance existingHazelcastInstance) throws IOException {
+        return new HazelcastCacheManager(existingHazelcastInstance);
+    }
     
     @Bean
     HazelcastInstance hazelcastInstance(Config config, @Qualifier("store") AccumuloMapStore mapStore, @Qualifier("loader") AccumuloMapLoader mapLoader) {
@@ -93,7 +99,7 @@ public class HazelcastServerConfiguration {
     
     @Bean
     @Profile("consul")
-    public Config consulConfig(HazelcastServerProperties serverProperties, DiscoveryServiceProvider discoveryServiceProvider,
+    public Config consulConfig(HazelcastMetricCacheProperties serverProperties, DiscoveryServiceProvider discoveryServiceProvider,
                     ConsulDiscoveryProperties consulDiscoveryProperties) {
         consulDiscoveryProperties.getTags().add("hzHost=" + System.getProperty("hazelcast.cluster.host"));
         consulDiscoveryProperties.getTags().add("hzPort=" + System.getProperty("hazelcast.cluster.port"));
@@ -113,7 +119,7 @@ public class HazelcastServerConfiguration {
     
     @Bean
     @Profile("k8s")
-    public Config k8sConfig(HazelcastServerProperties serverProperties) {
+    public Config k8sConfig(HazelcastMetricCacheProperties serverProperties) {
         
         Config config = generateDefaultConfig(serverProperties);
         
@@ -135,7 +141,7 @@ public class HazelcastServerConfiguration {
     
     @Bean
     @Profile("!consul & !k8s")
-    public Config ipConfig(HazelcastServerProperties serverProperties) {
+    public Config ipConfig(HazelcastMetricCacheProperties serverProperties) {
         Config config = generateDefaultConfig(serverProperties);
         if (!serverProperties.isSkipDiscoveryConfiguration()) {
             try {
@@ -159,11 +165,11 @@ public class HazelcastServerConfiguration {
     
     @Bean
     @ConditionalOnMissingBean(Config.class)
-    public Config defaultConfig(HazelcastServerProperties serverProperties) {
+    public Config defaultConfig(HazelcastMetricCacheProperties serverProperties) {
         return generateDefaultConfig(serverProperties);
     }
     
-    private Config generateDefaultConfig(HazelcastServerProperties serverProperties) {
+    private Config generateDefaultConfig(HazelcastMetricCacheProperties serverProperties) {
         Config config;
         
         if (serverProperties.getXmlConfig() == null) {

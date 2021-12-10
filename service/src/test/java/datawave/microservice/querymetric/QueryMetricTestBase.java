@@ -44,6 +44,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.web.client.RestTemplate;
 
+import javax.inject.Named;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -54,8 +55,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import static datawave.microservice.querymetric.config.HazelcastServerConfiguration.INCOMING_METRICS;
-import static datawave.microservice.querymetric.config.HazelcastServerConfiguration.LAST_WRITTEN_METRICS;
+import static datawave.microservice.querymetric.config.HazelcastMetricCacheConfiguration.INCOMING_METRICS;
+import static datawave.microservice.querymetric.config.HazelcastMetricCacheConfiguration.LAST_WRITTEN_METRICS;
 import static datawave.security.authorization.DatawaveUser.UserType.USER;
 
 public class QueryMetricTestBase {
@@ -80,6 +81,7 @@ public class QueryMetricTestBase {
     protected ShardTableQueryMetricHandler shardTableQueryMetricHandler;
     
     @Autowired
+    @Named("queryMetricCacheManager")
     protected CacheManager cacheManager;
     
     @Autowired

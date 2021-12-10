@@ -7,7 +7,7 @@ import java.util.Map;
 import java.util.Set;
 
 @ConfigurationProperties(prefix = "datawave.metadata")
-public class MetadataProperties {
+public class MetadataHelperProperties {
     
     private Set<String> allMetadataAuths = Collections.emptySet();
     private Map<String,String> typeSubstitutions = Collections.emptyMap();
