@@ -70,7 +70,6 @@ import org.apache.hadoop.mapreduce.TaskAttemptID;
 import org.apache.hadoop.mapreduce.TaskID;
 import org.apache.hadoop.mapreduce.TaskType;
 import org.apache.hadoop.mapreduce.task.MapContextImpl;
-import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Qualifier;
 
@@ -195,7 +194,6 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
         MapContext<Text,RawRecordContainer,Text,Mutation> context = null;
         
         try {
-            enableLogs(false);
             contextWriter = new LiveContextWriter();
             contextWriter.setup(conf, false);
             
@@ -229,7 +227,6 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
             if (contextWriter != null && context != null) {
                 contextWriter.cleanup(context);
             }
-            enableLogs(false);
         }
     }
     
@@ -397,201 +394,190 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
     public T combineMetrics(T updatedQueryMetric, T cachedQueryMetric, QueryMetricType metricType) throws Exception {
         
         // new metrics coming in may be complete or partial updates
-        try {
-            enableLogs(false);
-            if (cachedQueryMetric != null) {
-                // only update once
-                if (cachedQueryMetric.getQueryType() == null && updatedQueryMetric.getQueryType() != null) {
-                    cachedQueryMetric.setQueryType(updatedQueryMetric.getQueryType());
-                }
-                // only update once
-                if (cachedQueryMetric.getUser() == null && updatedQueryMetric.getUser() != null) {
-                    cachedQueryMetric.setUser(updatedQueryMetric.getUser());
-                }
-                // only update once
-                if (cachedQueryMetric.getUserDN() == null && updatedQueryMetric.getUserDN() != null) {
-                    cachedQueryMetric.setUserDN(updatedQueryMetric.getUserDN());
-                }
-                // keep the earliest create date
-                long cachedCreate = cachedQueryMetric.getCreateDate() == null ? Long.MAX_VALUE : cachedQueryMetric.getCreateDate().getTime();
-                long updatedCreate = updatedQueryMetric.getCreateDate() == null ? Long.MAX_VALUE : updatedQueryMetric.getCreateDate().getTime();
-                if (updatedCreate < cachedCreate) {
-                    cachedQueryMetric.setCreateDate(updatedQueryMetric.getCreateDate());
-                }
-                
-                // Do not update queryId -- shouldn't change anyway
-                
-                // only update once
-                if (cachedQueryMetric.getQuery() == null && updatedQueryMetric.getQuery() != null) {
-                    cachedQueryMetric.setQuery(updatedQueryMetric.getQuery());
-                }
-                // only update once
-                if (cachedQueryMetric.getHost() == null && updatedQueryMetric.getHost() != null) {
-                    cachedQueryMetric.setHost(updatedQueryMetric.getHost());
-                }
-                
-                // Map page numbers to page metrics and update
-                Map<Long,PageMetric> storedPagesByPageNumMap = new TreeMap<>();
-                Map<String,PageMetric> storedPagesByUuidMap = new TreeMap<>();
-                if (cachedQueryMetric.getPageTimes() != null) {
-                    cachedQueryMetric.getPageTimes().forEach(pm -> {
-                        storedPagesByPageNumMap.put(pm.getPageNumber(), pm);
-                        if (pm.getPageUuid() != null) {
-                            storedPagesByUuidMap.put(pm.getPageUuid(), pm);
-                        }
-                    });
-                    
-                }
-                // combine all of the page metrics from the cached metric and the updated metric
-                if (updatedQueryMetric.getPageTimes() != null) {
-                    long pageNum = getLastPageNumber(cachedQueryMetric) + 1;
-                    for (PageMetric updatedPage : updatedQueryMetric.getPageTimes()) {
-                        PageMetric storedPage = null;
-                        if (updatedPage.getPageUuid() != null) {
-                            storedPage = storedPagesByUuidMap.get(updatedPage.getPageUuid());
-                        }
-                        if (metricType.equals(QueryMetricType.DISTRIBUTED)) {
-                            if (storedPage != null) {
-                                // updatedPage found by pageUuid
-                                updatedPage = combinePageMetrics(updatedPage, storedPage);
-                                storedPagesByPageNumMap.put(updatedPage.getPageNumber(), updatedPage);
-                            } else {
-                                // assume that this is the next page in sequence
-                                updatedPage.setPageNumber(pageNum);
-                                storedPagesByPageNumMap.put(pageNum, updatedPage);
-                                pageNum++;
-                            }
-                        } else {
-                            if (storedPage == null) {
-                                storedPage = storedPagesByPageNumMap.get(updatedPage.getPageNumber());
-                            }
-                            if (storedPage != null) {
-                                updatedPage = combinePageMetrics(updatedPage, storedPage);
-                            }
-                            // page metrics are mapped to their page number to prevent duplicates
+        if (cachedQueryMetric != null) {
+            // only update once
+            if (cachedQueryMetric.getQueryType() == null && updatedQueryMetric.getQueryType() != null) {
+                cachedQueryMetric.setQueryType(updatedQueryMetric.getQueryType());
+            }
+            // only update once
+            if (cachedQueryMetric.getUser() == null && updatedQueryMetric.getUser() != null) {
+                cachedQueryMetric.setUser(updatedQueryMetric.getUser());
+            }
+            // only update once
+            if (cachedQueryMetric.getUserDN() == null && updatedQueryMetric.getUserDN() != null) {
+                cachedQueryMetric.setUserDN(updatedQueryMetric.getUserDN());
+            }
+            // keep the earliest create date
+            long cachedCreate = cachedQueryMetric.getCreateDate() == null ? Long.MAX_VALUE : cachedQueryMetric.getCreateDate().getTime();
+            long updatedCreate = updatedQueryMetric.getCreateDate() == null ? Long.MAX_VALUE : updatedQueryMetric.getCreateDate().getTime();
+            if (updatedCreate < cachedCreate) {
+                cachedQueryMetric.setCreateDate(updatedQueryMetric.getCreateDate());
+            }
+            
+            // Do not update queryId -- shouldn't change anyway
+            
+            // only update once
+            if (cachedQueryMetric.getQuery() == null && updatedQueryMetric.getQuery() != null) {
+                cachedQueryMetric.setQuery(updatedQueryMetric.getQuery());
+            }
+            // only update once
+            if (cachedQueryMetric.getHost() == null && updatedQueryMetric.getHost() != null) {
+                cachedQueryMetric.setHost(updatedQueryMetric.getHost());
+            }
+            
+            // Map page numbers to page metrics and update
+            Map<Long,PageMetric> storedPagesByPageNumMap = new TreeMap<>();
+            Map<String,PageMetric> storedPagesByUuidMap = new TreeMap<>();
+            if (cachedQueryMetric.getPageTimes() != null) {
+                cachedQueryMetric.getPageTimes().forEach(pm -> {
+                    storedPagesByPageNumMap.put(pm.getPageNumber(), pm);
+                    if (pm.getPageUuid() != null) {
+                        storedPagesByUuidMap.put(pm.getPageUuid(), pm);
+                    }
+                });
+            }
+            // combine all of the page metrics from the cached metric and the updated metric
+            if (updatedQueryMetric.getPageTimes() != null) {
+                long pageNum = getLastPageNumber(cachedQueryMetric) + 1;
+                for (PageMetric updatedPage : updatedQueryMetric.getPageTimes()) {
+                    PageMetric storedPage = null;
+                    if (updatedPage.getPageUuid() != null) {
+                        storedPage = storedPagesByUuidMap.get(updatedPage.getPageUuid());
+                    }
+                    if (metricType.equals(QueryMetricType.DISTRIBUTED)) {
+                        if (storedPage != null) {
+                            // updatedPage found by pageUuid
+                            updatedPage = combinePageMetrics(updatedPage, storedPage);
                             storedPagesByPageNumMap.put(updatedPage.getPageNumber(), updatedPage);
+                        } else {
+                            // assume that this is the next page in sequence
+                            updatedPage.setPageNumber(pageNum);
+                            storedPagesByPageNumMap.put(pageNum, updatedPage);
+                            pageNum++;
                         }
+                    } else {
+                        if (storedPage == null) {
+                            storedPage = storedPagesByPageNumMap.get(updatedPage.getPageNumber());
+                        }
+                        if (storedPage != null) {
+                            updatedPage = combinePageMetrics(updatedPage, storedPage);
+                        }
+                        // page metrics are mapped to their page number to prevent duplicates
+                        storedPagesByPageNumMap.put(updatedPage.getPageNumber(), updatedPage);
                     }
-                }
-                cachedQueryMetric.setPageTimes(new ArrayList<>(storedPagesByPageNumMap.values()));
-                cachedQueryMetric.setNumUpdates(cachedQueryMetric.getNumUpdates() + 1);
-                
-                // only update once
-                if (cachedQueryMetric.getProxyServers() == null && updatedQueryMetric.getProxyServers() != null) {
-                    cachedQueryMetric.setProxyServers(updatedQueryMetric.getProxyServers());
-                }
-                // only update once
-                if (cachedQueryMetric.getErrorMessage() == null && updatedQueryMetric.getErrorMessage() != null) {
-                    cachedQueryMetric.setErrorMessage(updatedQueryMetric.getErrorMessage());
-                }
-                // only update once
-                if (cachedQueryMetric.getErrorCode() == null && updatedQueryMetric.getErrorCode() != null) {
-                    cachedQueryMetric.setErrorCode(updatedQueryMetric.getErrorCode());
-                }
-                // use updated lifecycle unless trying to update a final lifecycle with a non-final lifecycle
-                if ((cachedQueryMetric.isLifecycleFinal() && !updatedQueryMetric.isLifecycleFinal()) == false) {
-                    cachedQueryMetric.setLifecycle(updatedQueryMetric.getLifecycle());
-                }
-                // only update once
-                if (cachedQueryMetric.getQueryAuthorizations() == null && updatedQueryMetric.getQueryAuthorizations() != null) {
-                    cachedQueryMetric.setQueryAuthorizations(updatedQueryMetric.getQueryAuthorizations());
-                }
-                // only update once
-                if (cachedQueryMetric.getBeginDate() == null && updatedQueryMetric.getBeginDate() != null) {
-                    cachedQueryMetric.setBeginDate(updatedQueryMetric.getBeginDate());
-                }
-                // only update once
-                if (cachedQueryMetric.getEndDate() == null && updatedQueryMetric.getEndDate() != null) {
-                    cachedQueryMetric.setEndDate(updatedQueryMetric.getEndDate());
-                }
-                // only update once
-                if (cachedQueryMetric.getPositiveSelectors() == null && updatedQueryMetric.getPositiveSelectors() != null) {
-                    cachedQueryMetric.setPositiveSelectors(updatedQueryMetric.getPositiveSelectors());
-                }
-                // only update once
-                if (cachedQueryMetric.getNegativeSelectors() == null && updatedQueryMetric.getNegativeSelectors() != null) {
-                    cachedQueryMetric.setNegativeSelectors(updatedQueryMetric.getNegativeSelectors());
-                }
-                if (updatedQueryMetric.getLastUpdated() != null) {
-                    // keep the latest last updated date
-                    if (cachedQueryMetric.getLastUpdated() == null
-                                    || (updatedQueryMetric.getLastUpdated().getTime() > cachedQueryMetric.getLastUpdated().getTime())) {
-                        cachedQueryMetric.setLastUpdated(updatedQueryMetric.getLastUpdated());
-                    }
-                }
-                // only update once
-                if (cachedQueryMetric.getColumnVisibility() == null && updatedQueryMetric.getColumnVisibility() != null) {
-                    cachedQueryMetric.setColumnVisibility(updatedQueryMetric.getColumnVisibility());
-                }
-                // only update once
-                if (cachedQueryMetric.getQueryLogic() == null && updatedQueryMetric.getQueryLogic() != null) {
-                    cachedQueryMetric.setQueryLogic(updatedQueryMetric.getQueryLogic());
-                }
-                // only update once
-                if (cachedQueryMetric.getQueryName() == null && updatedQueryMetric.getQueryName() != null) {
-                    cachedQueryMetric.setQueryName(updatedQueryMetric.getQueryName());
-                }
-                // only update once
-                if (cachedQueryMetric.getParameters() == null && updatedQueryMetric.getParameters() != null) {
-                    cachedQueryMetric.setParameters(updatedQueryMetric.getParameters());
-                }
-                // only update once
-                if (cachedQueryMetric.getSetupTime() > -1) {
-                    cachedQueryMetric.setSetupTime(updatedQueryMetric.getSetupTime());
-                }
-                // only update once
-                if (cachedQueryMetric.getCreateCallTime() > -1) {
-                    cachedQueryMetric.setCreateCallTime(updatedQueryMetric.getCreateCallTime());
-                }
-                // only update once
-                if (cachedQueryMetric.getLoginTime() > -1) {
-                    cachedQueryMetric.setLoginTime(updatedQueryMetric.getLoginTime());
-                }
-                
-                if (metricType.equals(QueryMetricType.DISTRIBUTED)) {
-                    cachedQueryMetric.setSourceCount(cachedQueryMetric.getSourceCount() + updatedQueryMetric.getSourceCount());
-                    cachedQueryMetric.setNextCount(cachedQueryMetric.getNextCount() + updatedQueryMetric.getNextCount());
-                    cachedQueryMetric.setSeekCount(cachedQueryMetric.getSeekCount() + updatedQueryMetric.getSeekCount());
-                    cachedQueryMetric.setYieldCount(cachedQueryMetric.getYieldCount() + updatedQueryMetric.getYieldCount());
-                    cachedQueryMetric.setDocRanges(cachedQueryMetric.getDocRanges() + updatedQueryMetric.getDocRanges());
-                    cachedQueryMetric.setFiRanges(cachedQueryMetric.getFiRanges() + updatedQueryMetric.getFiRanges());
-                } else {
-                    cachedQueryMetric.setSourceCount(updatedQueryMetric.getSourceCount());
-                    cachedQueryMetric.setNextCount(updatedQueryMetric.getNextCount());
-                    cachedQueryMetric.setSeekCount(updatedQueryMetric.getSeekCount());
-                    cachedQueryMetric.setYieldCount(updatedQueryMetric.getYieldCount());
-                    cachedQueryMetric.setDocRanges(updatedQueryMetric.getDocRanges());
-                    cachedQueryMetric.setFiRanges(updatedQueryMetric.getFiRanges());
-                }
-                // only update once
-                if (cachedQueryMetric.getPlan() == null && updatedQueryMetric.getPlan() != null) {
-                    cachedQueryMetric.setPlan(updatedQueryMetric.getPlan());
-                }
-                // only update once
-                if (cachedQueryMetric.getPredictions() == null && updatedQueryMetric.getPredictions() != null) {
-                    cachedQueryMetric.setPredictions(updatedQueryMetric.getPredictions());
                 }
             }
-            return cachedQueryMetric;
-        } finally {
-            enableLogs(true);
+            cachedQueryMetric.setPageTimes(new ArrayList<>(storedPagesByPageNumMap.values()));
+            cachedQueryMetric.setNumUpdates(cachedQueryMetric.getNumUpdates() + 1);
+            
+            // only update once
+            if (cachedQueryMetric.getProxyServers() == null && updatedQueryMetric.getProxyServers() != null) {
+                cachedQueryMetric.setProxyServers(updatedQueryMetric.getProxyServers());
+            }
+            // only update once
+            if (cachedQueryMetric.getErrorMessage() == null && updatedQueryMetric.getErrorMessage() != null) {
+                cachedQueryMetric.setErrorMessage(updatedQueryMetric.getErrorMessage());
+            }
+            // only update once
+            if (cachedQueryMetric.getErrorCode() == null && updatedQueryMetric.getErrorCode() != null) {
+                cachedQueryMetric.setErrorCode(updatedQueryMetric.getErrorCode());
+            }
+            // use updated lifecycle unless trying to update a final lifecycle with a non-final lifecycle
+            if ((cachedQueryMetric.isLifecycleFinal() && !updatedQueryMetric.isLifecycleFinal()) == false) {
+                cachedQueryMetric.setLifecycle(updatedQueryMetric.getLifecycle());
+            }
+            // only update once
+            if (cachedQueryMetric.getQueryAuthorizations() == null && updatedQueryMetric.getQueryAuthorizations() != null) {
+                cachedQueryMetric.setQueryAuthorizations(updatedQueryMetric.getQueryAuthorizations());
+            }
+            // only update once
+            if (cachedQueryMetric.getBeginDate() == null && updatedQueryMetric.getBeginDate() != null) {
+                cachedQueryMetric.setBeginDate(updatedQueryMetric.getBeginDate());
+            }
+            // only update once
+            if (cachedQueryMetric.getEndDate() == null && updatedQueryMetric.getEndDate() != null) {
+                cachedQueryMetric.setEndDate(updatedQueryMetric.getEndDate());
+            }
+            // only update once
+            if (cachedQueryMetric.getPositiveSelectors() == null && updatedQueryMetric.getPositiveSelectors() != null) {
+                cachedQueryMetric.setPositiveSelectors(updatedQueryMetric.getPositiveSelectors());
+            }
+            // only update once
+            if (cachedQueryMetric.getNegativeSelectors() == null && updatedQueryMetric.getNegativeSelectors() != null) {
+                cachedQueryMetric.setNegativeSelectors(updatedQueryMetric.getNegativeSelectors());
+            }
+            if (updatedQueryMetric.getLastUpdated() != null) {
+                // keep the latest last updated date
+                if (cachedQueryMetric.getLastUpdated() == null
+                                || (updatedQueryMetric.getLastUpdated().getTime() > cachedQueryMetric.getLastUpdated().getTime())) {
+                    cachedQueryMetric.setLastUpdated(updatedQueryMetric.getLastUpdated());
+                }
+            }
+            // only update once
+            if (cachedQueryMetric.getColumnVisibility() == null && updatedQueryMetric.getColumnVisibility() != null) {
+                cachedQueryMetric.setColumnVisibility(updatedQueryMetric.getColumnVisibility());
+            }
+            // only update once
+            if (cachedQueryMetric.getQueryLogic() == null && updatedQueryMetric.getQueryLogic() != null) {
+                cachedQueryMetric.setQueryLogic(updatedQueryMetric.getQueryLogic());
+            }
+            // only update once
+            if (cachedQueryMetric.getQueryName() == null && updatedQueryMetric.getQueryName() != null) {
+                cachedQueryMetric.setQueryName(updatedQueryMetric.getQueryName());
+            }
+            // only update once
+            if (cachedQueryMetric.getParameters() == null && updatedQueryMetric.getParameters() != null) {
+                cachedQueryMetric.setParameters(updatedQueryMetric.getParameters());
+            }
+            // only update once
+            if (cachedQueryMetric.getSetupTime() > -1) {
+                cachedQueryMetric.setSetupTime(updatedQueryMetric.getSetupTime());
+            }
+            // only update once
+            if (cachedQueryMetric.getCreateCallTime() > -1) {
+                cachedQueryMetric.setCreateCallTime(updatedQueryMetric.getCreateCallTime());
+            }
+            // only update once
+            if (cachedQueryMetric.getLoginTime() > -1) {
+                cachedQueryMetric.setLoginTime(updatedQueryMetric.getLoginTime());
+            }
+            
+            if (metricType.equals(QueryMetricType.DISTRIBUTED)) {
+                cachedQueryMetric.setSourceCount(cachedQueryMetric.getSourceCount() + updatedQueryMetric.getSourceCount());
+                cachedQueryMetric.setNextCount(cachedQueryMetric.getNextCount() + updatedQueryMetric.getNextCount());
+                cachedQueryMetric.setSeekCount(cachedQueryMetric.getSeekCount() + updatedQueryMetric.getSeekCount());
+                cachedQueryMetric.setYieldCount(cachedQueryMetric.getYieldCount() + updatedQueryMetric.getYieldCount());
+                cachedQueryMetric.setDocRanges(cachedQueryMetric.getDocRanges() + updatedQueryMetric.getDocRanges());
+                cachedQueryMetric.setFiRanges(cachedQueryMetric.getFiRanges() + updatedQueryMetric.getFiRanges());
+            } else {
+                cachedQueryMetric.setSourceCount(updatedQueryMetric.getSourceCount());
+                cachedQueryMetric.setNextCount(updatedQueryMetric.getNextCount());
+                cachedQueryMetric.setSeekCount(updatedQueryMetric.getSeekCount());
+                cachedQueryMetric.setYieldCount(updatedQueryMetric.getYieldCount());
+                cachedQueryMetric.setDocRanges(updatedQueryMetric.getDocRanges());
+                cachedQueryMetric.setFiRanges(updatedQueryMetric.getFiRanges());
+            }
+            // only update once
+            if (cachedQueryMetric.getPlan() == null && updatedQueryMetric.getPlan() != null) {
+                cachedQueryMetric.setPlan(updatedQueryMetric.getPlan());
+            }
+            // only update once
+            if (cachedQueryMetric.getPredictions() == null && updatedQueryMetric.getPredictions() != null) {
+                cachedQueryMetric.setPredictions(updatedQueryMetric.getPredictions());
+            }
         }
+        return cachedQueryMetric;
     }
     
     public T getQueryMetric(final String queryId) {
         List<T> queryMetrics;
-        try {
-            enableLogs(false);
-            VoidResponse response = new VoidResponse();
-            queryMetrics = getQueryMetrics(response, "QUERY_ID == '" + queryId + "'");
-            List<QueryExceptionType> exceptions = response.getExceptions();
-            if (exceptions != null && !exceptions.isEmpty()) {
-                exceptions.forEach(e -> {
-                    log.error(e.getMessage());
-                });
-            }
-        } finally {
-            enableLogs(true);
+        VoidResponse response = new VoidResponse();
+        queryMetrics = getQueryMetrics(response, "QUERY_ID == '" + queryId + "'");
+        List<QueryExceptionType> exceptions = response.getExceptions();
+        if (exceptions != null && !exceptions.isEmpty()) {
+            exceptions.forEach(e -> {
+                log.error(e.getMessage());
+            });
         }
         return queryMetrics.isEmpty() ? null : queryMetrics.get(0);
     }
@@ -817,7 +803,7 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
                         m.setDocRanges(Long.parseLong(fieldValue));
                     } else if (fieldName.equals("FI_RANGES")) {
                         m.setFiRanges(Long.parseLong(fieldValue));
-                    } else if (fieldName.equals("YIELD_COUNT")) {
+                     } else if (fieldName.equals("YIELD_COUNT")) {
                         m.setYieldCount(Long.parseLong(fieldValue));
                     } else if (fieldName.equals("LOGIN_TIME")) {
                         m.setLoginTime(Long.parseLong(fieldValue));
@@ -893,40 +879,6 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
         return helperMap;
     }
     
-    protected void enableLogs(boolean enable) {
-        if (enable) {
-            ThreadConfigurableLogger.clearThreadLevels();
-        } else {
-            // All loggers that are encountered in the call chain during metrics calls should be included here.
-            // If you need to add a logger name here, you also need to change the Logger declaration where that Logger is instantiated
-            // Change:
-            // Logger log = Logger.getLogger(MyClass.class);
-            // to
-            // Logger log = ThreadConfigurableLogger.getLogger(MyClass.class);
-            
-            ThreadConfigurableLogger.setLevelForThread("datawave.query.index.lookup.RangeStream", Level.ERROR);
-            ThreadConfigurableLogger.setLevelForThread("datawave.query.metrics.ShardTableQueryMetricHandler", Level.ERROR);
-            ThreadConfigurableLogger.setLevelForThread("datawave.query.planner.DefaultQueryPlanner", Level.ERROR);
-            ThreadConfigurableLogger.setLevelForThread("datawave.query.planner.ThreadedRangeBundlerIterator", Level.ERROR);
-            ThreadConfigurableLogger.setLevelForThread("datawave.query.scheduler.SequentialScheduler", Level.ERROR);
-            ThreadConfigurableLogger.setLevelForThread("datawave.query.tables.ShardQueryLogic", Level.ERROR);
-            ThreadConfigurableLogger.setLevelForThread("datawave.query.metrics.ShardTableQueryMetricHandler", Level.ERROR);
-            ThreadConfigurableLogger.setLevelForThread("datawave.query.jexl.visitors.QueryModelVisitor", Level.ERROR);
-            ThreadConfigurableLogger.setLevelForThread("datawave.query.jexl.visitors.ExpandMultiNormalizedTerms", Level.ERROR);
-            ThreadConfigurableLogger.setLevelForThread("datawave.query.jexl.lookups.LookupBoundedRangeForTerms", Level.ERROR);
-            ThreadConfigurableLogger.setLevelForThread("datawave.query.jexl.visitors.RangeConjunctionRebuildingVisitor", Level.ERROR);
-            ThreadConfigurableLogger.setLevelForThread("datawave.query.config.ShardQueryConfiguration", Level.ERROR);
-            
-            ThreadConfigurableLogger.setLevelForThread("datawave.ingest.data.TypeRegistry", Level.ERROR);
-            ThreadConfigurableLogger.setLevelForThread("datawave.ingest.data.config.ingest.BaseIngestHelper", Level.ERROR);
-            ThreadConfigurableLogger.setLevelForThread("datawave.ingest.mapreduce.handler.shard.AbstractColumnBasedHandler", Level.ERROR);
-            ThreadConfigurableLogger.setLevelForThread("datawave.ingest.mapreduce.handler.shard.ShardedDataTypeHandler", Level.ERROR);
-            ThreadConfigurableLogger.setLevelForThread("datawave.ingest.util.RegionTimer", Level.ERROR);
-            ThreadConfigurableLogger.setLevelForThread("datawave.ingest.data.Event", Level.TRACE);
-            ThreadConfigurableLogger.setLevelForThread("datawave.microservice.querymetric.handler.AccumuloRecordWriter", Level.ERROR);
-        }
-    }
-    
     @Override
     public void reload() {
         try {
@@ -951,7 +903,6 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
         QueryMetricsSummaryResponse response = new QueryMetricsSummaryResponse();
         
         try {
-            enableLogs(false);
             // this method is open to any user
             DatawaveUser datawaveUser = currentUser.getPrimaryUser();
             String datawaveUserShortName = DnUtils.getShortName(datawaveUser.getName());
@@ -990,8 +941,6 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
         } catch (IOException e) {
             log.error(e.getMessage(), e);
             response.addException(e);
-        } finally {
-            enableLogs(true);
         }
         return response;
     }
