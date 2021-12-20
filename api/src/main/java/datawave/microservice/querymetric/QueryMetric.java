@@ -91,6 +91,7 @@ public class QueryMetric extends BaseQueryMetric implements Serializable, Messag
         this.nextCount = other.nextCount;
         this.seekCount = other.seekCount;
         this.yieldCount = other.yieldCount;
+        this.version = other.version;
         this.docRanges = other.docRanges;
         this.fiRanges = other.fiRanges;
         this.plan = other.plan;
@@ -132,8 +133,8 @@ public class QueryMetric extends BaseQueryMetric implements Serializable, Messag
                         .append(this.getHost()).append(this.getPageTimes()).append(this.getProxyServers()).append(this.getLifecycle())
                         .append(this.getErrorMessage()).append(this.getCreateCallTime()).append(this.getErrorCode()).append(this.getQueryName())
                         .append(this.getParameters()).append(this.getSourceCount()).append(this.getNextCount()).append(this.getSeekCount())
-                        .append(this.getYieldCount()).append(this.getDocRanges()).append(this.getFiRanges()).append(this.getPlan()).append(this.getLoginTime())
-                        .append(this.getPredictions()).toHashCode();
+                        .append(this.getYieldCount()).append(this.getDocRanges()).append(this.getFiRanges()).append(this.getPlan()).append(this.getVersion())
+                        .append(this.getLoginTime()).append(this.getPredictions()).toHashCode();
     }
     
     @Override
@@ -160,8 +161,8 @@ public class QueryMetric extends BaseQueryMetric implements Serializable, Messag
                             .append(this.getNextCount(), other.getNextCount()).append(this.getSeekCount(), other.getSeekCount())
                             .append(this.getYieldCount(), other.getYieldCount()).append(this.getDocRanges(), other.getDocRanges())
                             .append(this.getFiRanges(), other.getFiRanges()).append(this.getPlan(), other.getPlan())
-                            .append(this.getLoginTime(), other.getLoginTime()).append(this.getPredictions(), other.getPredictions())
-                            .append(this.getMarkings(), other.getMarkings()).isEquals();
+                            .append(this.getVersion(), other.getVersion()).append(this.getLoginTime(), other.getLoginTime())
+                            .append(this.getPredictions(), other.getPredictions()).append(this.getMarkings(), other.getMarkings()).isEquals();
         } else {
             return false;
         }
@@ -201,6 +202,7 @@ public class QueryMetric extends BaseQueryMetric implements Serializable, Messag
         buf.append(" FI Ranges: ").append(this.getFiRanges());
         buf.append(" Login Time: ").append(this.getLoginTime());
         buf.append(" Predictions: ").append(this.getPredictions());
+        buf.append(" Version: ").append(this.getVersion());
         buf.append("\n");
         return buf.toString();
     }
@@ -383,6 +385,10 @@ public class QueryMetric extends BaseQueryMetric implements Serializable, Messag
                     }
                 }
             }
+            
+            if (message.version != null) {
+                output.writeString(37, message.version, false);
+            }
         }
         
         public void mergeFrom(Input input, QueryMetric message) throws IOException {
@@ -515,6 +521,9 @@ public class QueryMetric extends BaseQueryMetric implements Serializable, Messag
                         }
                         message.predictions.add(input.mergeObject(null, Prediction.getSchema()));
                         break;
+                    case 37:
+                        message.version = input.readString();
+                        break;
                     default:
                         input.handleUnknownField(number, this);
                         break;
@@ -597,6 +606,8 @@ public class QueryMetric extends BaseQueryMetric implements Serializable, Messag
                     return "loginTime";
                 case 36:
                     return "predictions";
+                case 37:
+                    return "version";
                 default:
                     return null;
             }
@@ -646,6 +657,7 @@ public class QueryMetric extends BaseQueryMetric implements Serializable, Messag
             fieldMap.put("plan", 34);
             fieldMap.put("loginTime", 35);
             fieldMap.put("predictions", 36);
+            fieldMap.put("version", 37);
         }
     };
     

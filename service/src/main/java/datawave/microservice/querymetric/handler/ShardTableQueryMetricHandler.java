@@ -803,7 +803,9 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
                         m.setDocRanges(Long.parseLong(fieldValue));
                     } else if (fieldName.equals("FI_RANGES")) {
                         m.setFiRanges(Long.parseLong(fieldValue));
-                     } else if (fieldName.equals("YIELD_COUNT")) {
+                    } else if (fieldName.equals("VERSION")) {
+                        m.setVersion(fieldValue);
+                    } else if (fieldName.equals("YIELD_COUNT")) {
                         m.setYieldCount(Long.parseLong(fieldValue));
                     } else if (fieldName.equals("LOGIN_TIME")) {
                         m.setLoginTime(Long.parseLong(fieldValue));

@@ -14,12 +14,15 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.builder.CompareToBuilder;
 import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -28,11 +31,14 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
 
 @XmlAccessorType(XmlAccessType.NONE)
 public abstract class BaseQueryMetric implements HasMarkings, Serializable {
+    
+    private static final Logger log = LoggerFactory.getLogger(BaseQueryMetric.class);
     
     @XmlAccessorType(XmlAccessType.NONE)
     public static class PageMetric implements Serializable, Message<PageMetric> {
@@ -652,6 +658,8 @@ public abstract class BaseQueryMetric implements HasMarkings, Serializable {
     @XmlElement
     protected long yieldCount = 0L;
     @XmlElement
+    protected String version = BaseQueryMetric.getVersionFromProperties();
+    @XmlElement
     protected long docRanges = 0;
     @XmlElement
     protected long fiRanges = 0;
@@ -779,6 +787,33 @@ public abstract class BaseQueryMetric implements HasMarkings, Serializable {
     
     public void setHost(String host) {
         this.host = host;
+    }
+    
+    public static String getVersionFromProperties() {
+        String returnStr = "";
+        try {
+            final Properties props = new Properties();
+            InputStream in = BaseQueryMetric.class.getResourceAsStream("/version.properties");
+            if (in != null) {
+                props.load(in);
+                returnStr = props.getProperty("currentVersion");
+                in.close();
+            } else {
+                log.warn("version.properties InputStream is null. Keeping version string empty.");
+            }
+            
+        } catch (IOException e) {
+            log.warn("IOException encountered, attempting to read in version.properties.");
+        }
+        return returnStr;
+    }
+    
+    public String getVersion() {
+        return this.version;
+    }
+    
+    public void setVersion(String version) {
+        this.version = version;
     }
     
     public void addPageTime(long pagesize, long timeToReturn, long requestedTime, long returnedTime) {

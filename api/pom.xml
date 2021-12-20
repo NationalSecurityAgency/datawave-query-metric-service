@@ -27,6 +27,7 @@
         <version.jaxb-api>2.3.1</version.jaxb-api>
         <version.protobuf-java>2.5.0</version.protobuf-java>
         <version.protostuff>1.6.2</version.protostuff>
+        <version.slf4j-log4j12>1.7.26</version.slf4j-log4j12>
     </properties>
     <dependencyManagement>
         <dependencies>
@@ -87,6 +88,11 @@
                 <groupId>javax.xml.bind</groupId>
                 <artifactId>jaxb-api</artifactId>
                 <version>${version.jaxb-api}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-log4j12</artifactId>
+                <version>${version.slf4j-log4j12}</version>
             </dependency>
             <dependency>
                 <groupId>com.fasterxml.jackson</groupId>
@@ -157,6 +163,10 @@
         <dependency>
             <groupId>javax.xml.bind</groupId>
             <artifactId>jaxb-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-log4j12</artifactId>
         </dependency>
         <dependency>
             <groupId>junit</groupId>
