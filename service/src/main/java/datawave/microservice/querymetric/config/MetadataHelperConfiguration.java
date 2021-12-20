@@ -3,13 +3,14 @@ package datawave.microservice.querymetric.config;
 import com.github.benmanes.caffeine.cache.CaffeineSpec;
 import datawave.microservice.querymetric.handler.AccumuloConnectionTracking;
 import datawave.query.composite.CompositeMetadataHelper;
+import datawave.query.util.DateIndexHelper;
+import datawave.query.util.DateIndexHelperFactory;
 import datawave.query.util.TypeMetadataHelper;
 import datawave.webservice.common.connection.AccumuloConnectionPool;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.security.Authorizations;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.cache.CacheManager;
 import org.springframework.cache.caffeine.CaffeineCacheManager;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
@@ -28,10 +29,19 @@ public class MetadataHelperConfiguration {
     
     // This bean is used via autowire in AllFieldMetadataHelper
     @Bean(name = "metadataHelperCacheManager")
-    public CacheManager metadataHelperCacheManager(QueryMetricHandlerProperties queryMetricHandlerProperties) {
+    public CaffeineCacheManager metadataHelperCacheManager(QueryMetricHandlerProperties queryMetricHandlerProperties) {
         System.setProperty(ALL_AUTHS_PROPERTY, queryMetricHandlerProperties.getMetadataDefaultAuths());
         CaffeineCacheManager caffeineCacheManager = new CaffeineCacheManager();
         caffeineCacheManager.setCaffeineSpec(CaffeineSpec.parse("maximumSize=100, expireAfterAccess=24h, expireAfterWrite=24h"));
+        return caffeineCacheManager;
+    }
+    
+    // This bean is used via autowire in DateIndexHelper
+    @Bean(name = "dateIndexHelperCacheManager")
+    public CaffeineCacheManager dateIndexHelperCacheManager(QueryMetricHandlerProperties queryMetricHandlerProperties) {
+        System.setProperty(ALL_AUTHS_PROPERTY, queryMetricHandlerProperties.getMetadataDefaultAuths());
+        CaffeineCacheManager caffeineCacheManager = new CaffeineCacheManager();
+        caffeineCacheManager.setCaffeineSpec(CaffeineSpec.parse("maximumSize=1000, expireAfterAccess=24h, expireAfterWrite=24h"));
         return caffeineCacheManager;
     }
     
@@ -40,11 +50,22 @@ public class MetadataHelperConfiguration {
     // This bean is used via autowire in AllFieldMetadataHelper
     @Primary
     @Bean(name = "cacheManager")
-    public CacheManager cacheManager(QueryMetricHandlerProperties queryMetricHandlerProperties) {
+    public CaffeineCacheManager cacheManager(QueryMetricHandlerProperties queryMetricHandlerProperties) {
         System.setProperty(ALL_AUTHS_PROPERTY, queryMetricHandlerProperties.getMetadataDefaultAuths());
         CaffeineCacheManager caffeineCacheManager = new CaffeineCacheManager();
-        caffeineCacheManager.setCaffeineSpec(CaffeineSpec.parse("maximumSize=100, expireAfterAccess=24h, expireAfterWrite=24h"));
+        caffeineCacheManager.setCaffeineSpec(CaffeineSpec.parse("maximumSize=1000, expireAfterAccess=24h, expireAfterWrite=24h"));
         return caffeineCacheManager;
+    }
+    
+    @Bean
+    public DateIndexHelperFactory dateIndexHelperFactory() {
+        DateIndexHelper dateIndexHelper = DateIndexHelper.getInstance();
+        return new DateIndexHelperFactory() {
+            @Override
+            public DateIndexHelper createDateIndexHelper() {
+                return dateIndexHelper;
+            }
+        };
     }
     
     @Bean

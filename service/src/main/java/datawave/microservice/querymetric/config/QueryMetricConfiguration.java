@@ -17,8 +17,6 @@ import datawave.microservice.querymetric.factory.QueryMetricQueryLogicFactory;
 import datawave.microservice.querymetric.handler.QueryGeometryHandler;
 import datawave.microservice.querymetric.handler.ShardTableQueryMetricHandler;
 import datawave.microservice.querymetric.handler.SimpleQueryGeometryHandler;
-import datawave.query.util.DateIndexHelper;
-import datawave.query.util.DateIndexHelperFactory;
 import datawave.webservice.common.connection.AccumuloConnectionPool;
 import datawave.webservice.query.result.event.DefaultResponseObjectFactory;
 import datawave.webservice.query.result.event.ResponseObjectFactory;
@@ -49,17 +47,6 @@ public class QueryMetricConfiguration {
     @Bean
     public ResponseObjectFactory responseObjectFactory() {
         return new DefaultResponseObjectFactory();
-    }
-    
-    @Bean
-    public DateIndexHelperFactory dateIndexHelperFactory() {
-        DateIndexHelper dateIndexHelper = DateIndexHelper.getInstance();
-        return new DateIndexHelperFactory() {
-            @Override
-            public DateIndexHelper createDateIndexHelper() {
-                return dateIndexHelper;
-            }
-        };
     }
     
     @Bean
