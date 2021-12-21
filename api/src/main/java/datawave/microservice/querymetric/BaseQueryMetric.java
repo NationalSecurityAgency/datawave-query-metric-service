@@ -228,6 +228,10 @@ public abstract class BaseQueryMetric implements HasMarkings, Serializable {
                 pageMetric = new PageMetric(null, parts[0], Long.parseLong(parts[1]), Long.parseLong(parts[2]), Long.parseLong(parts[6]),
                                 Long.parseLong(parts[7]), Long.parseLong(parts[8]), Long.parseLong(parts[3]), Long.parseLong(parts[4]),
                                 Long.parseLong(parts[5]));
+            } else if (parts.length == 8) {
+                // pageSize/returnTime/callTime/serializationTime/bytesWritten/pageRequested/pageReturned/loginTime
+                pageMetric = new PageMetric(null, null, Long.parseLong(parts[0]), Long.parseLong(parts[1]), Long.parseLong(parts[5]), Long.parseLong(parts[6]),
+                                Long.parseLong(parts[7]), Long.parseLong(parts[2]), Long.parseLong(parts[3]), Long.parseLong(parts[4]));
             } else if (parts.length == 7) {
                 // pageSize/returnTime/callTime/serializationTime/bytesWritten/pageRequested/pageReturned
                 pageMetric = new PageMetric(null, null, Long.parseLong(parts[0]), Long.parseLong(parts[1]), Long.parseLong(parts[5]), Long.parseLong(parts[6]),
