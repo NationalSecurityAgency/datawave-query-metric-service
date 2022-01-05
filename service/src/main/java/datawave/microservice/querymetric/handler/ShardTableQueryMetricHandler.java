@@ -21,6 +21,7 @@ import datawave.microservice.authorization.user.ProxiedUserDetails;
 import datawave.microservice.querymetric.BaseQueryMetric;
 import datawave.microservice.querymetric.BaseQueryMetric.Lifecycle;
 import datawave.microservice.querymetric.BaseQueryMetric.PageMetric;
+import datawave.microservice.querymetric.BaseQueryMetric.Prediction;
 import datawave.microservice.querymetric.QueryMetricFactory;
 import datawave.microservice.querymetric.QueryMetricType;
 import datawave.microservice.querymetric.QueryMetricsSummaryResponse;
@@ -89,6 +90,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -685,12 +687,17 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
                 String fieldValue = f.getValueString();
                 if (!excludedFields.contains(fieldName)) {
                     
-                    if (fieldName.equals("USER")) {
-                        m.setUser(fieldValue);
-                    } else if (fieldName.equals("USER_DN")) {
-                        m.setUserDN(fieldValue);
-                    } else if (fieldName.equals("QUERY_ID")) {
-                        m.setQueryId(fieldValue);
+                    if (fieldName.equals("AUTHORIZATIONS")) {
+                        m.setQueryAuthorizations(fieldValue);
+                    } else if (fieldName.equals("BEGIN_DATE")) {
+                        try {
+                            Date d = sdf_date_time1.parse(fieldValue);
+                            m.setBeginDate(d);
+                        } catch (Exception e) {
+                            log.error(e.getMessage());
+                        }
+                    } else if (fieldName.equals("CREATE_CALL_TIME")) {
+                        m.setCreateCallTime(Long.parseLong(fieldValue));
                     } else if (fieldName.equals("CREATE_DATE")) {
                         try {
                             Date d = sdf_date_time2.parse(fieldValue);
@@ -699,21 +706,8 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
                         } catch (Exception e) {
                             log.error(e.getMessage());
                         }
-                    } else if (fieldName.equals("QUERY")) {
-                        m.setQuery(fieldValue);
-                    } else if (fieldName.equals("PLAN")) {
-                        m.setPlan(fieldValue);
-                    } else if (fieldName.equals("QUERY_LOGIC")) {
-                        m.setQueryLogic(fieldValue);
-                    } else if (fieldName.equals("QUERY_ID")) {
-                        m.setQueryId(fieldValue);
-                    } else if (fieldName.equals("BEGIN_DATE")) {
-                        try {
-                            Date d = sdf_date_time1.parse(fieldValue);
-                            m.setBeginDate(d);
-                        } catch (Exception e) {
-                            log.error(e.getMessage());
-                        }
+                    } else if (fieldName.equals("DOC_RANGES")) {
+                        m.setDocRanges(Long.parseLong(fieldValue));
                     } else if (fieldName.equals("END_DATE")) {
                         try {
                             Date d = sdf_date_time1.parse(fieldValue);
@@ -721,24 +715,41 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
                         } catch (Exception e) {
                             log.error(e.getMessage());
                         }
-                    } else if (fieldName.equals("HOST")) {
-                        m.setHost(fieldValue);
-                    } else if (fieldName.equals("PROXY_SERVERS")) {
-                        m.setProxyServers(Arrays.asList(StringUtils.split(fieldValue, ",")));
-                    } else if (fieldName.equals("AUTHORIZATIONS")) {
-                        m.setQueryAuthorizations(fieldValue);
-                    } else if (fieldName.equals("QUERY_TYPE")) {
-                        m.setQueryType(fieldValue);
-                    } else if (fieldName.equals("LIFECYCLE")) {
-                        m.setLifecycle(Lifecycle.valueOf(fieldValue));
                     } else if (fieldName.equals("ERROR_CODE")) {
                         m.setErrorCode(fieldValue);
                     } else if (fieldName.equals("ERROR_MESSAGE")) {
                         m.setErrorMessage(fieldValue);
-                    } else if (fieldName.equals("SETUP_TIME")) {
-                        m.setSetupTime(Long.parseLong(fieldValue));
-                    } else if (fieldName.equals("CREATE_CALL_TIME")) {
-                        m.setCreateCallTime(Long.parseLong(fieldValue));
+                    } else if (fieldName.equals("FI_RANGES")) {
+                        m.setFiRanges(Long.parseLong(fieldValue));
+                    } else if (fieldName.equals("HOST")) {
+                        m.setHost(fieldValue);
+                    } else if (fieldName.equals("LAST_UPDATED")) {
+                        try {
+                            Date d = sdf_date_time2.parse(fieldValue);
+                            m.setLastUpdated(d);
+                        } catch (Exception e) {
+                            log.error(e.getMessage());
+                        }
+                    } else if (fieldName.equals("LIFECYCLE")) {
+                        m.setLifecycle(Lifecycle.valueOf(fieldValue));
+                    } else if (fieldName.equals("LOGIN_TIME")) {
+                        m.setLoginTime(Long.parseLong(fieldValue));
+                    } else if (fieldName.equals("NEGATIVE_SELECTORS")) {
+                        List<String> negativeSelectors = m.getNegativeSelectors();
+                        if (negativeSelectors == null) {
+                            negativeSelectors = new ArrayList<>();
+                        }
+                        negativeSelectors.add(fieldValue);
+                        m.setNegativeSelectors(negativeSelectors);
+                    } else if (fieldName.equals("NEXT_COUNT")) {
+                        m.setNextCount(Long.parseLong(fieldValue));
+                    } else if (fieldName.equals("NUM_UPDATES")) {
+                        try {
+                            long numUpdates = Long.parseLong(fieldValue);
+                            m.setNumUpdates(numUpdates);
+                        } catch (Exception e) {
+                            log.error(e.getMessage());
+                        }
                     } else if (fieldName.startsWith("PAGE_METRICS")) {
                         int index = fieldName.indexOf(".");
                         if (-1 == index) {
@@ -751,6 +762,18 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
                                 pageMetrics.put(pageNum, pageMetric);
                             }
                         }
+                    } else if (fieldName.equals("PARAMETERS")) {
+                        if (fieldValue != null) {
+                            try {
+                                Set<Parameter> parameters = new TreeSet<>();
+                                parameters.addAll(QueryUtil.parseParameters(fieldValue));
+                                m.setParameters(parameters);
+                            } catch (Exception e) {
+                                log.debug(e.getMessage());
+                            }
+                        }
+                    } else if (fieldName.equals("PLAN")) {
+                        m.setPlan(fieldValue);
                     } else if (fieldName.equals("POSITIVE_SELECTORS")) {
                         List<String> positiveSelectors = m.getPositiveSelectors();
                         if (positiveSelectors == null) {
@@ -758,57 +781,45 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
                         }
                         positiveSelectors.add(fieldValue);
                         m.setPositiveSelectors(positiveSelectors);
-                    } else if (fieldName.equals("NEGATIVE_SELECTORS")) {
-                        List<String> negativeSelectors = m.getNegativeSelectors();
-                        if (negativeSelectors == null) {
-                            negativeSelectors = new ArrayList<>();
-                        }
-                        negativeSelectors.add(fieldValue);
-                        m.setNegativeSelectors(negativeSelectors);
-                    } else if (fieldName.equals("LAST_UPDATED")) {
-                        try {
-                            Date d = sdf_date_time2.parse(fieldValue);
-                            m.setLastUpdated(d);
-                        } catch (Exception e) {
-                            log.error(e.getMessage());
-                        }
-                    } else if (fieldName.equals("NUM_UPDATES")) {
-                        try {
-                            long numUpdates = Long.parseLong(fieldValue);
-                            m.setNumUpdates(numUpdates);
-                        } catch (Exception e) {
-                            log.error(e.getMessage());
-                        }
-                    } else if (fieldName.equals("QUERY_NAME")) {
-                        m.setQueryName(fieldValue);
-                    } else if (fieldName.equals("PARAMETERS")) {
+                    } else if (fieldName.equals("PREDICTION")) {
                         if (fieldValue != null) {
                             try {
-                                Set<Parameter> parameters = QueryUtil.parseParameters(fieldValue);
-                                m.setParameters(parameters);
-                                
+                                int x = fieldValue.indexOf(":");
+                                if (x > -1) {
+                                    String predictionName = fieldValue.substring(0, x);
+                                    Double predictionValue = Double.parseDouble(fieldValue.substring(x + 1));
+                                    m.addPrediction(new Prediction(predictionName, predictionValue));
+                                }
                             } catch (Exception e) {
                                 log.debug(e.getMessage());
                             }
                         }
-                    } else if (fieldName.equals("SOURCE_COUNT")) {
-                        m.setSourceCount(Long.parseLong(fieldValue));
-                    } else if (fieldName.equals("NEXT_COUNT")) {
-                        m.setNextCount(Long.parseLong(fieldValue));
+                    } else if (fieldName.equals("PROXY_SERVERS")) {
+                        m.setProxyServers(Arrays.asList(StringUtils.split(fieldValue, ",")));
+                    } else if (fieldName.equals("QUERY")) {
+                        m.setQuery(fieldValue);
+                    } else if (fieldName.equals("QUERY_ID")) {
+                        m.setQueryId(fieldValue);
+                    } else if (fieldName.equals("QUERY_LOGIC")) {
+                        m.setQueryLogic(fieldValue);
+                    } else if (fieldName.equals("QUERY_NAME")) {
+                        m.setQueryName(fieldValue);
+                    } else if (fieldName.equals("QUERY_TYPE")) {
+                        m.setQueryType(fieldValue);
                     } else if (fieldName.equals("SEEK_COUNT")) {
                         m.setSeekCount(Long.parseLong(fieldValue));
-                    } else if (fieldName.equals("YIELD_COUNT")) {
-                        m.setYieldCount(Long.parseLong(fieldValue));
-                    } else if (fieldName.equals("DOC_RANGES")) {
-                        m.setDocRanges(Long.parseLong(fieldValue));
-                    } else if (fieldName.equals("FI_RANGES")) {
-                        m.setFiRanges(Long.parseLong(fieldValue));
+                    } else if (fieldName.equals("SETUP_TIME")) {
+                        m.setSetupTime(Long.parseLong(fieldValue));
+                    } else if (fieldName.equals("SOURCE_COUNT")) {
+                        m.setSourceCount(Long.parseLong(fieldValue));
+                    } else if (fieldName.equals("USER")) {
+                        m.setUser(fieldValue);
+                    } else if (fieldName.equals("USER_DN")) {
+                        m.setUserDN(fieldValue);
                     } else if (fieldName.equals("VERSION")) {
                         m.setVersion(fieldValue);
                     } else if (fieldName.equals("YIELD_COUNT")) {
                         m.setYieldCount(Long.parseLong(fieldValue));
-                    } else if (fieldName.equals("LOGIN_TIME")) {
-                        m.setLoginTime(Long.parseLong(fieldValue));
                     } else {
                         log.debug("encountered unanticipated field name: " + fieldName);
                     }

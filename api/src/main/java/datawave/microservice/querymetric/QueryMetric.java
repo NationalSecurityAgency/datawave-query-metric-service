@@ -22,7 +22,8 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
-import java.util.HashSet;
+import java.util.HashMap;
+import java.util.TreeSet;
 
 @XmlRootElement
 @XmlAccessorType(XmlAccessType.NONE)
@@ -53,7 +54,7 @@ public class QueryMetric extends BaseQueryMetric implements Serializable, Messag
         this.host = other.host;
         this.createCallTime = other.createCallTime;
         if (other.pageTimes != null) {
-            this.pageTimes = new ArrayList<PageMetric>();
+            this.pageTimes = new ArrayList<>();
             for (PageMetric p : other.pageTimes) {
                 this.pageTimes.add(p.duplicate());
             }
@@ -98,7 +99,7 @@ public class QueryMetric extends BaseQueryMetric implements Serializable, Messag
         this.loginTime = other.loginTime;
         
         if (other.predictions != null) {
-            this.predictions = new HashSet<Prediction>();
+            this.predictions = new TreeSet<>();
             for (Prediction p : other.predictions) {
                 this.predictions.add(p.duplicate());
             }
@@ -487,7 +488,7 @@ public class QueryMetric extends BaseQueryMetric implements Serializable, Messag
                         break;
                     case 27:
                         if (message.parameters == null) {
-                            message.parameters = new HashSet<Parameter>();
+                            message.parameters = new TreeSet<>();
                         }
                         message.parameters.add(input.mergeObject(null, Parameter.getSchema()));
                         break;
@@ -517,7 +518,7 @@ public class QueryMetric extends BaseQueryMetric implements Serializable, Messag
                         break;
                     case 36:
                         if (message.predictions == null) {
-                            message.predictions = new HashSet<Prediction>();
+                            message.predictions = new TreeSet<>();
                         }
                         message.predictions.add(input.mergeObject(null, Prediction.getSchema()));
                         break;
@@ -618,7 +619,7 @@ public class QueryMetric extends BaseQueryMetric implements Serializable, Messag
             return number == null ? 0 : number.intValue();
         }
         
-        final java.util.HashMap<String,Integer> fieldMap = new java.util.HashMap<String,Integer>();
+        final HashMap<String,Integer> fieldMap = new HashMap<>();
         
         {
             fieldMap.put("queryType", 1);

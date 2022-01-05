@@ -29,6 +29,7 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -422,7 +423,7 @@ public abstract class BaseQueryMetric implements HasMarkings, Serializable {
                 return number == null ? 0 : number.intValue();
             }
             
-            final HashMap<String,Integer> fieldMap = new HashMap<String,Integer>();
+            final HashMap<String,Integer> fieldMap = new LinkedHashMap<>();
             
             {
                 fieldMap.put("pagesize", 1);
@@ -588,7 +589,7 @@ public abstract class BaseQueryMetric implements HasMarkings, Serializable {
                 return number == null ? 0 : number.intValue();
             }
             
-            final HashMap<String,Integer> fieldMap = new HashMap<String,Integer>();
+            final HashMap<String,Integer> fieldMap = new LinkedHashMap<>();
             
             {
                 fieldMap.put("name", 1);
@@ -618,7 +619,7 @@ public abstract class BaseQueryMetric implements HasMarkings, Serializable {
     protected long createCallTime = -1;
     @XmlElementWrapper(name = "pageMetrics")
     @XmlElement(name = "pageMetric")
-    protected ArrayList<PageMetric> pageTimes = new ArrayList<PageMetric>();
+    protected ArrayList<PageMetric> pageTimes = new ArrayList<>();
     @XmlElement
     protected Collection<String> proxyServers = null;
     @XmlElement
@@ -652,7 +653,7 @@ public abstract class BaseQueryMetric implements HasMarkings, Serializable {
     @XmlElement
     protected String queryName = null;
     @XmlElement
-    protected Set<Parameter> parameters = new HashSet<Parameter>();
+    protected Set<Parameter> parameters = new HashSet<>();
     @XmlElement
     protected long sourceCount = 0;
     @XmlElement
@@ -673,7 +674,7 @@ public abstract class BaseQueryMetric implements HasMarkings, Serializable {
     protected long loginTime = -1;
     @XmlElementWrapper(name = "predictions")
     @XmlElement(name = "prediction")
-    protected Set<Prediction> predictions = new HashSet<Prediction>();
+    protected Set<Prediction> predictions = new HashSet<>();
     
     protected int lastWrittenHash = 0;
     protected long numUpdates = 0;
