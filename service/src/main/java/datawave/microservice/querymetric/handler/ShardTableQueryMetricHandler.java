@@ -38,7 +38,6 @@ import datawave.webservice.common.connection.AccumuloConnectionPool;
 import datawave.webservice.common.logging.ThreadConfigurableLogger;
 import datawave.webservice.query.Query;
 import datawave.webservice.query.QueryImpl;
-import datawave.webservice.query.QueryImpl.Parameter;
 import datawave.webservice.query.cache.ResultsPage;
 import datawave.webservice.query.exception.QueryException;
 import datawave.webservice.query.exception.QueryExceptionType;
@@ -88,9 +87,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.TreeMap;
-import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -765,11 +762,9 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
                     } else if (fieldName.equals("PARAMETERS")) {
                         if (fieldValue != null) {
                             try {
-                                Set<Parameter> parameters = new TreeSet<>();
-                                parameters.addAll(QueryUtil.parseParameters(fieldValue));
-                                m.setParameters(parameters);
+                                m.setParameters(QueryUtil.parseParameters(fieldValue));
                             } catch (Exception e) {
-                                log.debug(e.getMessage());
+                                log.error(e.getMessage());
                             }
                         }
                     } else if (fieldName.equals("PLAN")) {
@@ -791,7 +786,7 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
                                     m.addPrediction(new Prediction(predictionName, predictionValue));
                                 }
                             } catch (Exception e) {
-                                log.debug(e.getMessage());
+                                log.error(e.getMessage());
                             }
                         }
                     } else if (fieldName.equals("PROXY_SERVERS")) {
