@@ -146,7 +146,7 @@ public class QueryMetricOperations {
                     BaseQueryMetric updatedMetric = queryMetric;
                     QueryMetricUpdate lastQueryMetricUpdate = (QueryMetricUpdate) incomingQueryMetricsCacheHz.get(queryId);
                     if (lastQueryMetricUpdate != null) {
-                        updatedMetric = handler.combineMetrics(queryMetric, lastQueryMetricUpdate.getMetric(), metricType);
+                        updatedMetric = handler.combineMetrics(updatedMetric, lastQueryMetricUpdate.getMetric(), metricType);
                         lastPageNum = getLastPageNumber(lastQueryMetricUpdate.getMetric());
                     }
                     incomingQueryMetricsCacheHz.set(queryId, new QueryMetricUpdate(updatedMetric, metricType));
@@ -161,7 +161,7 @@ public class QueryMetricOperations {
                     BaseQueryMetric updatedMetric = queryMetric;
                     if (lastQueryMetricUpdate != null) {
                         BaseQueryMetric lastQueryMetric = lastQueryMetricUpdate.getMetric();
-                        updatedMetric = handler.combineMetrics(queryMetric, lastQueryMetric, metricType);
+                        updatedMetric = handler.combineMetrics(updatedMetric, lastQueryMetric, metricType);
                         handler.writeMetric(updatedMetric, Collections.singletonList(lastQueryMetric), lastQueryMetric.getLastUpdated(), true);
                         lastPageNum = getLastPageNumber(lastQueryMetric);
                     }

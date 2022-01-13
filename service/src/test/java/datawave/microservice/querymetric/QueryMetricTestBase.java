@@ -111,6 +111,8 @@ public class QueryMetricTestBase {
     protected static boolean isHazelCast;
     protected static CacheManager staticCacheManager;
     protected Map<String,String> metricMarkings;
+    protected List<String> tables;
+    protected Collection<String> auths;
     
     @AfterClass
     public static void afterClass() {
@@ -123,7 +125,7 @@ public class QueryMetricTestBase {
     public void setup() {
         this.queryMetricClientProperties.setPort(webServicePort);
         this.restTemplate = restTemplateBuilder.build(RestTemplate.class);
-        Collection<String> auths = Arrays.asList("PUBLIC", "A", "B", "C");
+        this.auths = Arrays.asList("PUBLIC", "A", "B", "C");
         this.metricMarkings = new HashMap<>();
         this.metricMarkings.put(MarkingFunctions.Default.COLUMN_VISIBILITY, "A&C");
         Collection<String> roles = Arrays.asList("Administrator");
@@ -145,7 +147,11 @@ public class QueryMetricTestBase {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        deleteAllAccumuloEntries();
+        tables = new ArrayList<>();
+        tables.add(queryMetricHandlerProperties.getIndexTableName());
+        tables.add(queryMetricHandlerProperties.getReverseIndexTableName());
+        tables.add(queryMetricHandlerProperties.getShardTableName());
+        deleteAccumuloEntries(connector, tables, this.auths);
         Assert.assertTrue("metadata table empty", getMetadataEntries().size() > 0);
         SimpleModule baseQueryMetricDeserializer = new SimpleModule(BaseQueryMetricListResponse.class.getName());
         baseQueryMetricDeserializer.addAbstractTypeMapping(BaseQueryMetricListResponse.class, QueryMetricListResponse.class);
@@ -154,7 +160,7 @@ public class QueryMetricTestBase {
     
     @After
     public void cleanup() {
-        deleteAllAccumuloEntries();
+        deleteAccumuloEntries(connector, tables, this.auths);
         this.incomingQueryMetricsCache.clear();
         this.lastWrittenQueryMetricCache.clear();
     }
@@ -185,8 +191,12 @@ public class QueryMetricTestBase {
         m.setCreateCallTime(4000);
         m.setQueryAuthorizations("A,B,C");
         m.setQueryName("TestQuery");
+        m.setDocRanges(300);
+        m.setNextCount(300);
+        m.setSeekCount(300);
         m.setUser(DnUtils.getShortName(ALLOWED_CALLER.subjectDN()));
         m.setUserDN(ALLOWED_CALLER.subjectDN());
+        m.addPrediction(new BaseQueryMetric.Prediction("PredictionTest", 200.0));
     }
     
     protected String createQueryId() {
@@ -298,47 +308,54 @@ public class QueryMetricTestBase {
         tables.add(queryMetricHandlerProperties.getIndexTableName());
         tables.add(queryMetricHandlerProperties.getReverseIndexTableName());
         tables.forEach(t -> {
-            entries.addAll(getAccumuloEntries(t));
+            entries.addAll(getAccumuloEntryStrings(t));
         });
         return entries;
     }
     
     protected Collection<String> getMetadataEntries() {
-        return getAccumuloEntries(queryMetricHandlerProperties.getMetadataTableName());
+        return getAccumuloEntryStrings(queryMetricHandlerProperties.getMetadataTableName());
     }
     
-    protected Collection<String> getAccumuloEntries(String table) {
-        List<String> entries = new ArrayList<>();
+    protected Collection<String> getAccumuloEntryStrings(String table) {
+        List<String> entryStrings = new ArrayList<>();
         try {
-            Authorizations auths = new Authorizations("PUBLIC");
-            try (BatchScanner bs = this.connector.createBatchScanner(table, auths, 1)) {
-                bs.setRanges(Collections.singletonList(new Range()));
-                final Iterator<Map.Entry<Key,Value>> itr = bs.iterator();
-                while (itr.hasNext()) {
-                    entries.add(table + " -> " + itr.next().getKey());
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
+            Collection<Map.Entry<Key,Value>> entries = getAccumuloEntries(connector, table, this.auths);
+            for (Map.Entry<Key,Value> e : entries) {
+                entryStrings.add(table + " -> " + e.getKey());
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return entries;
+        return entryStrings;
     }
     
     protected void printAllAccumuloEntries() {
         getAllAccumuloEntries().forEach(s -> System.out.println(s));
     }
     
-    protected void deleteAllAccumuloEntries() {
-        List<String> tables = new ArrayList<>();
-        tables.add(queryMetricHandlerProperties.getShardTableName());
-        tables.add(queryMetricHandlerProperties.getIndexTableName());
-        tables.add(queryMetricHandlerProperties.getReverseIndexTableName());
+    public static Collection<Map.Entry<Key,Value>> getAccumuloEntries(Connector connector, String table, Collection<String> authorizations) throws Exception {
+        Collection<Map.Entry<Key,Value>> entries = new ArrayList<>();
+        String[] authArray = new String[authorizations.size()];
+        authorizations.toArray(authArray);
+        Authorizations auths = new Authorizations(authArray);
+        try (BatchScanner bs = connector.createBatchScanner(table, auths, 1)) {
+            bs.setRanges(Collections.singletonList(new Range()));
+            final Iterator<Map.Entry<Key,Value>> itr = bs.iterator();
+            while (itr.hasNext()) {
+                entries.add(itr.next());
+            }
+        }
+        return entries;
+    }
+    
+    public static void deleteAccumuloEntries(Connector connector, List<String> tables, Collection<String> authorizations) {
         try {
+            String[] authArray = new String[authorizations.size()];
+            authorizations.toArray(authArray);
             tables.forEach(t -> {
-                Authorizations auths = new Authorizations("PUBLIC");
-                try (BatchDeleter bd = this.connector.createBatchDeleter(t, auths, 1, new BatchWriterConfig())) {
+                Authorizations auths = new Authorizations(authArray);
+                try (BatchDeleter bd = connector.createBatchDeleter(t, auths, 1, new BatchWriterConfig())) {
                     bd.setRanges(Collections.singletonList(new Range()));
                     bd.delete();
                 } catch (Exception e) {

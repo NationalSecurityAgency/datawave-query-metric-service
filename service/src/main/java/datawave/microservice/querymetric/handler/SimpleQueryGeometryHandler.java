@@ -6,12 +6,12 @@ import datawave.query.jexl.JexlASTHelper;
 import datawave.query.jexl.visitors.GeoFeatureVisitor;
 import datawave.query.language.parser.ParseException;
 import datawave.query.language.parser.jexl.LuceneToJexlQueryParser;
-import datawave.webservice.common.logging.ThreadConfigurableLogger;
 import datawave.webservice.query.QueryImpl;
 import datawave.webservice.query.map.QueryGeometry;
 import datawave.webservice.query.map.QueryGeometryResponse;
 import org.apache.commons.jexl2.parser.JexlNode;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
@@ -24,7 +24,7 @@ import static datawave.query.QueryParameters.QUERY_SYNTAX;
  * This class is used to extract query geometries from the query metrics in an effort to provide those geometries for subsequent display to the user.
  */
 public class SimpleQueryGeometryHandler implements QueryGeometryHandler {
-    private static final Logger log = ThreadConfigurableLogger.getLogger(ShardTableQueryMetricHandler.class);
+    private static final Logger log = LoggerFactory.getLogger(ShardTableQueryMetricHandler.class);
     
     private static final String LUCENE = "LUCENE";
     private static final String JEXL = "JEXL";
@@ -79,7 +79,7 @@ public class SimpleQueryGeometryHandler implements QueryGeometryHandler {
             
             return !GeoFeatureVisitor.getGeoFeatures(JexlASTHelper.parseAndFlattenJexlQuery(jexlQuery)).isEmpty();
         } catch (Exception e) {
-            log.trace(new Exception("Unable to parse the geo features"));
+            log.trace("Unable to parse the geo features", e);
         }
         return false;
     }

@@ -10,6 +10,7 @@ import org.apache.commons.lang.StringUtils;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
 
+import javax.validation.constraints.Min;
 import javax.validation.constraints.Positive;
 import java.nio.charset.Charset;
 import java.util.Arrays;
@@ -45,7 +46,8 @@ public class QueryMetricHandlerProperties {
     protected boolean enableBloomFilter = false;
     @Positive
     protected int recordWriterMaxMemory = 10000000;
-    @Positive
+    // TabletServerBatchWriter uses latency / 4 to get a Timer period
+    @Min(10)
     protected int recordWriterMaxLatency = 60000;
     protected int recordWriterNumThreads = 4;
     protected String policyEnforcerClass = "datawave.policy.IngestPolicyEnforcer$NoOpIngestPolicyEnforcer";

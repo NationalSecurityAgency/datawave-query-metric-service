@@ -23,7 +23,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.TreeSet;
+import java.util.HashSet;
 
 @XmlRootElement
 @XmlAccessorType(XmlAccessType.NONE)
@@ -99,7 +99,7 @@ public class QueryMetric extends BaseQueryMetric implements Serializable, Messag
         this.loginTime = other.loginTime;
         
         if (other.predictions != null) {
-            this.predictions = new TreeSet<>();
+            this.predictions = new HashSet<>();
             for (Prediction p : other.predictions) {
                 this.predictions.add(p.duplicate());
             }
@@ -488,7 +488,7 @@ public class QueryMetric extends BaseQueryMetric implements Serializable, Messag
                         break;
                     case 27:
                         if (message.parameters == null) {
-                            message.parameters = new TreeSet<>();
+                            message.parameters = new HashSet<>();
                         }
                         message.parameters.add(input.mergeObject(null, Parameter.getSchema()));
                         break;
@@ -518,7 +518,7 @@ public class QueryMetric extends BaseQueryMetric implements Serializable, Messag
                         break;
                     case 36:
                         if (message.predictions == null) {
-                            message.predictions = new TreeSet<>();
+                            message.predictions = new HashSet<>();
                         }
                         message.predictions.add(input.mergeObject(null, Prediction.getSchema()));
                         break;

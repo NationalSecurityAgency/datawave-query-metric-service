@@ -1,10 +1,21 @@
 package datawave.microservice.querymetric;
 
+import com.google.common.collect.Multimap;
+import datawave.microservice.querymetric.handler.ContentQueryMetricsIngestHelper;
+import datawave.microservice.querymetric.peristence.AccumuloMapStore;
+import datawave.util.StringUtils;
+import datawave.webservice.query.result.event.DefaultEvent;
+import datawave.webservice.query.result.event.DefaultField;
+import datawave.webservice.query.result.event.EventBase;
+import datawave.webservice.query.result.event.FieldBase;
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Value;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
@@ -14,12 +25,24 @@ import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles({"QueryMetricConsistencyTest", "QueryMetricTest", "hazelcast-writethrough"})
 public class QueryMetricConsistencyTest extends QueryMetricTestBase {
+    
+    @Autowired
+    AccumuloMapStore mapStore;
     
     @Before
     public void setup() {
@@ -195,4 +218,137 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
         Assert.assertEquals("latest fi ranges should be used", 1000, returnedMetric.getFiRanges());
     }
     
+    @Test
+    public void ToMetricTest() {
+        
+        ContentQueryMetricsIngestHelper.HelperDelegate<QueryMetric> helper = new ContentQueryMetricsIngestHelper.HelperDelegate<>();
+        QueryMetric queryMetric = new QueryMetric();
+        populateMetric(queryMetric, UUID.randomUUID().toString());
+        Multimap<String,String> fieldsToWrite = helper.getEventFieldsToWrite(queryMetric);
+        
+        EventBase event = new DefaultEvent();
+        long now = System.currentTimeMillis();
+        List<FieldBase> fields = new ArrayList<>();
+        fieldsToWrite.asMap().forEach((k, set) -> {
+            set.forEach(v -> {
+                fields.add(new DefaultField(k, "", now, v));
+            });
+        });
+        event.setFields(fields);
+        event.setMarkings(queryMetric.getMarkings());
+        BaseQueryMetric newMetric = shardTableQueryMetricHandler.toMetric(event);
+        QueryMetricTestBase.assertEquals("metrics are not equal", queryMetric, newMetric);
+    }
+    
+    @Test
+    public void CombineMetricsTest() throws Exception {
+        QueryMetric storedQueryMetric = new QueryMetric();
+        populateMetric(storedQueryMetric, UUID.randomUUID().toString());
+        storedQueryMetric.addPageTime(10, 500, 500000, 500000);
+        QueryMetric updatedQueryMetric = (QueryMetric) storedQueryMetric.duplicate();
+        updatedQueryMetric.addPageTime(100, 1000, 5000, 10000);
+        updatedQueryMetric.setLifecycle(BaseQueryMetric.Lifecycle.CLOSED);
+        
+        BaseQueryMetric storedQueryMetricCopy = storedQueryMetric.duplicate();
+        BaseQueryMetric updatedQueryMetricCopy = updatedQueryMetric.duplicate();
+        BaseQueryMetric combinedMetric = shardTableQueryMetricHandler.combineMetrics(storedQueryMetric, updatedQueryMetric, QueryMetricType.COMPLETE);
+        QueryMetricTestBase.assertEquals("metric should not change", storedQueryMetricCopy, storedQueryMetric);
+        QueryMetricTestBase.assertEquals("metric should not change", updatedQueryMetricCopy, updatedQueryMetricCopy);
+        Assert.assertEquals(BaseQueryMetric.Lifecycle.CLOSED, combinedMetric.getLifecycle());
+        Assert.assertEquals(2, combinedMetric.getNumPages());
+    }
+    
+    @Test
+    public void MetricUpdateTest() throws Exception {
+        QueryMetric storedQueryMetric = new QueryMetric();
+        String queryId = UUID.randomUUID().toString();
+        populateMetric(storedQueryMetric, queryId);
+        QueryMetric updatedQueryMetric = (QueryMetric) storedQueryMetric.duplicate();
+        updatedQueryMetric.setLifecycle(BaseQueryMetric.Lifecycle.CLOSED);
+        updatedQueryMetric.setNumResults(2000);
+        updatedQueryMetric.setNumUpdates(200);
+        updatedQueryMetric.setDocRanges(400);
+        updatedQueryMetric.setNextCount(400);
+        updatedQueryMetric.setSeekCount(400);
+        
+        Date now = new Date();
+        shardTableQueryMetricHandler.writeMetric(storedQueryMetric, Collections.singletonList(storedQueryMetric), now, false);
+        shardTableQueryMetricHandler.writeMetric(updatedQueryMetric, Collections.singletonList(storedQueryMetric), now, true);
+        
+        Collection<Map.Entry<Key,Value>> entries = QueryMetricTestBase.getAccumuloEntries(connector, queryMetricHandlerProperties.getShardTableName(),
+                        this.auths);
+        Map<String,String> updatedFields = new HashMap();
+        updatedFields.put("NUM_UPDATES", "200");
+        updatedFields.put("NUM_RESULTS", "2000");
+        updatedFields.put("LIFECYCLE", "CLOSED");
+        updatedFields.put("DOC_RANGES", "400");
+        updatedFields.put("NEXT_COUNT", "400");
+        updatedFields.put("SEEK_COUNT", "400");
+        Assert.assertFalse("There should be entries in Accumulo", entries.isEmpty());
+        for (Map.Entry<Key,Value> e : entries) {
+            if (e.getKey().getColumnFamily().toString().startsWith("querymetrics")) {
+                String fieldName = fieldSplit(e, 0);
+                if (updatedFields.containsKey(fieldName)) {
+                    Assert.fail(fieldName + " should have been deleted");
+                }
+            }
+        }
+        
+        shardTableQueryMetricHandler.writeMetric(updatedQueryMetric, Collections.singletonList(storedQueryMetric), now, false);
+        entries = QueryMetricTestBase.getAccumuloEntries(connector, queryMetricHandlerProperties.getShardTableName(), this.auths);
+        Assert.assertFalse("There should be entries in Accumulo", entries.isEmpty());
+        for (Map.Entry<Key,Value> e : entries) {
+            if (e.getKey().getColumnFamily().toString().startsWith("querymetrics")) {
+                String fieldName = fieldSplit(e, 0);
+                String fieldValue = fieldSplit(e, 1);
+                if (updatedFields.containsKey(fieldName)) {
+                    Assert.assertEquals(fieldName + " should have been updated", updatedFields.get(fieldName), fieldValue);
+                }
+            }
+        }
+    }
+    
+    @Test
+    public void DuplicateAccumuloEntryTest() throws Exception {
+        QueryMetric storedQueryMetric = new QueryMetric();
+        String queryId = UUID.randomUUID().toString();
+        populateMetric(storedQueryMetric, queryId);
+        QueryMetric updatedQueryMetric = (QueryMetric) storedQueryMetric.duplicate();
+        updatedQueryMetric.setLifecycle(BaseQueryMetric.Lifecycle.CLOSED);
+        updatedQueryMetric.setNumResults(2000);
+        updatedQueryMetric.setNumUpdates(200);
+        updatedQueryMetric.setDocRanges(400);
+        updatedQueryMetric.setNextCount(400);
+        updatedQueryMetric.setSeekCount(400);
+        
+        mapStore.store(queryId, new QueryMetricUpdate(storedQueryMetric, QueryMetricType.COMPLETE));
+        QueryMetricUpdate lastWrittenMetricUpdate = lastWrittenQueryMetricCache.get(queryId, QueryMetricUpdate.class);
+        Assert.assertEquals(storedQueryMetric, lastWrittenMetricUpdate.getMetric());
+        
+        mapStore.store(queryId, new QueryMetricUpdate(updatedQueryMetric, QueryMetricType.COMPLETE));
+        lastWrittenMetricUpdate = lastWrittenQueryMetricCache.get(queryId, QueryMetricUpdate.class);
+        // all fields that were changed should be reflected in the updated metric
+        Assert.assertEquals(updatedQueryMetric, lastWrittenMetricUpdate.getMetric());
+        
+        Collection<Map.Entry<Key,Value>> entries = QueryMetricTestBase.getAccumuloEntries(connector, queryMetricHandlerProperties.getShardTableName(),
+                        this.auths);
+        
+        Assert.assertFalse("There should be entries in Accumulo", entries.isEmpty());
+        Set<String> foundFields = new HashSet<>();
+        for (Map.Entry<Key,Value> e : entries) {
+            if (e.getKey().getColumnFamily().toString().startsWith("querymetrics")) {
+                String fieldName = fieldSplit(e, 0);
+                if (foundFields.contains(fieldName)) {
+                    Assert.fail("duplicate field " + fieldName + " found in Accumulo");
+                } else {
+                    foundFields.add(fieldName);
+                }
+            }
+        }
+    }
+    
+    private String fieldSplit(Map.Entry<Key,Value> entry, int part) {
+        String cq = entry.getKey().getColumnQualifier().toString();
+        return StringUtils.split(cq, "\u0000")[part];
+    }
 }

@@ -1,8 +1,6 @@
 package datawave.microservice.querymetric.handler;
 
-import datawave.common.util.ArgumentChecker;
 import datawave.webservice.common.connection.AccumuloConnectionPool;
-import datawave.webservice.common.logging.ThreadConfigurableLogger;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -20,8 +18,8 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -33,7 +31,7 @@ public class AccumuloRecordWriter extends RecordWriter<Text,Mutation> {
     private MultiTableBatchWriter mtbw = null;
     private HashMap<Text,BatchWriter> bws;
     private Text defaultTableName;
-    private Logger log = ThreadConfigurableLogger.getLogger(AccumuloRecordWriter.class.getName());
+    private Logger log = LoggerFactory.getLogger(AccumuloRecordWriter.class);
     
     private boolean simulate;
     private boolean createTables;
@@ -60,11 +58,7 @@ public class AccumuloRecordWriter extends RecordWriter<Text,Mutation> {
     private static final int DEFAULT_MAX_LATENCY = 120000; // 1 minute
     private static final int DEFAULT_NUM_WRITE_THREADS = 4;
     
-    public AccumuloRecordWriter(AccumuloConnectionPool connectionPool, Configuration conf) throws AccumuloException, AccumuloSecurityException, IOException {
-        Level l = getLogLevel(conf);
-        if (l != null) {
-            log.setLevel(Level.TRACE);
-        }
+    public AccumuloRecordWriter(AccumuloConnectionPool connectionPool, Configuration conf) throws Exception {
         this.simulate = getSimulationMode(conf);
         this.createTables = canCreateTables(conf);
         this.connectionPool = connectionPool;
@@ -79,17 +73,13 @@ public class AccumuloRecordWriter extends RecordWriter<Text,Mutation> {
         this.defaultTableName = (tname == null) ? null : new Text(tname);
         
         if (!simulate) {
-            try {
-                Map<String,String> trackingMap = AccumuloConnectionTracking.getTrackingMap(Thread.currentThread().getStackTrace());
-                this.connector = connectionPool.borrowObject(trackingMap);
-                BatchWriterConfig bwConfig = new BatchWriterConfig();
-                bwConfig.setMaxMemory(getMaxMutationBufferSize(conf));
-                bwConfig.setMaxLatency(getMaxLatency(conf), TimeUnit.MILLISECONDS);
-                bwConfig.setMaxWriteThreads(getMaxWriteThreads(conf));
-                mtbw = this.connector.createMultiTableBatchWriter(bwConfig);
-            } catch (Exception e) {
-                log.error(e.getMessage(), e);
-            }
+            Map<String,String> trackingMap = AccumuloConnectionTracking.getTrackingMap(Thread.currentThread().getStackTrace());
+            this.connector = connectionPool.borrowObject(trackingMap);
+            BatchWriterConfig bwConfig = new BatchWriterConfig();
+            bwConfig.setMaxMemory(getMaxMutationBufferSize(conf));
+            bwConfig.setMaxLatency(getMaxLatency(conf), TimeUnit.MILLISECONDS);
+            bwConfig.setMaxWriteThreads(getMaxWriteThreads(conf));
+            mtbw = this.connector.createMultiTableBatchWriter(bwConfig);
         }
     }
     
@@ -241,11 +231,6 @@ public class AccumuloRecordWriter extends RecordWriter<Text,Mutation> {
         conf.setInt(NUM_WRITE_THREADS, numberOfThreads);
     }
     
-    public static void setLogLevel(Configuration conf, Level level) {
-        ArgumentChecker.notNull(level);
-        conf.setInt(LOGLEVEL, level.toInt());
-    }
-    
     public static void setSimulationMode(Configuration conf) {
         conf.setBoolean(SIMULATE, true);
     }
@@ -272,33 +257,6 @@ public class AccumuloRecordWriter extends RecordWriter<Text,Mutation> {
     
     protected static int getMaxWriteThreads(Configuration conf) {
         return conf.getInt(NUM_WRITE_THREADS, DEFAULT_NUM_WRITE_THREADS);
-    }
-    
-    protected static Level getLogLevel(Configuration conf) {
-        Level level = Level.INFO;
-        if (conf.get(LOGLEVEL) != null) {
-            int levelInt = conf.getInt(LOGLEVEL, Level.INFO.toInt());
-            switch (levelInt) {
-                case 0:
-                    level = Level.TRACE;
-                    break;
-                case 10:
-                    level = Level.DEBUG;
-                    break;
-                case 20:
-                    level = Level.INFO;
-                    break;
-                case 30:
-                    level = Level.WARN;
-                    break;
-                case 40:
-                    level = Level.ERROR;
-                    break;
-                default:
-                    level = Level.INFO;
-            }
-        }
-        return level;
     }
     
     protected static boolean getSimulationMode(Configuration conf) {

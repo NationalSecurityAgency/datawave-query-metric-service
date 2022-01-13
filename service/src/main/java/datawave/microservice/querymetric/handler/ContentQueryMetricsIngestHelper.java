@@ -18,7 +18,8 @@ import datawave.webservice.query.util.QueryUtil;
 import org.apache.commons.jexl2.parser.ASTEQNode;
 import org.apache.commons.jexl2.parser.ASTJexlScript;
 import org.apache.commons.lang.StringUtils;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.text.SimpleDateFormat;
 import java.util.HashMap;
@@ -29,7 +30,7 @@ import java.util.Set;
 
 public class ContentQueryMetricsIngestHelper extends CSVIngestHelper implements TermFrequencyIngestHelperInterface {
     
-    private static final Logger log = Logger.getLogger(ContentQueryMetricsIngestHelper.class);
+    private static final Logger log = LoggerFactory.getLogger(ContentQueryMetricsIngestHelper.class);
     
     private Set<String> contentIndexFields = new HashSet<>();
     private HelperDelegate<BaseQueryMetric> delegate;
