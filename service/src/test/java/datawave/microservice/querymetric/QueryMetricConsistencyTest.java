@@ -34,7 +34,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -222,8 +221,7 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
     public void ToMetricTest() {
         
         ContentQueryMetricsIngestHelper.HelperDelegate<QueryMetric> helper = new ContentQueryMetricsIngestHelper.HelperDelegate<>();
-        QueryMetric queryMetric = new QueryMetric();
-        populateMetric(queryMetric, UUID.randomUUID().toString());
+        QueryMetric queryMetric = (QueryMetric) createMetric();
         Multimap<String,String> fieldsToWrite = helper.getEventFieldsToWrite(queryMetric);
         
         EventBase event = new DefaultEvent();
@@ -242,8 +240,7 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
     
     @Test
     public void CombineMetricsTest() throws Exception {
-        QueryMetric storedQueryMetric = new QueryMetric();
-        populateMetric(storedQueryMetric, UUID.randomUUID().toString());
+        QueryMetric storedQueryMetric = (QueryMetric) createMetric();
         storedQueryMetric.addPageTime(10, 500, 500000, 500000);
         QueryMetric updatedQueryMetric = (QueryMetric) storedQueryMetric.duplicate();
         updatedQueryMetric.addPageTime(100, 1000, 5000, 10000);
@@ -260,9 +257,7 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
     
     @Test
     public void MetricUpdateTest() throws Exception {
-        QueryMetric storedQueryMetric = new QueryMetric();
-        String queryId = UUID.randomUUID().toString();
-        populateMetric(storedQueryMetric, queryId);
+        QueryMetric storedQueryMetric = (QueryMetric) createMetric();
         QueryMetric updatedQueryMetric = (QueryMetric) storedQueryMetric.duplicate();
         updatedQueryMetric.setLifecycle(BaseQueryMetric.Lifecycle.CLOSED);
         updatedQueryMetric.setNumResults(2000);
@@ -310,9 +305,8 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
     
     @Test
     public void DuplicateAccumuloEntryTest() throws Exception {
-        QueryMetric storedQueryMetric = new QueryMetric();
-        String queryId = UUID.randomUUID().toString();
-        populateMetric(storedQueryMetric, queryId);
+        String queryId = createQueryId();
+        QueryMetric storedQueryMetric = (QueryMetric) createMetric(queryId);
         QueryMetric updatedQueryMetric = (QueryMetric) storedQueryMetric.duplicate();
         updatedQueryMetric.setLifecycle(BaseQueryMetric.Lifecycle.CLOSED);
         updatedQueryMetric.setNumResults(2000);
