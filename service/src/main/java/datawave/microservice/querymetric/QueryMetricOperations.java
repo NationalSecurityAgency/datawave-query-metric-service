@@ -61,6 +61,9 @@ import static datawave.microservice.querymetric.QueryMetricOperations.DEFAULT_DA
 import static datawave.microservice.querymetric.config.HazelcastMetricCacheConfiguration.INCOMING_METRICS;
 import static datawave.microservice.querymetric.config.QueryMetricSourceConfiguration.QueryMetricSourceBinding.SOURCE_NAME;
 
+/**
+ * The type Query metric operations.
+ */
 @EnableBinding(QueryMetricSinkBinding.class)
 @RestController
 @RequestMapping(path = "/v1")
@@ -77,14 +80,40 @@ public class QueryMetricOperations {
     private BaseQueryMetricListResponseFactory queryMetricListResponseFactory;
     private ReentrantLock caffeineLock = new ReentrantLock();
     
+    /**
+     * The enum Default datetime.
+     */
     enum DEFAULT_DATETIME {
-        BEGIN, END
+        /**
+         * Begin default datetime.
+         */
+        BEGIN,
+        /**
+         * End default datetime.
+         */
+        END
     }
     
     @Output(SOURCE_NAME)
     @Autowired
     private MessageChannel output;
     
+    /**
+     * Instantiates a new QueryMetricOperations.
+     *
+     * @param cacheManager
+     *            the CacheManager
+     * @param handler
+     *            the QueryMetricHandler
+     * @param geometryHandler
+     *            the QueryGeometryHandler
+     * @param markingFunctions
+     *            the MarkingFunctions
+     * @param queryMetricListResponseFactory
+     *            the QueryMetricListResponseFactory
+     * @param timelyProperties
+     *            the TimelyProperties
+     */
     @Autowired
     public QueryMetricOperations(@Named("queryMetricCacheManager") CacheManager cacheManager, ShardTableQueryMetricHandler handler,
                     QueryGeometryHandler geometryHandler, MarkingFunctions markingFunctions, BaseQueryMetricListResponseFactory queryMetricListResponseFactory,
@@ -98,6 +127,15 @@ public class QueryMetricOperations {
         this.timelyProperties = timelyProperties;
     }
     
+    /**
+     * Update metrics void response.
+     *
+     * @param queryMetrics
+     *            the list of query metric updates
+     * @param metricType
+     *            the metric type
+     * @return the void response
+     */
     // Messages that arrive via http/https get placed on the message queue
     // to ensure a quick response and to maintain a single queue of work
     @RolesAllowed({"Administrator", "JBossAdministrator"})
@@ -113,6 +151,15 @@ public class QueryMetricOperations {
         return response;
     }
     
+    /**
+     * Update metric void response.
+     *
+     * @param queryMetric
+     *            the query metric update
+     * @param metricType
+     *            the metric type
+     * @return the void response
+     */
     // Messages that arrive via http/https get placed on the message queue
     // to ensure a quick response and to maintain a single queue of work
     @RolesAllowed({"Administrator", "JBossAdministrator"})
@@ -125,11 +172,26 @@ public class QueryMetricOperations {
         return new VoidResponse();
     }
     
+    /**
+     * Handle event.
+     *
+     * @param update
+     *            the query metric update
+     */
     @StreamListener(QueryMetricSinkBinding.SINK_NAME)
     public void handleEvent(QueryMetricUpdate update) {
         storeMetric(update.getMetric(), update.getMetricType());
     }
     
+    /**
+     * Store metric void response.
+     *
+     * @param queryMetric
+     *            the query metric update
+     * @param metricType
+     *            the metric type
+     * @return the void response
+     */
     public VoidResponse storeMetric(BaseQueryMetric queryMetric, QueryMetricType metricType) {
         
         log.trace("storing metric update: " + queryMetric.toString());
@@ -193,10 +255,11 @@ public class QueryMetricOperations {
     /**
      * Returns metrics for the current users queries that are identified by the id
      *
+     * @param currentUser
+     *            the current user
      * @param queryId
-     *
-     * @return datawave.webservice.result.QueryMetricListResponse
-     *
+     *            the query id
+     * @return datawave.webservice.result.QueryMetricListResponse base query metric list response
      * @HTTP 200 success
      * @HTTP 500 internal server error
      */
@@ -246,10 +309,11 @@ public class QueryMetricOperations {
     /**
      * Returns metrics for the current users queries that are identified by the id
      *
+     * @param currentUser
+     *            the current user
      * @param queryId
-     *
-     * @return datawave.webservice.result.QueryMetricListResponse
-     *
+     *            the query id
+     * @return datawave.webservice.result.QueryMetricListResponse query geometry response
      * @HTTP 200 success
      * @HTTP 500 internal server error
      */
@@ -314,13 +378,14 @@ public class QueryMetricOperations {
     
     /**
      * Returns a summary of the query metrics
-     * 
+     *
+     * @param currentUser
+     *            the current user
      * @param begin
      *            formatted date/time (yyyyMMdd | yyyyMMdd HHmmss | yyyyMMdd HHmmss.SSS)
      * @param end
      *            formatted date/time (yyyyMMdd | yyyyMMdd HHmmss | yyyyMMdd HHmmss.SSS)
-     * @return datawave.microservice.querymetric.QueryMetricsSummaryResponse
-     *
+     * @return datawave.microservice.querymetric.QueryMetricsSummaryResponse query metrics summary
      * @HTTP 200 success
      * @HTTP 500 internal server error
      */
@@ -341,13 +406,14 @@ public class QueryMetricOperations {
     
     /**
      * Returns a summary of the requesting user's query metrics
-     * 
+     *
+     * @param currentUser
+     *            the current user
      * @param begin
      *            formatted date/time (yyyyMMdd | yyyyMMdd HHmmss | yyyyMMdd HHmmss.SSS)
      * @param end
      *            formatted date/time (yyyyMMdd | yyyyMMdd HHmmss | yyyyMMdd HHmmss.SSS)
-     * @return datawave.microservice.querymetric.QueryMetricsSummaryResponse
-     *
+     * @return datawave.microservice.querymetric.QueryMetricsSummaryResponse query metrics user summary
      * @HTTP 200 success
      * @HTTP 500 internal server error
      */
