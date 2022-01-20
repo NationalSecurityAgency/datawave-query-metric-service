@@ -24,6 +24,7 @@
         <version.hazelcast-kubernetes>1.4</version.hazelcast-kubernetes>
         <version.in-memory-accumulo>1.9.2.3</version.in-memory-accumulo>
         <version.log4j12>2.17.1</version.log4j12>
+        <version.microservice.accumulo-api>1.2</version.microservice.accumulo-api>
         <version.microservice.hazelcast>1.5</version.microservice.hazelcast>
         <version.microservice.metadata-utils>1.8.2</version.microservice.metadata-utils>
         <version.microservice.starter>1.6.5</version.microservice.starter>
@@ -113,6 +114,11 @@
                         <groupId>log4j</groupId>
                     </exclusion>
                 </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>gov.nsa.datawave.microservice</groupId>
+                <artifactId>accumulo-api</artifactId>
+                <version>${version.microservice.accumulo-api}</version>
             </dependency>
             <dependency>
                 <groupId>gov.nsa.datawave.microservice</groupId>
