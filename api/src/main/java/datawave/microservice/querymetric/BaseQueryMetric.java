@@ -14,25 +14,32 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.builder.CompareToBuilder;
 import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
 
 @XmlAccessorType(XmlAccessType.NONE)
 public abstract class BaseQueryMetric implements HasMarkings, Serializable {
+    
+    private static final Logger log = LoggerFactory.getLogger(BaseQueryMetric.class);
     
     @XmlAccessorType(XmlAccessType.NONE)
     public static class PageMetric implements Serializable, Message<PageMetric> {
@@ -222,6 +229,10 @@ public abstract class BaseQueryMetric implements HasMarkings, Serializable {
                 pageMetric = new PageMetric(null, parts[0], Long.parseLong(parts[1]), Long.parseLong(parts[2]), Long.parseLong(parts[6]),
                                 Long.parseLong(parts[7]), Long.parseLong(parts[8]), Long.parseLong(parts[3]), Long.parseLong(parts[4]),
                                 Long.parseLong(parts[5]));
+            } else if (parts.length == 8) {
+                // pageSize/returnTime/callTime/serializationTime/bytesWritten/pageRequested/pageReturned/loginTime
+                pageMetric = new PageMetric(null, null, Long.parseLong(parts[0]), Long.parseLong(parts[1]), Long.parseLong(parts[5]), Long.parseLong(parts[6]),
+                                Long.parseLong(parts[7]), Long.parseLong(parts[2]), Long.parseLong(parts[3]), Long.parseLong(parts[4]));
             } else if (parts.length == 7) {
                 // pageSize/returnTime/callTime/serializationTime/bytesWritten/pageRequested/pageReturned
                 pageMetric = new PageMetric(null, null, Long.parseLong(parts[0]), Long.parseLong(parts[1]), Long.parseLong(parts[5]), Long.parseLong(parts[6]),
@@ -412,7 +423,7 @@ public abstract class BaseQueryMetric implements HasMarkings, Serializable {
                 return number == null ? 0 : number.intValue();
             }
             
-            final HashMap<String,Integer> fieldMap = new HashMap<String,Integer>();
+            final HashMap<String,Integer> fieldMap = new LinkedHashMap<>();
             
             {
                 fieldMap.put("pagesize", 1);
@@ -578,7 +589,7 @@ public abstract class BaseQueryMetric implements HasMarkings, Serializable {
                 return number == null ? 0 : number.intValue();
             }
             
-            final HashMap<String,Integer> fieldMap = new HashMap<String,Integer>();
+            final HashMap<String,Integer> fieldMap = new LinkedHashMap<>();
             
             {
                 fieldMap.put("name", 1);
@@ -608,7 +619,7 @@ public abstract class BaseQueryMetric implements HasMarkings, Serializable {
     protected long createCallTime = -1;
     @XmlElementWrapper(name = "pageMetrics")
     @XmlElement(name = "pageMetric")
-    protected ArrayList<PageMetric> pageTimes = new ArrayList<PageMetric>();
+    protected ArrayList<PageMetric> pageTimes = new ArrayList<>();
     @XmlElement
     protected Collection<String> proxyServers = null;
     @XmlElement
@@ -642,7 +653,7 @@ public abstract class BaseQueryMetric implements HasMarkings, Serializable {
     @XmlElement
     protected String queryName = null;
     @XmlElement
-    protected Set<Parameter> parameters = new HashSet<Parameter>();
+    protected Set<Parameter> parameters = new HashSet<>();
     @XmlElement
     protected long sourceCount = 0;
     @XmlElement
@@ -651,6 +662,8 @@ public abstract class BaseQueryMetric implements HasMarkings, Serializable {
     protected long seekCount = 0;
     @XmlElement
     protected long yieldCount = 0L;
+    @XmlElement
+    protected String version = BaseQueryMetric.getVersionFromProperties();
     @XmlElement
     protected long docRanges = 0;
     @XmlElement
@@ -661,7 +674,7 @@ public abstract class BaseQueryMetric implements HasMarkings, Serializable {
     protected long loginTime = -1;
     @XmlElementWrapper(name = "predictions")
     @XmlElement(name = "prediction")
-    protected Set<Prediction> predictions = new HashSet<Prediction>();
+    protected Set<Prediction> predictions = new HashSet<>();
     
     protected int lastWrittenHash = 0;
     protected long numUpdates = 0;
@@ -779,6 +792,33 @@ public abstract class BaseQueryMetric implements HasMarkings, Serializable {
     
     public void setHost(String host) {
         this.host = host;
+    }
+    
+    public static String getVersionFromProperties() {
+        String returnStr = "";
+        try {
+            final Properties props = new Properties();
+            InputStream in = BaseQueryMetric.class.getResourceAsStream("/version.properties");
+            if (in != null) {
+                props.load(in);
+                returnStr = props.getProperty("currentVersion");
+                in.close();
+            } else {
+                log.warn("version.properties InputStream is null. Keeping version string empty.");
+            }
+            
+        } catch (IOException e) {
+            log.warn("IOException encountered, attempting to read in version.properties.");
+        }
+        return returnStr;
+    }
+    
+    public String getVersion() {
+        return this.version;
+    }
+    
+    public void setVersion(String version) {
+        this.version = version;
     }
     
     public void addPageTime(long pagesize, long timeToReturn, long requestedTime, long returnedTime) {

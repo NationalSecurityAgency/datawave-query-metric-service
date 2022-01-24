@@ -23,7 +23,6 @@
     </scm>
     <properties>
         <version.microservice.authorization-api>1.11-SNAPSHOT</version.microservice.authorization-api>
-        <version.microservice.query-metric-api>1.5-SNAPSHOT</version.microservice.query-metric-api>
         <version.microservice.starter>1.6.6-SNAPSHOT</version.microservice.starter>
     </properties>
     <dependencyManagement>
@@ -36,7 +35,7 @@
             <dependency>
                 <groupId>gov.nsa.datawave.microservice</groupId>
                 <artifactId>query-metric-api</artifactId>
-                <version>${version.microservice.query-metric-api}</version>
+                <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>gov.nsa.datawave.microservice</groupId>

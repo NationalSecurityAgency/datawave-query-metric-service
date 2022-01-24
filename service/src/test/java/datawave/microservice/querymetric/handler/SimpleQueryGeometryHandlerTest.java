@@ -2,13 +2,10 @@ package datawave.microservice.querymetric.handler;
 
 import datawave.microservice.querymetric.QueryMetric;
 import datawave.microservice.querymetric.config.QueryMetricHandlerProperties;
-import datawave.query.jexl.visitors.GeoFeatureVisitor;
-import datawave.services.common.logging.ThreadConfigurableLogger;
 import datawave.webservice.query.QueryImpl;
 import datawave.webservice.query.exception.QueryExceptionType;
 import datawave.webservice.query.map.QueryGeometry;
 import datawave.webservice.query.map.QueryGeometryResponse;
-import org.apache.log4j.Level;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -185,7 +182,6 @@ public class SimpleQueryGeometryHandlerTest {
     
     @Test
     public void invalidQueryJexlTest() {
-        ThreadConfigurableLogger.setLevelForThread(GeoFeatureVisitor.class.getName(), Level.OFF);
         QueryGeometryResponse resp = generateResponse(commonId, "geowave:intersects(field11, 3000)", jexlParams);
         
         Assert.assertEquals(0, resp.getResult().size());
@@ -194,7 +190,6 @@ public class SimpleQueryGeometryHandlerTest {
     
     @Test
     public void invalidQueryLuceneTest() {
-        ThreadConfigurableLogger.setLevelForThread(GeoFeatureVisitor.class.getName(), Level.OFF);
         QueryGeometryResponse resp = generateResponse(commonId, "#INTERSECTS(field12, 5000)", luceneParams);
         
         Assert.assertEquals(0, resp.getResult().size());

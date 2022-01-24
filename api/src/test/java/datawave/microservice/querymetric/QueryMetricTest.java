@@ -38,18 +38,18 @@ public class QueryMetricTest {
     @BeforeClass
     public static void setup() {
         queryMetric = new QueryMetric();
-        markings = new HashMap<String,String>();
+        markings = new HashMap<>();
         markings.put(MarkingFunctions.Default.COLUMN_VISIBILITY, "PUBLIC");
         queryMetric.setMarkings(markings);
-        negativeSelectors = new ArrayList<String>();
+        negativeSelectors = new ArrayList<>();
         negativeSelectors.add("negativeSelector1");
-        positiveSelectors = new ArrayList<String>();
+        positiveSelectors = new ArrayList<>();
         positiveSelectors.add("positiveSelector1");
-        pageTimes = new ArrayList<PageMetric>();
+        pageTimes = new ArrayList<>();
         PageMetric pageMetric = new PageMetric();
         pageMetric.setCallTime(0);
         pageTimes.add(pageMetric);
-        proxyServers = new ArrayList<String>();
+        proxyServers = new ArrayList<>();
         proxyServers.add("proxyServer1");
     }
     
@@ -156,6 +156,48 @@ public class QueryMetricTest {
         QueryMetric deserializedMetric = schema.newMessage();
         ProtostuffIOUtil.mergeFrom(baos.toByteArray(), deserializedMetric, schema);
         assertEquals(queryMetric, deserializedMetric);
+    }
+    
+    @Test
+    public void testVersionSerialization() throws Exception {
+        QueryMetric qm = new QueryMetric();
+        Date d = new Date();
+        qm.setBeginDate(d);
+        qm.setCreateCallTime(0);
+        qm.setCreateDate(d);
+        qm.setEndDate(d);
+        qm.setErrorCode("error");
+        qm.setErrorMessage("errorMessage");
+        qm.setHost("host");
+        qm.setLastUpdated(d);
+        qm.setLastWrittenHash(0);
+        qm.setLifecycle(BaseQueryMetric.Lifecycle.INITIALIZED);
+        qm.setMarkings(markings);
+        qm.setNegativeSelectors(negativeSelectors);
+        qm.setNumUpdates(0);
+        qm.setPageTimes(pageTimes);
+        qm.setPositiveSelectors(positiveSelectors);
+        qm.setProxyServers(proxyServers);
+        qm.setQuery("query");
+        qm.setQueryAuthorizations("auths");
+        qm.setQueryId("queryId");
+        qm.setQueryLogic("queryLogic");
+        qm.setQueryType(this.getClass());
+        qm.setQueryType("queryType");
+        qm.setSetupTime(0);
+        qm.setUser("user");
+        qm.setUserDN("userDN");
+        
+        // The version is added to queryMetric objects by default through injection, so we can verify
+        // the object on creation.
+        assertEquals(BaseQueryMetric.getVersionFromProperties(), qm.getVersion());
+        
+        Schema<QueryMetric> schema = (Schema<QueryMetric>) qm.getSchemaInstance();
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ProtostuffIOUtil.writeTo(baos, qm, schema, LinkedBuffer.allocate());
+        QueryMetric deserializedMetric = schema.newMessage();
+        ProtostuffIOUtil.mergeFrom(baos.toByteArray(), deserializedMetric, schema);
+        assertEquals(qm, deserializedMetric);
     }
     
     @Test

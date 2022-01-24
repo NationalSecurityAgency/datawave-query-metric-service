@@ -3,32 +3,54 @@
 
 package datawave.microservice.querymetric;
 
+/**
+ * The type Metrics messages.
+ */
 public final class MetricsMessages {
     private MetricsMessages() {}
     
+    /**
+     * Register all extensions.
+     *
+     * @param registry
+     *            the registry
+     */
     public static void registerAllExtensions(com.google.protobuf.ExtensionRegistryLite registry) {}
     
+    /**
+     * The interface Page metric or builder.
+     */
     public interface PageMetricOrBuilder extends com.google.protobuf.MessageLiteOrBuilder {
         
         // required uint64 pagesize = 1 [default = 0];
+        
         /**
          * <code>required uint64 pagesize = 1 [default = 0];</code>
+         *
+         * @return the boolean
          */
         boolean hasPagesize();
         
         /**
          * <code>required uint64 pagesize = 1 [default = 0];</code>
+         *
+         * @return the pagesize
          */
         long getPagesize();
         
         // required uint64 return_time = 2 [default = 0];
+        
         /**
          * <code>required uint64 return_time = 2 [default = 0];</code>
+         *
+         * @return the boolean
          */
         boolean hasReturnTime();
         
         /**
          * <code>required uint64 return_time = 2 [default = 0];</code>
+         *
+         * @return the return time
          */
         long getReturnTime();
     }
@@ -47,6 +69,11 @@ public final class MetricsMessages {
         
         private static final PageMetric defaultInstance;
         
+        /**
+         * Gets default instance.
+         *
+         * @return the default instance
+         */
         public static PageMetric getDefaultInstance() {
             return defaultInstance;
         }
@@ -94,6 +121,9 @@ public final class MetricsMessages {
             }
         }
         
+        /**
+         * The constant PARSER.
+         */
         public static com.google.protobuf.Parser<PageMetric> PARSER = new com.google.protobuf.AbstractParser<PageMetric>() {
             public PageMetric parsePartialFrom(com.google.protobuf.CodedInputStream input, com.google.protobuf.ExtensionRegistryLite extensionRegistry)
                             throws com.google.protobuf.InvalidProtocolBufferException {
@@ -107,6 +137,9 @@ public final class MetricsMessages {
         }
         
         private int bitField0_;
+        /**
+         * The constant PAGESIZE_FIELD_NUMBER.
+         */
         // required uint64 pagesize = 1 [default = 0];
         public static final int PAGESIZE_FIELD_NUMBER = 1;
         private long pagesize_;
@@ -125,6 +158,9 @@ public final class MetricsMessages {
             return pagesize_;
         }
         
+        /**
+         * The constant RETURN_TIME_FIELD_NUMBER.
+         */
         // required uint64 return_time = 2 [default = 0];
         public static final int RETURN_TIME_FIELD_NUMBER = 2;
         private long returnTime_;
@@ -202,50 +238,155 @@ public final class MetricsMessages {
             return super.writeReplace();
         }
         
+        /**
+         * Parse from page metric.
+         *
+         * @param data
+         *            the data
+         * @return the page metric
+         * @throws com.google.protobuf.InvalidProtocolBufferException
+         *             the invalid protocol buffer exception
+         */
         public static PageMetric parseFrom(com.google.protobuf.ByteString data) throws com.google.protobuf.InvalidProtocolBufferException {
             return PARSER.parseFrom(data);
         }
         
+        /**
+         * Parse from page metric.
+         *
+         * @param data
+         *            the data
+         * @param extensionRegistry
+         *            the extension registry
+         * @return the page metric
+         * @throws com.google.protobuf.InvalidProtocolBufferException
+         *             the invalid protocol buffer exception
+         */
         public static PageMetric parseFrom(com.google.protobuf.ByteString data, com.google.protobuf.ExtensionRegistryLite extensionRegistry)
                         throws com.google.protobuf.InvalidProtocolBufferException {
             return PARSER.parseFrom(data, extensionRegistry);
         }
         
+        /**
+         * Parse from page metric.
+         *
+         * @param data
+         *            the data
+         * @return the page metric
+         * @throws com.google.protobuf.InvalidProtocolBufferException
+         *             the invalid protocol buffer exception
+         */
         public static PageMetric parseFrom(byte[] data) throws com.google.protobuf.InvalidProtocolBufferException {
             return PARSER.parseFrom(data);
         }
         
+        /**
+         * Parse from page metric.
+         *
+         * @param data
+         *            the data
+         * @param extensionRegistry
+         *            the extension registry
+         * @return the page metric
+         * @throws com.google.protobuf.InvalidProtocolBufferException
+         *             the invalid protocol buffer exception
+         */
         public static PageMetric parseFrom(byte[] data, com.google.protobuf.ExtensionRegistryLite extensionRegistry)
                         throws com.google.protobuf.InvalidProtocolBufferException {
             return PARSER.parseFrom(data, extensionRegistry);
         }
         
+        /**
+         * Parse from page metric.
+         *
+         * @param input
+         *            the input
+         * @return the page metric
+         * @throws java.io.IOException
+         *             the io exception
+         */
         public static PageMetric parseFrom(java.io.InputStream input) throws java.io.IOException {
             return PARSER.parseFrom(input);
         }
         
+        /**
+         * Parse from page metric.
+         *
+         * @param input
+         *            the input
+         * @param extensionRegistry
+         *            the extension registry
+         * @return the page metric
+         * @throws java.io.IOException
+         *             the io exception
+         */
         public static PageMetric parseFrom(java.io.InputStream input, com.google.protobuf.ExtensionRegistryLite extensionRegistry) throws java.io.IOException {
             return PARSER.parseFrom(input, extensionRegistry);
         }
         
+        /**
+         * Parse delimited from page metric.
+         *
+         * @param input
+         *            the input
+         * @return the page metric
+         * @throws java.io.IOException
+         *             the io exception
+         */
         public static PageMetric parseDelimitedFrom(java.io.InputStream input) throws java.io.IOException {
             return PARSER.parseDelimitedFrom(input);
         }
         
+        /**
+         * Parse delimited from page metric.
+         *
+         * @param input
+         *            the input
+         * @param extensionRegistry
+         *            the extension registry
+         * @return the page metric
+         * @throws java.io.IOException
+         *             the io exception
+         */
         public static PageMetric parseDelimitedFrom(java.io.InputStream input, com.google.protobuf.ExtensionRegistryLite extensionRegistry)
                         throws java.io.IOException {
             return PARSER.parseDelimitedFrom(input, extensionRegistry);
         }
         
+        /**
+         * Parse from page metric.
+         *
+         * @param input
+         *            the input
+         * @return the page metric
+         * @throws java.io.IOException
+         *             the io exception
+         */
         public static PageMetric parseFrom(com.google.protobuf.CodedInputStream input) throws java.io.IOException {
             return PARSER.parseFrom(input);
         }
         
+        /**
+         * Parse from page metric.
+         *
+         * @param input
+         *            the input
+         * @param extensionRegistry
+         *            the extension registry
+         * @return the page metric
+         * @throws java.io.IOException
+         *             the io exception
+         */
         public static PageMetric parseFrom(com.google.protobuf.CodedInputStream input, com.google.protobuf.ExtensionRegistryLite extensionRegistry)
                         throws java.io.IOException {
             return PARSER.parseFrom(input, extensionRegistry);
         }
         
+        /**
+         * New builder builder.
+         *
+         * @return the builder
+         */
         public static Builder newBuilder() {
             return Builder.create();
         }
@@ -254,6 +395,13 @@ public final class MetricsMessages {
             return newBuilder();
         }
         
+        /**
+         * New builder builder.
+         *
+         * @param prototype
+         *            the prototype
+         * @return the builder
+         */
         public static Builder newBuilder(PageMetric prototype) {
             return newBuilder().mergeFrom(prototype);
         }
@@ -379,6 +527,10 @@ public final class MetricsMessages {
             
             /**
              * <code>required uint64 pagesize = 1 [default = 0];</code>
+             *
+             * @param value
+             *            the value
+             * @return the pagesize
              */
             public Builder setPagesize(long value) {
                 bitField0_ |= 0x00000001;
@@ -389,6 +541,8 @@ public final class MetricsMessages {
             
             /**
              * <code>required uint64 pagesize = 1 [default = 0];</code>
+             *
+             * @return the builder
              */
             public Builder clearPagesize() {
                 bitField0_ = (bitField0_ & ~0x00000001);
@@ -416,6 +570,10 @@ public final class MetricsMessages {
             
             /**
              * <code>required uint64 return_time = 2 [default = 0];</code>
+             *
+             * @param value
+             *            the value
+             * @return the return time
              */
             public Builder setReturnTime(long value) {
                 bitField0_ |= 0x00000002;
@@ -426,6 +584,8 @@ public final class MetricsMessages {
             
             /**
              * <code>required uint64 return_time = 2 [default = 0];</code>
+             *
+             * @return the builder
              */
             public Builder clearReturnTime() {
                 bitField0_ = (bitField0_ & ~0x00000002);
@@ -445,91 +605,134 @@ public final class MetricsMessages {
         // @@protoc_insertion_point(class_scope:datawave.microservice.querymetric.PageMetric)
     }
     
+    /**
+     * The interface Query metric or builder.
+     */
     public interface QueryMetricOrBuilder extends com.google.protobuf.MessageLiteOrBuilder {
         
         // optional string query_type = 1;
+        
         /**
          * <code>optional string query_type = 1;</code>
+         *
+         * @return the boolean
          */
         boolean hasQueryType();
         
         /**
          * <code>optional string query_type = 1;</code>
+         *
+         * @return the query type
          */
         String getQueryType();
         
         /**
          * <code>optional string query_type = 1;</code>
+         *
+         * @return the query type bytes
          */
         com.google.protobuf.ByteString getQueryTypeBytes();
         
         // optional string user = 2;
+        
         /**
          * <code>optional string user = 2;</code>
+         *
+         * @return the boolean
          */
         boolean hasUser();
         
         /**
          * <code>optional string user = 2;</code>
+         *
+         * @return the user
          */
         String getUser();
         
         /**
          * <code>optional string user = 2;</code>
+         *
+         * @return the user bytes
          */
         com.google.protobuf.ByteString getUserBytes();
         
         // optional int64 create_date = 3;
+        
         /**
          * <code>optional int64 create_date = 3;</code>
+         *
+         * @return the boolean
          */
         boolean hasCreateDate();
         
         /**
          * <code>optional int64 create_date = 3;</code>
+         *
+         * @return the create date
          */
         long getCreateDate();
         
         // optional string query_id = 4;
+        
         /**
          * <code>optional string query_id = 4;</code>
+         *
+         * @return the boolean
          */
         boolean hasQueryId();
         
         /**
          * <code>optional string query_id = 4;</code>
+         *
+         * @return the query id
          */
         String getQueryId();
         
         /**
          * <code>optional string query_id = 4;</code>
+         *
+         * @return the query id bytes
          */
         com.google.protobuf.ByteString getQueryIdBytes();
         
         // optional uint64 setup_time = 5;
+        
         /**
          * <code>optional uint64 setup_time = 5;</code>
+         *
+         * @return the boolean
          */
         boolean hasSetupTime();
         
         /**
          * <code>optional uint64 setup_time = 5;</code>
+         *
+         * @return the setup time
          */
         long getSetupTime();
         
         // repeated .datawave.microservice.querymetric.PageMetric page_times = 6;
+        
         /**
          * <code>repeated .datawave.microservice.querymetric.PageMetric page_times = 6;</code>
+         *
+         * @return the page times list
          */
         java.util.List<PageMetric> getPageTimesList();
         
         /**
          * <code>repeated .datawave.microservice.querymetric.PageMetric page_times = 6;</code>
+         *
+         * @param index
+         *            the index
+         * @return the page times
          */
         PageMetric getPageTimes(int index);
         
         /**
          * <code>repeated .datawave.microservice.querymetric.PageMetric page_times = 6;</code>
+         *
+         * @return the page times count
          */
         int getPageTimesCount();
     }
@@ -548,6 +751,11 @@ public final class MetricsMessages {
         
         private static final QueryMetric defaultInstance;
         
+        /**
+         * Gets default instance.
+         *
+         * @return the default instance
+         */
         public static QueryMetric getDefaultInstance() {
             return defaultInstance;
         }
@@ -621,6 +829,9 @@ public final class MetricsMessages {
             }
         }
         
+        /**
+         * The constant PARSER.
+         */
         public static com.google.protobuf.Parser<QueryMetric> PARSER = new com.google.protobuf.AbstractParser<QueryMetric>() {
             public QueryMetric parsePartialFrom(com.google.protobuf.CodedInputStream input, com.google.protobuf.ExtensionRegistryLite extensionRegistry)
                             throws com.google.protobuf.InvalidProtocolBufferException {
@@ -634,6 +845,9 @@ public final class MetricsMessages {
         }
         
         private int bitField0_;
+        /**
+         * The constant QUERY_TYPE_FIELD_NUMBER.
+         */
         // optional string query_type = 1;
         public static final int QUERY_TYPE_FIELD_NUMBER = 1;
         private Object queryType_;
@@ -676,6 +890,9 @@ public final class MetricsMessages {
             }
         }
         
+        /**
+         * The constant USER_FIELD_NUMBER.
+         */
         // optional string user = 2;
         public static final int USER_FIELD_NUMBER = 2;
         private Object user_;
@@ -718,6 +935,9 @@ public final class MetricsMessages {
             }
         }
         
+        /**
+         * The constant CREATE_DATE_FIELD_NUMBER.
+         */
         // optional int64 create_date = 3;
         public static final int CREATE_DATE_FIELD_NUMBER = 3;
         private long createDate_;
@@ -736,6 +956,9 @@ public final class MetricsMessages {
             return createDate_;
         }
         
+        /**
+         * The constant QUERY_ID_FIELD_NUMBER.
+         */
         // optional string query_id = 4;
         public static final int QUERY_ID_FIELD_NUMBER = 4;
         private Object queryId_;
@@ -778,6 +1001,9 @@ public final class MetricsMessages {
             }
         }
         
+        /**
+         * The constant SETUP_TIME_FIELD_NUMBER.
+         */
         // optional uint64 setup_time = 5;
         public static final int SETUP_TIME_FIELD_NUMBER = 5;
         private long setupTime_;
@@ -796,6 +1022,9 @@ public final class MetricsMessages {
             return setupTime_;
         }
         
+        /**
+         * The constant PAGE_TIMES_FIELD_NUMBER.
+         */
         // repeated .datawave.microservice.querymetric.PageMetric page_times = 6;
         public static final int PAGE_TIMES_FIELD_NUMBER = 6;
         private java.util.List<PageMetric> pageTimes_;
@@ -809,6 +1038,8 @@ public final class MetricsMessages {
         
         /**
          * <code>repeated .datawave.microservice.querymetric.PageMetric page_times = 6;</code>
+         *
+         * @return the page times or builder list
          */
         public java.util.List<? extends PageMetricOrBuilder> getPageTimesOrBuilderList() {
             return pageTimes_;
@@ -830,6 +1061,10 @@ public final class MetricsMessages {
         
         /**
          * <code>repeated .datawave.microservice.querymetric.PageMetric page_times = 6;</code>
+         *
+         * @param index
+         *            the index
+         * @return the page times or builder
          */
         public PageMetricOrBuilder getPageTimesOrBuilder(int index) {
             return pageTimes_.get(index);
@@ -920,50 +1155,155 @@ public final class MetricsMessages {
             return super.writeReplace();
         }
         
+        /**
+         * Parse from query metric.
+         *
+         * @param data
+         *            the data
+         * @return the query metric
+         * @throws com.google.protobuf.InvalidProtocolBufferException
+         *             the invalid protocol buffer exception
+         */
         public static QueryMetric parseFrom(com.google.protobuf.ByteString data) throws com.google.protobuf.InvalidProtocolBufferException {
             return PARSER.parseFrom(data);
         }
         
+        /**
+         * Parse from query metric.
+         *
+         * @param data
+         *            the data
+         * @param extensionRegistry
+         *            the extension registry
+         * @return the query metric
+         * @throws com.google.protobuf.InvalidProtocolBufferException
+         *             the invalid protocol buffer exception
+         */
         public static QueryMetric parseFrom(com.google.protobuf.ByteString data, com.google.protobuf.ExtensionRegistryLite extensionRegistry)
                         throws com.google.protobuf.InvalidProtocolBufferException {
             return PARSER.parseFrom(data, extensionRegistry);
         }
         
+        /**
+         * Parse from query metric.
+         *
+         * @param data
+         *            the data
+         * @return the query metric
+         * @throws com.google.protobuf.InvalidProtocolBufferException
+         *             the invalid protocol buffer exception
+         */
         public static QueryMetric parseFrom(byte[] data) throws com.google.protobuf.InvalidProtocolBufferException {
             return PARSER.parseFrom(data);
         }
         
+        /**
+         * Parse from query metric.
+         *
+         * @param data
+         *            the data
+         * @param extensionRegistry
+         *            the extension registry
+         * @return the query metric
+         * @throws com.google.protobuf.InvalidProtocolBufferException
+         *             the invalid protocol buffer exception
+         */
         public static QueryMetric parseFrom(byte[] data, com.google.protobuf.ExtensionRegistryLite extensionRegistry)
                         throws com.google.protobuf.InvalidProtocolBufferException {
             return PARSER.parseFrom(data, extensionRegistry);
         }
         
+        /**
+         * Parse from query metric.
+         *
+         * @param input
+         *            the input
+         * @return the query metric
+         * @throws java.io.IOException
+         *             the io exception
+         */
         public static QueryMetric parseFrom(java.io.InputStream input) throws java.io.IOException {
             return PARSER.parseFrom(input);
         }
         
+        /**
+         * Parse from query metric.
+         *
+         * @param input
+         *            the input
+         * @param extensionRegistry
+         *            the extension registry
+         * @return the query metric
+         * @throws java.io.IOException
+         *             the io exception
+         */
         public static QueryMetric parseFrom(java.io.InputStream input, com.google.protobuf.ExtensionRegistryLite extensionRegistry) throws java.io.IOException {
             return PARSER.parseFrom(input, extensionRegistry);
         }
         
+        /**
+         * Parse delimited from query metric.
+         *
+         * @param input
+         *            the input
+         * @return the query metric
+         * @throws java.io.IOException
+         *             the io exception
+         */
         public static QueryMetric parseDelimitedFrom(java.io.InputStream input) throws java.io.IOException {
             return PARSER.parseDelimitedFrom(input);
         }
         
+        /**
+         * Parse delimited from query metric.
+         *
+         * @param input
+         *            the input
+         * @param extensionRegistry
+         *            the extension registry
+         * @return the query metric
+         * @throws java.io.IOException
+         *             the io exception
+         */
         public static QueryMetric parseDelimitedFrom(java.io.InputStream input, com.google.protobuf.ExtensionRegistryLite extensionRegistry)
                         throws java.io.IOException {
             return PARSER.parseDelimitedFrom(input, extensionRegistry);
         }
         
+        /**
+         * Parse from query metric.
+         *
+         * @param input
+         *            the input
+         * @return the query metric
+         * @throws java.io.IOException
+         *             the io exception
+         */
         public static QueryMetric parseFrom(com.google.protobuf.CodedInputStream input) throws java.io.IOException {
             return PARSER.parseFrom(input);
         }
         
+        /**
+         * Parse from query metric.
+         *
+         * @param input
+         *            the input
+         * @param extensionRegistry
+         *            the extension registry
+         * @return the query metric
+         * @throws java.io.IOException
+         *             the io exception
+         */
         public static QueryMetric parseFrom(com.google.protobuf.CodedInputStream input, com.google.protobuf.ExtensionRegistryLite extensionRegistry)
                         throws java.io.IOException {
             return PARSER.parseFrom(input, extensionRegistry);
         }
         
+        /**
+         * New builder builder.
+         *
+         * @return the builder
+         */
         public static Builder newBuilder() {
             return Builder.create();
         }
@@ -972,6 +1312,13 @@ public final class MetricsMessages {
             return newBuilder();
         }
         
+        /**
+         * New builder builder.
+         *
+         * @param prototype
+         *            the prototype
+         * @return the builder
+         */
         public static Builder newBuilder(QueryMetric prototype) {
             return newBuilder().mergeFrom(prototype);
         }
@@ -1166,6 +1513,10 @@ public final class MetricsMessages {
             
             /**
              * <code>optional string query_type = 1;</code>
+             *
+             * @param value
+             *            the value
+             * @return the query type
              */
             public Builder setQueryType(String value) {
                 if (value == null) {
@@ -1179,6 +1530,8 @@ public final class MetricsMessages {
             
             /**
              * <code>optional string query_type = 1;</code>
+             *
+             * @return the builder
              */
             public Builder clearQueryType() {
                 bitField0_ = (bitField0_ & ~0x00000001);
@@ -1189,6 +1542,10 @@ public final class MetricsMessages {
             
             /**
              * <code>optional string query_type = 1;</code>
+             *
+             * @param value
+             *            the value
+             * @return the query type bytes
              */
             public Builder setQueryTypeBytes(com.google.protobuf.ByteString value) {
                 if (value == null) {
@@ -1240,6 +1597,10 @@ public final class MetricsMessages {
             
             /**
              * <code>optional string user = 2;</code>
+             *
+             * @param value
+             *            the value
+             * @return the user
              */
             public Builder setUser(String value) {
                 if (value == null) {
@@ -1253,6 +1614,8 @@ public final class MetricsMessages {
             
             /**
              * <code>optional string user = 2;</code>
+             *
+             * @return the builder
              */
             public Builder clearUser() {
                 bitField0_ = (bitField0_ & ~0x00000002);
@@ -1263,6 +1626,10 @@ public final class MetricsMessages {
             
             /**
              * <code>optional string user = 2;</code>
+             *
+             * @param value
+             *            the value
+             * @return the user bytes
              */
             public Builder setUserBytes(com.google.protobuf.ByteString value) {
                 if (value == null) {
@@ -1293,6 +1660,10 @@ public final class MetricsMessages {
             
             /**
              * <code>optional int64 create_date = 3;</code>
+             *
+             * @param value
+             *            the value
+             * @return the create date
              */
             public Builder setCreateDate(long value) {
                 bitField0_ |= 0x00000004;
@@ -1303,6 +1674,8 @@ public final class MetricsMessages {
             
             /**
              * <code>optional int64 create_date = 3;</code>
+             *
+             * @return the builder
              */
             public Builder clearCreateDate() {
                 bitField0_ = (bitField0_ & ~0x00000004);
@@ -1351,6 +1724,10 @@ public final class MetricsMessages {
             
             /**
              * <code>optional string query_id = 4;</code>
+             *
+             * @param value
+             *            the value
+             * @return the query id
              */
             public Builder setQueryId(String value) {
                 if (value == null) {
@@ -1364,6 +1741,8 @@ public final class MetricsMessages {
             
             /**
              * <code>optional string query_id = 4;</code>
+             *
+             * @return the builder
              */
             public Builder clearQueryId() {
                 bitField0_ = (bitField0_ & ~0x00000008);
@@ -1374,6 +1753,10 @@ public final class MetricsMessages {
             
             /**
              * <code>optional string query_id = 4;</code>
+             *
+             * @param value
+             *            the value
+             * @return the query id bytes
              */
             public Builder setQueryIdBytes(com.google.protobuf.ByteString value) {
                 if (value == null) {
@@ -1404,6 +1787,10 @@ public final class MetricsMessages {
             
             /**
              * <code>optional uint64 setup_time = 5;</code>
+             *
+             * @param value
+             *            the value
+             * @return the setup time
              */
             public Builder setSetupTime(long value) {
                 bitField0_ |= 0x00000010;
@@ -1414,6 +1801,8 @@ public final class MetricsMessages {
             
             /**
              * <code>optional uint64 setup_time = 5;</code>
+             *
+             * @return the builder
              */
             public Builder clearSetupTime() {
                 bitField0_ = (bitField0_ & ~0x00000010);
@@ -1455,6 +1844,12 @@ public final class MetricsMessages {
             
             /**
              * <code>repeated .datawave.microservice.querymetric.PageMetric page_times = 6;</code>
+             *
+             * @param index
+             *            the index
+             * @param value
+             *            the value
+             * @return the page times
              */
             public Builder setPageTimes(int index, PageMetric value) {
                 if (value == null) {
@@ -1468,6 +1863,12 @@ public final class MetricsMessages {
             
             /**
              * <code>repeated .datawave.microservice.querymetric.PageMetric page_times = 6;</code>
+             *
+             * @param index
+             *            the index
+             * @param builderForValue
+             *            the builder for value
+             * @return the page times
              */
             public Builder setPageTimes(int index, PageMetric.Builder builderForValue) {
                 ensurePageTimesIsMutable();
@@ -1478,6 +1879,10 @@ public final class MetricsMessages {
             
             /**
              * <code>repeated .datawave.microservice.querymetric.PageMetric page_times = 6;</code>
+             *
+             * @param value
+             *            the value
+             * @return the builder
              */
             public Builder addPageTimes(PageMetric value) {
                 if (value == null) {
@@ -1491,6 +1896,12 @@ public final class MetricsMessages {
             
             /**
              * <code>repeated .datawave.microservice.querymetric.PageMetric page_times = 6;</code>
+             *
+             * @param index
+             *            the index
+             * @param value
+             *            the value
+             * @return the builder
              */
             public Builder addPageTimes(int index, PageMetric value) {
                 if (value == null) {
@@ -1504,6 +1915,10 @@ public final class MetricsMessages {
             
             /**
              * <code>repeated .datawave.microservice.querymetric.PageMetric page_times = 6;</code>
+             *
+             * @param builderForValue
+             *            the builder for value
+             * @return the builder
              */
             public Builder addPageTimes(PageMetric.Builder builderForValue) {
                 ensurePageTimesIsMutable();
@@ -1514,6 +1929,12 @@ public final class MetricsMessages {
             
             /**
              * <code>repeated .datawave.microservice.querymetric.PageMetric page_times = 6;</code>
+             *
+             * @param index
+             *            the index
+             * @param builderForValue
+             *            the builder for value
+             * @return the builder
              */
             public Builder addPageTimes(int index, PageMetric.Builder builderForValue) {
                 ensurePageTimesIsMutable();
@@ -1524,6 +1945,10 @@ public final class MetricsMessages {
             
             /**
              * <code>repeated .datawave.microservice.querymetric.PageMetric page_times = 6;</code>
+             *
+             * @param values
+             *            the values
+             * @return the builder
              */
             public Builder addAllPageTimes(Iterable<? extends PageMetric> values) {
                 ensurePageTimesIsMutable();
@@ -1534,6 +1959,8 @@ public final class MetricsMessages {
             
             /**
              * <code>repeated .datawave.microservice.querymetric.PageMetric page_times = 6;</code>
+             *
+             * @return the builder
              */
             public Builder clearPageTimes() {
                 pageTimes_ = java.util.Collections.emptyList();
@@ -1544,6 +1971,10 @@ public final class MetricsMessages {
             
             /**
              * <code>repeated .datawave.microservice.querymetric.PageMetric page_times = 6;</code>
+             *
+             * @param index
+             *            the index
+             * @return the builder
              */
             public Builder removePageTimes(int index) {
                 ensurePageTimesIsMutable();
@@ -1563,80 +1994,124 @@ public final class MetricsMessages {
         // @@protoc_insertion_point(class_scope:datawave.microservice.querymetric.QueryMetric)
     }
     
+    /**
+     * The interface Query metric list response or builder.
+     */
     public interface QueryMetricListResponseOrBuilder extends com.google.protobuf.MessageLiteOrBuilder {
         
         // required uint64 operation_time_ms = 1 [default = 0];
+        
         /**
          * <code>required uint64 operation_time_ms = 1 [default = 0];</code>
+         *
+         * @return the boolean
          */
         boolean hasOperationTimeMs();
         
         /**
          * <code>required uint64 operation_time_ms = 1 [default = 0];</code>
+         *
+         * @return the operation time ms
          */
         long getOperationTimeMs();
         
         // repeated string messages = 2;
+        
         /**
          * <code>repeated string messages = 2;</code>
+         *
+         * @return the messages list
          */
         java.util.List<String> getMessagesList();
         
         /**
          * <code>repeated string messages = 2;</code>
+         *
+         * @return the messages count
          */
         int getMessagesCount();
         
         /**
          * <code>repeated string messages = 2;</code>
+         *
+         * @param index
+         *            the index
+         * @return the messages
          */
         String getMessages(int index);
         
         /**
          * <code>repeated string messages = 2;</code>
+         *
+         * @param index
+         *            the index
+         * @return the messages bytes
          */
         com.google.protobuf.ByteString getMessagesBytes(int index);
         
         // repeated .datawave.webservice.query.exception.QueryExceptionType exceptions = 3;
+        
         /**
          * <code>repeated .datawave.webservice.query.exception.QueryExceptionType exceptions = 3;</code>
+         *
+         * @return the exceptions list
          */
         java.util.List<datawave.webservice.query.exception.ExceptionMessages.QueryExceptionType> getExceptionsList();
         
         /**
          * <code>repeated .datawave.webservice.query.exception.QueryExceptionType exceptions = 3;</code>
+         *
+         * @param index
+         *            the index
+         * @return the exceptions
          */
         datawave.webservice.query.exception.ExceptionMessages.QueryExceptionType getExceptions(int index);
         
         /**
          * <code>repeated .datawave.webservice.query.exception.QueryExceptionType exceptions = 3;</code>
+         *
+         * @return the exceptions count
          */
         int getExceptionsCount();
         
         // repeated .datawave.microservice.querymetric.QueryMetric result = 4;
+        
         /**
          * <code>repeated .datawave.microservice.querymetric.QueryMetric result = 4;</code>
+         *
+         * @return the result list
          */
         java.util.List<QueryMetric> getResultList();
         
         /**
          * <code>repeated .datawave.microservice.querymetric.QueryMetric result = 4;</code>
+         *
+         * @param index
+         *            the index
+         * @return the result
          */
         QueryMetric getResult(int index);
         
         /**
          * <code>repeated .datawave.microservice.querymetric.QueryMetric result = 4;</code>
+         *
+         * @return the result count
          */
         int getResultCount();
         
         // required int32 num_results = 5 [default = 0];
+        
         /**
          * <code>required int32 num_results = 5 [default = 0];</code>
+         *
+         * @return the boolean
          */
         boolean hasNumResults();
         
         /**
          * <code>required int32 num_results = 5 [default = 0];</code>
+         *
+         * @return the num results
          */
         int getNumResults();
     }
@@ -1655,6 +2130,11 @@ public final class MetricsMessages {
         
         private static final QueryMetricListResponse defaultInstance;
         
+        /**
+         * Gets default instance.
+         *
+         * @return the default instance
+         */
         public static QueryMetricListResponse getDefaultInstance() {
             return defaultInstance;
         }
@@ -1736,6 +2216,9 @@ public final class MetricsMessages {
             }
         }
         
+        /**
+         * The constant PARSER.
+         */
         public static com.google.protobuf.Parser<QueryMetricListResponse> PARSER = new com.google.protobuf.AbstractParser<QueryMetricListResponse>() {
             public QueryMetricListResponse parsePartialFrom(com.google.protobuf.CodedInputStream input,
                             com.google.protobuf.ExtensionRegistryLite extensionRegistry) throws com.google.protobuf.InvalidProtocolBufferException {
@@ -1749,6 +2232,9 @@ public final class MetricsMessages {
         }
         
         private int bitField0_;
+        /**
+         * The constant OPERATION_TIME_MS_FIELD_NUMBER.
+         */
         // required uint64 operation_time_ms = 1 [default = 0];
         public static final int OPERATION_TIME_MS_FIELD_NUMBER = 1;
         private long operationTimeMs_;
@@ -1767,6 +2253,9 @@ public final class MetricsMessages {
             return operationTimeMs_;
         }
         
+        /**
+         * The constant MESSAGES_FIELD_NUMBER.
+         */
         // repeated string messages = 2;
         public static final int MESSAGES_FIELD_NUMBER = 2;
         private com.google.protobuf.LazyStringList messages_;
@@ -1799,6 +2288,9 @@ public final class MetricsMessages {
             return messages_.getByteString(index);
         }
         
+        /**
+         * The constant EXCEPTIONS_FIELD_NUMBER.
+         */
         // repeated .datawave.webservice.query.exception.QueryExceptionType exceptions = 3;
         public static final int EXCEPTIONS_FIELD_NUMBER = 3;
         private java.util.List<datawave.webservice.query.exception.ExceptionMessages.QueryExceptionType> exceptions_;
@@ -1812,6 +2304,8 @@ public final class MetricsMessages {
         
         /**
          * <code>repeated .datawave.webservice.query.exception.QueryExceptionType exceptions = 3;</code>
+         *
+         * @return the exceptions or builder list
          */
         public java.util.List<? extends datawave.webservice.query.exception.ExceptionMessages.QueryExceptionTypeOrBuilder> getExceptionsOrBuilderList() {
             return exceptions_;
@@ -1833,11 +2327,18 @@ public final class MetricsMessages {
         
         /**
          * <code>repeated .datawave.webservice.query.exception.QueryExceptionType exceptions = 3;</code>
+         *
+         * @param index
+         *            the index
+         * @return the exceptions or builder
          */
         public datawave.webservice.query.exception.ExceptionMessages.QueryExceptionTypeOrBuilder getExceptionsOrBuilder(int index) {
             return exceptions_.get(index);
         }
         
+        /**
+         * The constant RESULT_FIELD_NUMBER.
+         */
         // repeated .datawave.microservice.querymetric.QueryMetric result = 4;
         public static final int RESULT_FIELD_NUMBER = 4;
         private java.util.List<QueryMetric> result_;
@@ -1851,6 +2352,8 @@ public final class MetricsMessages {
         
         /**
          * <code>repeated .datawave.microservice.querymetric.QueryMetric result = 4;</code>
+         *
+         * @return the result or builder list
          */
         public java.util.List<? extends QueryMetricOrBuilder> getResultOrBuilderList() {
             return result_;
@@ -1872,11 +2375,18 @@ public final class MetricsMessages {
         
         /**
          * <code>repeated .datawave.microservice.querymetric.QueryMetric result = 4;</code>
+         *
+         * @param index
+         *            the index
+         * @return the result or builder
          */
         public QueryMetricOrBuilder getResultOrBuilder(int index) {
             return result_.get(index);
         }
         
+        /**
+         * The constant NUM_RESULTS_FIELD_NUMBER.
+         */
         // required int32 num_results = 5 [default = 0];
         public static final int NUM_RESULTS_FIELD_NUMBER = 5;
         private int numResults_;
@@ -1986,51 +2496,156 @@ public final class MetricsMessages {
             return super.writeReplace();
         }
         
+        /**
+         * Parse from query metric list response.
+         *
+         * @param data
+         *            the data
+         * @return the query metric list response
+         * @throws com.google.protobuf.InvalidProtocolBufferException
+         *             the invalid protocol buffer exception
+         */
         public static QueryMetricListResponse parseFrom(com.google.protobuf.ByteString data) throws com.google.protobuf.InvalidProtocolBufferException {
             return PARSER.parseFrom(data);
         }
         
+        /**
+         * Parse from query metric list response.
+         *
+         * @param data
+         *            the data
+         * @param extensionRegistry
+         *            the extension registry
+         * @return the query metric list response
+         * @throws com.google.protobuf.InvalidProtocolBufferException
+         *             the invalid protocol buffer exception
+         */
         public static QueryMetricListResponse parseFrom(com.google.protobuf.ByteString data, com.google.protobuf.ExtensionRegistryLite extensionRegistry)
                         throws com.google.protobuf.InvalidProtocolBufferException {
             return PARSER.parseFrom(data, extensionRegistry);
         }
         
+        /**
+         * Parse from query metric list response.
+         *
+         * @param data
+         *            the data
+         * @return the query metric list response
+         * @throws com.google.protobuf.InvalidProtocolBufferException
+         *             the invalid protocol buffer exception
+         */
         public static QueryMetricListResponse parseFrom(byte[] data) throws com.google.protobuf.InvalidProtocolBufferException {
             return PARSER.parseFrom(data);
         }
         
+        /**
+         * Parse from query metric list response.
+         *
+         * @param data
+         *            the data
+         * @param extensionRegistry
+         *            the extension registry
+         * @return the query metric list response
+         * @throws com.google.protobuf.InvalidProtocolBufferException
+         *             the invalid protocol buffer exception
+         */
         public static QueryMetricListResponse parseFrom(byte[] data, com.google.protobuf.ExtensionRegistryLite extensionRegistry)
                         throws com.google.protobuf.InvalidProtocolBufferException {
             return PARSER.parseFrom(data, extensionRegistry);
         }
         
+        /**
+         * Parse from query metric list response.
+         *
+         * @param input
+         *            the input
+         * @return the query metric list response
+         * @throws java.io.IOException
+         *             the io exception
+         */
         public static QueryMetricListResponse parseFrom(java.io.InputStream input) throws java.io.IOException {
             return PARSER.parseFrom(input);
         }
         
+        /**
+         * Parse from query metric list response.
+         *
+         * @param input
+         *            the input
+         * @param extensionRegistry
+         *            the extension registry
+         * @return the query metric list response
+         * @throws java.io.IOException
+         *             the io exception
+         */
         public static QueryMetricListResponse parseFrom(java.io.InputStream input, com.google.protobuf.ExtensionRegistryLite extensionRegistry)
                         throws java.io.IOException {
             return PARSER.parseFrom(input, extensionRegistry);
         }
         
+        /**
+         * Parse delimited from query metric list response.
+         *
+         * @param input
+         *            the input
+         * @return the query metric list response
+         * @throws java.io.IOException
+         *             the io exception
+         */
         public static QueryMetricListResponse parseDelimitedFrom(java.io.InputStream input) throws java.io.IOException {
             return PARSER.parseDelimitedFrom(input);
         }
         
+        /**
+         * Parse delimited from query metric list response.
+         *
+         * @param input
+         *            the input
+         * @param extensionRegistry
+         *            the extension registry
+         * @return the query metric list response
+         * @throws java.io.IOException
+         *             the io exception
+         */
         public static QueryMetricListResponse parseDelimitedFrom(java.io.InputStream input, com.google.protobuf.ExtensionRegistryLite extensionRegistry)
                         throws java.io.IOException {
             return PARSER.parseDelimitedFrom(input, extensionRegistry);
         }
         
+        /**
+         * Parse from query metric list response.
+         *
+         * @param input
+         *            the input
+         * @return the query metric list response
+         * @throws java.io.IOException
+         *             the io exception
+         */
         public static QueryMetricListResponse parseFrom(com.google.protobuf.CodedInputStream input) throws java.io.IOException {
             return PARSER.parseFrom(input);
         }
         
+        /**
+         * Parse from query metric list response.
+         *
+         * @param input
+         *            the input
+         * @param extensionRegistry
+         *            the extension registry
+         * @return the query metric list response
+         * @throws java.io.IOException
+         *             the io exception
+         */
         public static QueryMetricListResponse parseFrom(com.google.protobuf.CodedInputStream input, com.google.protobuf.ExtensionRegistryLite extensionRegistry)
                         throws java.io.IOException {
             return PARSER.parseFrom(input, extensionRegistry);
         }
         
+        /**
+         * New builder builder.
+         *
+         * @return the builder
+         */
         public static Builder newBuilder() {
             return Builder.create();
         }
@@ -2039,6 +2654,13 @@ public final class MetricsMessages {
             return newBuilder();
         }
         
+        /**
+         * New builder builder.
+         *
+         * @param prototype
+         *            the prototype
+         * @return the builder
+         */
         public static Builder newBuilder(QueryMetricListResponse prototype) {
             return newBuilder().mergeFrom(prototype);
         }
@@ -2222,6 +2844,10 @@ public final class MetricsMessages {
             
             /**
              * <code>required uint64 operation_time_ms = 1 [default = 0];</code>
+             *
+             * @param value
+             *            the value
+             * @return the operation time ms
              */
             public Builder setOperationTimeMs(long value) {
                 bitField0_ |= 0x00000001;
@@ -2232,6 +2858,8 @@ public final class MetricsMessages {
             
             /**
              * <code>required uint64 operation_time_ms = 1 [default = 0];</code>
+             *
+             * @return the builder
              */
             public Builder clearOperationTimeMs() {
                 bitField0_ = (bitField0_ & ~0x00000001);
@@ -2280,6 +2908,12 @@ public final class MetricsMessages {
             
             /**
              * <code>repeated string messages = 2;</code>
+             *
+             * @param index
+             *            the index
+             * @param value
+             *            the value
+             * @return the messages
              */
             public Builder setMessages(int index, String value) {
                 if (value == null) {
@@ -2293,6 +2927,10 @@ public final class MetricsMessages {
             
             /**
              * <code>repeated string messages = 2;</code>
+             *
+             * @param value
+             *            the value
+             * @return the builder
              */
             public Builder addMessages(String value) {
                 if (value == null) {
@@ -2306,6 +2944,10 @@ public final class MetricsMessages {
             
             /**
              * <code>repeated string messages = 2;</code>
+             *
+             * @param values
+             *            the values
+             * @return the builder
              */
             public Builder addAllMessages(Iterable<String> values) {
                 ensureMessagesIsMutable();
@@ -2316,6 +2958,8 @@ public final class MetricsMessages {
             
             /**
              * <code>repeated string messages = 2;</code>
+             *
+             * @return the builder
              */
             public Builder clearMessages() {
                 messages_ = com.google.protobuf.LazyStringArrayList.EMPTY;
@@ -2326,6 +2970,10 @@ public final class MetricsMessages {
             
             /**
              * <code>repeated string messages = 2;</code>
+             *
+             * @param value
+             *            the value
+             * @return the builder
              */
             public Builder addMessagesBytes(com.google.protobuf.ByteString value) {
                 if (value == null) {
@@ -2370,6 +3018,12 @@ public final class MetricsMessages {
             
             /**
              * <code>repeated .datawave.webservice.query.exception.QueryExceptionType exceptions = 3;</code>
+             *
+             * @param index
+             *            the index
+             * @param value
+             *            the value
+             * @return the exceptions
              */
             public Builder setExceptions(int index, datawave.webservice.query.exception.ExceptionMessages.QueryExceptionType value) {
                 if (value == null) {
@@ -2383,6 +3037,12 @@ public final class MetricsMessages {
             
             /**
              * <code>repeated .datawave.webservice.query.exception.QueryExceptionType exceptions = 3;</code>
+             *
+             * @param index
+             *            the index
+             * @param builderForValue
+             *            the builder for value
+             * @return the exceptions
              */
             public Builder setExceptions(int index, datawave.webservice.query.exception.ExceptionMessages.QueryExceptionType.Builder builderForValue) {
                 ensureExceptionsIsMutable();
@@ -2393,6 +3053,10 @@ public final class MetricsMessages {
             
             /**
              * <code>repeated .datawave.webservice.query.exception.QueryExceptionType exceptions = 3;</code>
+             *
+             * @param value
+             *            the value
+             * @return the builder
              */
             public Builder addExceptions(datawave.webservice.query.exception.ExceptionMessages.QueryExceptionType value) {
                 if (value == null) {
@@ -2406,6 +3070,12 @@ public final class MetricsMessages {
             
             /**
              * <code>repeated .datawave.webservice.query.exception.QueryExceptionType exceptions = 3;</code>
+             *
+             * @param index
+             *            the index
+             * @param value
+             *            the value
+             * @return the builder
              */
             public Builder addExceptions(int index, datawave.webservice.query.exception.ExceptionMessages.QueryExceptionType value) {
                 if (value == null) {
@@ -2419,6 +3089,10 @@ public final class MetricsMessages {
             
             /**
              * <code>repeated .datawave.webservice.query.exception.QueryExceptionType exceptions = 3;</code>
+             *
+             * @param builderForValue
+             *            the builder for value
+             * @return the builder
              */
             public Builder addExceptions(datawave.webservice.query.exception.ExceptionMessages.QueryExceptionType.Builder builderForValue) {
                 ensureExceptionsIsMutable();
@@ -2429,6 +3103,12 @@ public final class MetricsMessages {
             
             /**
              * <code>repeated .datawave.webservice.query.exception.QueryExceptionType exceptions = 3;</code>
+             *
+             * @param index
+             *            the index
+             * @param builderForValue
+             *            the builder for value
+             * @return the builder
              */
             public Builder addExceptions(int index, datawave.webservice.query.exception.ExceptionMessages.QueryExceptionType.Builder builderForValue) {
                 ensureExceptionsIsMutable();
@@ -2439,6 +3119,10 @@ public final class MetricsMessages {
             
             /**
              * <code>repeated .datawave.webservice.query.exception.QueryExceptionType exceptions = 3;</code>
+             *
+             * @param values
+             *            the values
+             * @return the builder
              */
             public Builder addAllExceptions(Iterable<? extends datawave.webservice.query.exception.ExceptionMessages.QueryExceptionType> values) {
                 ensureExceptionsIsMutable();
@@ -2449,6 +3133,8 @@ public final class MetricsMessages {
             
             /**
              * <code>repeated .datawave.webservice.query.exception.QueryExceptionType exceptions = 3;</code>
+             *
+             * @return the builder
              */
             public Builder clearExceptions() {
                 exceptions_ = java.util.Collections.emptyList();
@@ -2459,6 +3145,10 @@ public final class MetricsMessages {
             
             /**
              * <code>repeated .datawave.webservice.query.exception.QueryExceptionType exceptions = 3;</code>
+             *
+             * @param index
+             *            the index
+             * @return the builder
              */
             public Builder removeExceptions(int index) {
                 ensureExceptionsIsMutable();
@@ -2500,6 +3190,12 @@ public final class MetricsMessages {
             
             /**
              * <code>repeated .datawave.microservice.querymetric.QueryMetric result = 4;</code>
+             *
+             * @param index
+             *            the index
+             * @param value
+             *            the value
+             * @return the result
              */
             public Builder setResult(int index, QueryMetric value) {
                 if (value == null) {
@@ -2513,6 +3209,12 @@ public final class MetricsMessages {
             
             /**
              * <code>repeated .datawave.microservice.querymetric.QueryMetric result = 4;</code>
+             *
+             * @param index
+             *            the index
+             * @param builderForValue
+             *            the builder for value
+             * @return the result
              */
             public Builder setResult(int index, QueryMetric.Builder builderForValue) {
                 ensureResultIsMutable();
@@ -2523,6 +3225,10 @@ public final class MetricsMessages {
             
             /**
              * <code>repeated .datawave.microservice.querymetric.QueryMetric result = 4;</code>
+             *
+             * @param value
+             *            the value
+             * @return the builder
              */
             public Builder addResult(QueryMetric value) {
                 if (value == null) {
@@ -2536,6 +3242,12 @@ public final class MetricsMessages {
             
             /**
              * <code>repeated .datawave.microservice.querymetric.QueryMetric result = 4;</code>
+             *
+             * @param index
+             *            the index
+             * @param value
+             *            the value
+             * @return the builder
              */
             public Builder addResult(int index, QueryMetric value) {
                 if (value == null) {
@@ -2549,6 +3261,10 @@ public final class MetricsMessages {
             
             /**
              * <code>repeated .datawave.microservice.querymetric.QueryMetric result = 4;</code>
+             *
+             * @param builderForValue
+             *            the builder for value
+             * @return the builder
              */
             public Builder addResult(QueryMetric.Builder builderForValue) {
                 ensureResultIsMutable();
@@ -2559,6 +3275,12 @@ public final class MetricsMessages {
             
             /**
              * <code>repeated .datawave.microservice.querymetric.QueryMetric result = 4;</code>
+             *
+             * @param index
+             *            the index
+             * @param builderForValue
+             *            the builder for value
+             * @return the builder
              */
             public Builder addResult(int index, QueryMetric.Builder builderForValue) {
                 ensureResultIsMutable();
@@ -2569,6 +3291,10 @@ public final class MetricsMessages {
             
             /**
              * <code>repeated .datawave.microservice.querymetric.QueryMetric result = 4;</code>
+             *
+             * @param values
+             *            the values
+             * @return the builder
              */
             public Builder addAllResult(Iterable<? extends QueryMetric> values) {
                 ensureResultIsMutable();
@@ -2579,6 +3305,8 @@ public final class MetricsMessages {
             
             /**
              * <code>repeated .datawave.microservice.querymetric.QueryMetric result = 4;</code>
+             *
+             * @return the builder
              */
             public Builder clearResult() {
                 result_ = java.util.Collections.emptyList();
@@ -2589,6 +3317,10 @@ public final class MetricsMessages {
             
             /**
              * <code>repeated .datawave.microservice.querymetric.QueryMetric result = 4;</code>
+             *
+             * @param index
+             *            the index
+             * @return the builder
              */
             public Builder removeResult(int index) {
                 ensureResultIsMutable();
@@ -2616,6 +3348,10 @@ public final class MetricsMessages {
             
             /**
              * <code>required int32 num_results = 5 [default = 0];</code>
+             *
+             * @param value
+             *            the value
+             * @return the num results
              */
             public Builder setNumResults(int value) {
                 bitField0_ |= 0x00000010;
@@ -2626,6 +3362,8 @@ public final class MetricsMessages {
             
             /**
              * <code>required int32 num_results = 5 [default = 0];</code>
+             *
+             * @return the builder
              */
             public Builder clearNumResults() {
                 bitField0_ = (bitField0_ & ~0x00000010);

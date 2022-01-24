@@ -7,7 +7,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
@@ -19,12 +18,11 @@ import org.springframework.messaging.Message;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
+import javax.inject.Named;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import static datawave.microservice.querymetric.config.HazelcastServerConfiguration.INCOMING_METRICS;
 
 /*
  * This class tests that a QueryMetricClient can be created and used with messaging
@@ -44,6 +42,9 @@ public class NonWebApplicationMessagingTest {
     
     @Autowired
     public List<QueryMetricUpdate> storedMetricUpdates;
+    
+    @Named("queryMetricCacheManager")
+    protected CacheManager cacheManager;
     
     private Map<String,String> metricMarkings;
     

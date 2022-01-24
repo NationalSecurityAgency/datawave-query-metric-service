@@ -40,7 +40,7 @@ public class QueryMetricsDetailListResponse extends QueryMetricListResponse {
         builder.append("<th>Query Setup Time (ms)</th><th>Query Setup Call Time (ms)</th><th>Number Pages</th><th>Number Results</th>");
         
         builder.append("<th>Doc Ranges</th><th>FI Ranges</th>");
-        builder.append("<th>Sources</th><th>Next Calls</th><th>Seek Calls</th><th>Yield Count</th>");
+        builder.append("<th>Sources</th><th>Next Calls</th><th>Seek Calls</th><th>Yield Count</th><th>Version</th>");
         
         builder.append("<th>Total Page Time (ms)</th><th>Total Page Call Time (ms)</th><th>Total Page Serialization Time (ms)</th>");
         builder.append("<th>Total Page Bytes Sent (uncompressed)</th><th>Lifecycle</th><th>Elapsed Time</th><th>Error Code</th><th>Error Message</th>");
@@ -105,9 +105,9 @@ public class QueryMetricsDetailListResponse extends QueryMetricListResponse {
             } else {
                 builder.append("<td/>");
             }
-            builder.append("<td>").append(numToString(metric.getLoginTime())).append("</td>");
+            builder.append("<td>").append(numToString(metric.getLoginTime(), 0)).append("</td>");
             builder.append("<td>").append(metric.getSetupTime()).append("</td>");
-            builder.append("<td>").append(numToString(metric.getCreateCallTime())).append("</td>\n");
+            builder.append("<td>").append(numToString(metric.getCreateCallTime(), 0)).append("</td>\n");
             builder.append("<td>").append(metric.getNumPages()).append("</td>");
             builder.append("<td>").append(metric.getNumResults()).append("</td>");
             
@@ -118,6 +118,7 @@ public class QueryMetricsDetailListResponse extends QueryMetricListResponse {
             builder.append("<td>").append(metric.getNextCount()).append("</td>");
             builder.append("<td>").append(metric.getSeekCount()).append("</td>");
             builder.append("<td>").append(metric.getYieldCount()).append("</td>");
+            builder.append("<td>").append(metric.getVersion()).append("</td>");
             
             long count = 0l;
             long callTime = 0l;
@@ -148,20 +149,20 @@ public class QueryMetricsDetailListResponse extends QueryMetricListResponse {
                     pageReturnedStr = sdf.format(new Date(pageReturned));
                 }
                 
-                pageTimesBuilder.append("<td>").append(numToString(p.getPageNumber())).append("</td>");
+                pageTimesBuilder.append("<td>").append(numToString(p.getPageNumber(), 1)).append("</td>");
                 pageTimesBuilder.append("<td>").append(pageRequestedStr).append("</td>");
                 pageTimesBuilder.append("<td>").append(pageReturnedStr).append("</td>");
                 pageTimesBuilder.append("<td>").append(p.getReturnTime()).append("</td>");
                 pageTimesBuilder.append("<td>").append(p.getPagesize()).append("</td>");
-                pageTimesBuilder.append("<td>").append(numToString(p.getCallTime())).append("</td>");
-                pageTimesBuilder.append("<td>").append(numToString(p.getLoginTime())).append("</td>");
-                pageTimesBuilder.append("<td>").append(numToString(p.getSerializationTime())).append("</td>");
-                pageTimesBuilder.append("<td>").append(numToString(p.getBytesWritten())).append("</td></tr>");
+                pageTimesBuilder.append("<td>").append(numToString(p.getCallTime(), 0)).append("</td>");
+                pageTimesBuilder.append("<td>").append(numToString(p.getLoginTime(), 0)).append("</td>");
+                pageTimesBuilder.append("<td>").append(numToString(p.getSerializationTime(), 0)).append("</td>");
+                pageTimesBuilder.append("<td>").append(numToString(p.getBytesWritten(), 0)).append("</td></tr>");
             }
             builder.append("<td>").append(count).append("</td>\n");
-            builder.append("<td>").append(numToString(callTime)).append("</td>\n");
-            builder.append("<td>").append(numToString(serializationTime)).append("</td>\n");
-            builder.append("<td>").append(numToString(bytesSent)).append("</td>\n");
+            builder.append("<td>").append(numToString(callTime, 0)).append("</td>\n");
+            builder.append("<td>").append(numToString(serializationTime, 0)).append("</td>\n");
+            builder.append("<td>").append(numToString(bytesSent, 0)).append("</td>\n");
             builder.append("<td>").append(metric.getLifecycle()).append("</td>");
             builder.append("<td>").append(metric.getElapsedTime()).append("</td>");
             String errorCode = metric.getErrorCode();
@@ -180,8 +181,8 @@ public class QueryMetricsDetailListResponse extends QueryMetricListResponse {
         return builder.toString();
     }
     
-    private static String numToString(long number) {
-        return (number == -1 || number == 0) ? "" : Long.toString(number);
+    private static String numToString(long number, long minValue) {
+        return number < minValue ? "" : Long.toString(number);
     }
     
     private static String toParametersString(final Set<Parameter> parameters) {

@@ -40,15 +40,26 @@ import org.springframework.web.bind.annotation.RestController;
 
 import javax.annotation.security.PermitAll;
 import javax.annotation.security.RolesAllowed;
+import javax.inject.Named;
 import java.text.DecimalFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 import java.util.concurrent.locks.ReentrantLock;
 
-import static datawave.microservice.querymetric.config.HazelcastServerConfiguration.INCOMING_METRICS;
+import static datawave.microservice.querymetric.QueryMetricOperations.DEFAULT_DATETIME.BEGIN;
+import static datawave.microservice.querymetric.QueryMetricOperations.DEFAULT_DATETIME.END;
+import static datawave.microservice.querymetric.config.HazelcastMetricCacheConfiguration.INCOMING_METRICS;
 
+/**
+ * The type Query metric operations.
+ */
 @RestController
 @RequestMapping(path = "/v1")
 public class QueryMetricOperations {
@@ -59,7 +70,6 @@ public class QueryMetricOperations {
     private QueryGeometryHandler geometryHandler;
     private Cache incomingQueryMetricsCache;
     private boolean isHazelCast;
-    private QueryMetricHandlerProperties queryMetricHandlerProperties;
     private MarkingFunctions markingFunctions;
     private TimelyProperties timelyProperties;
     private BaseQueryMetricListResponseFactory queryMetricListResponseFactory;
@@ -67,22 +77,60 @@ public class QueryMetricOperations {
     
     private final QueryMetricSupplier queryMetricSupplier;
     
+    /**
+     * The enum Default datetime.
+     */
+    enum DEFAULT_DATETIME {
+        /**
+         * Begin default datetime.
+         */
+        BEGIN,
+        /**
+         * End default datetime.
+         */
+        END
+    }
+    
+    /**
+     * Instantiates a new QueryMetricOperations.
+     *
+     * @param cacheManager
+     *            the CacheManager
+     * @param handler
+     *            the QueryMetricHandler
+     * @param geometryHandler
+     *            the QueryGeometryHandler
+     * @param markingFunctions
+     *            the MarkingFunctions
+     * @param queryMetricListResponseFactory
+     *            the QueryMetricListResponseFactory
+     * @param timelyProperties
+     *            the TimelyProperties
+     */
     @Autowired
-    public QueryMetricOperations(CacheManager cacheManager, ShardTableQueryMetricHandler handler, QueryGeometryHandler geometryHandler,
-                    QueryMetricHandlerProperties queryMetricHandlerProperties, MarkingFunctions markingFunctions,
+    public QueryMetricOperations(@Named("queryMetricCacheManager") CacheManager cacheManager, ShardTableQueryMetricHandler handler,
+                    QueryGeometryHandler geometryHandler, QueryMetricHandlerProperties queryMetricHandlerProperties, MarkingFunctions markingFunctions,
                     BaseQueryMetricListResponseFactory queryMetricListResponseFactory, TimelyProperties timelyProperties,
                     QueryMetricSupplier queryMetricSupplier) {
         this.handler = handler;
         this.geometryHandler = geometryHandler;
         this.isHazelCast = cacheManager instanceof HazelcastCacheManager;
         this.incomingQueryMetricsCache = cacheManager.getCache(INCOMING_METRICS);
-        this.queryMetricHandlerProperties = queryMetricHandlerProperties;
         this.markingFunctions = markingFunctions;
         this.queryMetricListResponseFactory = queryMetricListResponseFactory;
         this.timelyProperties = timelyProperties;
         this.queryMetricSupplier = queryMetricSupplier;
     }
     
+    /**
+     * Update metrics void response.
+     *
+     * @param queryMetrics
+     *            the list of query metric updates
+     * @param metricType
+     *            the metric type
+     * @return the void response
+     */
     // Messages that arrive via http/https get placed on the message queue
     // to ensure a quick response and to maintain a single queue of work
     @RolesAllowed({"Administrator", "JBossAdministrator"})
@@ -98,6 +146,15 @@ public class QueryMetricOperations {
         return response;
     }
     
+    /**
+     * Update metric void response.
+     *
+     * @param queryMetric
+     *            the query metric update
+     * @param metricType
+     *            the metric type
+     * @return the void response
+     */
     // Messages that arrive via http/https get placed on the message queue
     // to ensure a quick response and to maintain a single queue of work
     @RolesAllowed({"Administrator", "JBossAdministrator"})
@@ -110,6 +167,15 @@ public class QueryMetricOperations {
         return new VoidResponse();
     }
     
+    /**
+     * Store metric void response.
+     *
+     * @param queryMetric
+     *            the query metric update
+     * @param metricType
+     *            the metric type
+     * @return the void response
+     */
     public VoidResponse storeMetric(BaseQueryMetric queryMetric, QueryMetricType metricType) {
         
         log.trace("storing metric update: " + queryMetric.toString());
@@ -126,7 +192,7 @@ public class QueryMetricOperations {
                     BaseQueryMetric updatedMetric = queryMetric;
                     QueryMetricUpdate lastQueryMetricUpdate = (QueryMetricUpdate) incomingQueryMetricsCacheHz.get(queryId);
                     if (lastQueryMetricUpdate != null) {
-                        updatedMetric = handler.combineMetrics(queryMetric, lastQueryMetricUpdate.getMetric(), metricType);
+                        updatedMetric = handler.combineMetrics(updatedMetric, lastQueryMetricUpdate.getMetric(), metricType);
                         lastPageNum = getLastPageNumber(lastQueryMetricUpdate.getMetric());
                     }
                     incomingQueryMetricsCacheHz.set(queryId, new QueryMetricUpdate(updatedMetric, metricType));
@@ -141,7 +207,7 @@ public class QueryMetricOperations {
                     BaseQueryMetric updatedMetric = queryMetric;
                     if (lastQueryMetricUpdate != null) {
                         BaseQueryMetric lastQueryMetric = lastQueryMetricUpdate.getMetric();
-                        updatedMetric = handler.combineMetrics(queryMetric, lastQueryMetric, metricType);
+                        updatedMetric = handler.combineMetrics(updatedMetric, lastQueryMetric, metricType);
                         handler.writeMetric(updatedMetric, Collections.singletonList(lastQueryMetric), lastQueryMetric.getLastUpdated(), true);
                         lastPageNum = getLastPageNumber(lastQueryMetric);
                     }
@@ -173,10 +239,11 @@ public class QueryMetricOperations {
     /**
      * Returns metrics for the current users queries that are identified by the id
      *
+     * @param currentUser
+     *            the current user
      * @param queryId
-     *
-     * @return datawave.webservice.result.QueryMetricListResponse
-     *
+     *            the query id
+     * @return datawave.webservice.result.QueryMetricListResponse base query metric list response
      * @HTTP 200 success
      * @HTTP 500 internal server error
      */
@@ -192,14 +259,13 @@ public class QueryMetricOperations {
             QueryMetricUpdate metricHolder = incomingQueryMetricsCache.get(queryId, QueryMetricUpdate.class);
             if (metricHolder != null) {
                 BaseQueryMetric metric = metricHolder.getMetric();
-                String adminRole = queryMetricHandlerProperties.getMetricAdminRole();
-                boolean allowAllMetrics = adminRole == null;
+                boolean allowAllMetrics = false;
                 boolean sameUser = false;
                 if (currentUser != null) {
                     String metricUser = metric.getUser();
                     String requestingUser = DnUtils.getShortName(currentUser.getPrimaryUser().getName());
                     sameUser = metricUser != null && metricUser.equals(requestingUser);
-                    allowAllMetrics = allowAllMetrics || currentUser.getPrimaryUser().getRoles().contains(adminRole);
+                    allowAllMetrics = currentUser.getPrimaryUser().getRoles().contains("MetricsAdministrator");
                 }
                 // since we are using the incomingQueryMetricsCache, we need to make sure that the
                 // requesting user has the necessary Authorizations to view the requested query metric
@@ -227,10 +293,11 @@ public class QueryMetricOperations {
     /**
      * Returns metrics for the current users queries that are identified by the id
      *
+     * @param currentUser
+     *            the current user
      * @param queryId
-     *
-     * @return datawave.webservice.result.QueryMetricListResponse
-     *
+     *            the query id
+     * @return datawave.webservice.result.QueryMetricListResponse query geometry response
      * @HTTP 200 success
      * @HTTP 500 internal server error
      */
@@ -248,6 +315,106 @@ public class QueryMetricOperations {
         }
     }
     
+    private static Date parseDate(String dateString, DEFAULT_DATETIME defaultDateTime) throws IllegalArgumentException {
+        if (StringUtils.isBlank(dateString)) {
+            return null;
+        } else {
+            try {
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd HHmmss.SSS");
+                sdf.setTimeZone(TimeZone.getTimeZone("GMT"));
+                dateString = dateString.trim();
+                if (dateString.length() == 8) {
+                    dateString = dateString + (defaultDateTime.equals(BEGIN) ? " 000000.000" : " 235959.999");
+                } else if (dateString.length() == 15) {
+                    dateString = dateString + (defaultDateTime.equals(BEGIN) ? ".000" : ".999");
+                }
+                return sdf.parse(dateString);
+            } catch (ParseException e) {
+                String parameter = defaultDateTime.equals(BEGIN) ? "begin" : "end";
+                throw new IllegalArgumentException(
+                                "Unable to parse parameter '" + parameter + "' - valid formats: yyyyMMdd | yyyyMMdd HHmmss | yyyyMMdd HHmmss.SSS");
+            }
+        }
+    }
+    
+    private QueryMetricsSummaryResponse queryMetricsSummary(Date begin, Date end, ProxiedUserDetails currentUser, boolean onlyCurrentUser) {
+        
+        if (null == end) {
+            end = new Date();
+        }
+        Calendar ninetyDaysBeforeEnd = Calendar.getInstance();
+        ninetyDaysBeforeEnd.setTime(end);
+        ninetyDaysBeforeEnd.add(Calendar.DATE, -90);
+        if (null == begin) {
+            // ninety days before end
+            begin = ninetyDaysBeforeEnd.getTime();
+        }
+        QueryMetricsSummaryResponse response;
+        if (end.before(begin)) {
+            response = new QueryMetricsSummaryResponse();
+            String s = "begin date can not be after end date";
+            response.addException(new QueryException(DatawaveErrorCode.BEGIN_DATE_AFTER_END_DATE, new IllegalArgumentException(s), s));
+        } else {
+            response = handler.getQueryMetricsSummary(begin, end, currentUser, onlyCurrentUser);
+        }
+        return response;
+    }
+    
+    /**
+     * Returns a summary of the query metrics
+     *
+     * @param currentUser
+     *            the current user
+     * @param begin
+     *            formatted date/time (yyyyMMdd | yyyyMMdd HHmmss | yyyyMMdd HHmmss.SSS)
+     * @param end
+     *            formatted date/time (yyyyMMdd | yyyyMMdd HHmmss | yyyyMMdd HHmmss.SSS)
+     * @return datawave.microservice.querymetric.QueryMetricsSummaryResponse query metrics summary
+     * @HTTP 200 success
+     * @HTTP 500 internal server error
+     */
+    @RolesAllowed({"Administrator", "JBossAdministrator", "MetricsAdministrator"})
+    @RequestMapping(path = "/summary/all", method = {RequestMethod.GET},
+                    produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE, MediaType.TEXT_HTML_VALUE})
+    public QueryMetricsSummaryResponse getQueryMetricsSummary(@AuthenticationPrincipal ProxiedUserDetails currentUser,
+                    @RequestParam(required = false) String begin, @RequestParam(required = false) String end) {
+        
+        try {
+            return queryMetricsSummary(parseDate(begin, BEGIN), parseDate(end, END), currentUser, false);
+        } catch (Exception e) {
+            QueryMetricsSummaryResponse response = new QueryMetricsSummaryResponse();
+            response.addException(e);
+            return response;
+        }
+    }
+    
+    /**
+     * Returns a summary of the requesting user's query metrics
+     *
+     * @param currentUser
+     *            the current user
+     * @param begin
+     *            formatted date/time (yyyyMMdd | yyyyMMdd HHmmss | yyyyMMdd HHmmss.SSS)
+     * @param end
+     *            formatted date/time (yyyyMMdd | yyyyMMdd HHmmss | yyyyMMdd HHmmss.SSS)
+     * @return datawave.microservice.querymetric.QueryMetricsSummaryResponse query metrics user summary
+     * @HTTP 200 success
+     * @HTTP 500 internal server error
+     */
+    @PermitAll
+    @RequestMapping(path = "/summary/user", method = {RequestMethod.GET},
+                    produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE, MediaType.TEXT_HTML_VALUE})
+    public QueryMetricsSummaryResponse getQueryMetricsUserSummary(@AuthenticationPrincipal ProxiedUserDetails currentUser,
+                    @RequestParam(required = false) String begin, @RequestParam(required = false) String end) {
+        try {
+            return queryMetricsSummary(parseDate(begin, BEGIN), parseDate(end, END), currentUser, true);
+        } catch (Exception e) {
+            QueryMetricsSummaryResponse response = new QueryMetricsSummaryResponse();
+            response.addException(e);
+            return response;
+        }
+    }
+    
     private UdpClient createUdpClient() {
         if (timelyProperties != null && StringUtils.isNotBlank(timelyProperties.getHost())) {
             return new UdpClient(timelyProperties.getHost(), timelyProperties.getPort());
@@ -262,7 +429,6 @@ public class QueryMetricOperations {
             UdpClient timelyClient = createUdpClient();
             if (queryMetric.getQueryType().equalsIgnoreCase("RunningQuery")) {
                 try {
-                    String queryId = queryMetric.getQueryId();
                     Lifecycle lifecycle = queryMetric.getLifecycle();
                     Map<String,String> metricValues = handler.getEventFields(queryMetric);
                     long createDate = queryMetric.getCreateDate().getTime();

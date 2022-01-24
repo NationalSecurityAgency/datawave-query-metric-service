@@ -8,7 +8,10 @@ import datawave.microservice.querymetric.handler.ContentQueryMetricsIngestHelper
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.validation.annotation.Validated;
 
+import javax.validation.constraints.Min;
+import javax.validation.constraints.Positive;
 import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Collections;
@@ -18,6 +21,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
+@Validated
 @ConfigurationProperties(prefix = "datawave.query.metric.handler")
 public class QueryMetricHandlerProperties {
     
@@ -39,9 +43,11 @@ public class QueryMetricHandlerProperties {
     protected String dateField = "CREATE_DATE";
     protected String dateFormat = "yyyyMMdd HHmmss.S";
     protected int fieldLengthThreshold = 4049;
-    protected String metricAdminRole;
     protected boolean enableBloomFilter = false;
+    @Positive
     protected int recordWriterMaxMemory = 10000000;
+    // TabletServerBatchWriter uses latency / 4 to get a Timer period
+    @Min(10)
     protected int recordWriterMaxLatency = 60000;
     protected int recordWriterNumThreads = 4;
     protected String policyEnforcerClass = "datawave.policy.IngestPolicyEnforcer$NoOpIngestPolicyEnforcer";
@@ -397,14 +403,6 @@ public class QueryMetricHandlerProperties {
     
     public void setPolicyEnforcerClass(String policyEnforcerClass) {
         this.policyEnforcerClass = policyEnforcerClass;
-    }
-    
-    public String getMetricAdminRole() {
-        return metricAdminRole;
-    }
-    
-    public void setMetricAdminRole(String metricAdminRole) {
-        this.metricAdminRole = metricAdminRole;
     }
     
     public String getBaseMaps() {
