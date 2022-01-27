@@ -24,7 +24,7 @@
         <version.hazelcast-kubernetes>1.4</version.hazelcast-kubernetes>
         <version.in-memory-accumulo>1.9.2.3</version.in-memory-accumulo>
         <version.log4j12>2.17.1</version.log4j12>
-        <version.microservice.accumulo-api>1.2-SNAPSHOT</version.microservice.accumulo-api>
+        <version.microservice.accumulo-api>1.3-SNAPSHOT</version.microservice.accumulo-api>
         <version.microservice.hazelcast>1.7-SNAPSHOT</version.microservice.hazelcast>
         <version.microservice.metadata-utils>1.9-SNAPSHOT</version.microservice.metadata-utils>
         <version.microservice.starter>1.6.6-SNAPSHOT</version.microservice.starter>
