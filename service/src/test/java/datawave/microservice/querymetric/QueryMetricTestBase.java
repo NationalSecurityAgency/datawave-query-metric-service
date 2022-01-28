@@ -5,11 +5,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.hazelcast.config.Config;
 import com.hazelcast.config.MapStoreConfig;
+import com.hazelcast.config.XmlConfigBuilder;
 import com.hazelcast.map.IMap;
 import com.hazelcast.spring.cache.HazelcastCacheManager;
 import datawave.marking.MarkingFunctions;
 import datawave.microservice.authorization.preauth.ProxiedEntityX509Filter;
 import datawave.microservice.authorization.user.ProxiedUserDetails;
+import datawave.microservice.querymetric.config.HazelcastMetricCacheProperties;
 import datawave.microservice.querymetric.config.QueryMetricClientProperties;
 import datawave.microservice.querymetric.config.QueryMetricHandlerProperties;
 import datawave.microservice.querymetric.function.QueryMetricSupplier;
@@ -36,6 +38,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.boot.web.server.LocalServerPort;
 import org.springframework.cache.Cache;
@@ -53,6 +56,7 @@ import org.springframework.messaging.Message;
 import org.springframework.web.client.RestTemplate;
 
 import javax.inject.Named;
+import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -62,10 +66,12 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import static datawave.microservice.querymetric.config.HazelcastMetricCacheConfiguration.INCOMING_METRICS;
 import static datawave.microservice.querymetric.config.HazelcastMetricCacheConfiguration.LAST_WRITTEN_METRICS;
 import static datawave.security.authorization.DatawaveUser.UserType.USER;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 public class QueryMetricTestBase {
     
@@ -409,6 +415,24 @@ public class QueryMetricTestBase {
                     return true;
                 }
             };
+        }
+        
+        @Primary
+        @Bean
+        @ConditionalOnProperty(name = "hazelcast.server.enabled", havingValue = "true")
+        public Config testConfig(HazelcastMetricCacheProperties serverProperties) {
+            Config config;
+            
+            if (serverProperties.getXmlConfig() == null) {
+                config = new Config();
+            } else {
+                XmlConfigBuilder configBuilder = new XmlConfigBuilder(new ByteArrayInputStream(serverProperties.getXmlConfig().getBytes(UTF_8)));
+                config = configBuilder.build();
+            }
+            
+            config.setClusterName(UUID.randomUUID().toString());
+            
+            return config;
         }
     }
 }

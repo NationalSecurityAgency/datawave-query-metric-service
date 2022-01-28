@@ -21,7 +21,7 @@
         <version.base-rest-responses>1.3-SNAPSHOT</version.base-rest-responses>
         <version.cache-api>1.1.1</version.cache-api>
         <version.datawave>3.11.0-SNAPSHOT</version.datawave>
-        <version.hazelcast-kubernetes>1.4</version.hazelcast-kubernetes>
+        <version.hazelcast-kubernetes>2.2.3</version.hazelcast-kubernetes>
         <version.in-memory-accumulo>1.9.2.3</version.in-memory-accumulo>
         <version.log4j12>2.17.1</version.log4j12>
         <version.microservice.accumulo-api>1.3-SNAPSHOT</version.microservice.accumulo-api>
@@ -101,6 +101,10 @@
                     <exclusion>
                         <artifactId>*</artifactId>
                         <groupId>org.eclipse.jetty</groupId>
+                    </exclusion>
+                    <exclusion>
+                        <artifactId>*</artifactId>
+                        <groupId>xerces</groupId>
                     </exclusion>
                 </exclusions>
             </dependency>
