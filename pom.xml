@@ -8,7 +8,7 @@
         <relativePath />
     </parent>
     <artifactId>query-metric-parent</artifactId>
-    <version>1.4.8-SNAPSHOT</version>
+    <version>1.4.8</version>
     <packaging>pom</packaging>
     <url>https://code.nsa.gov/datawave-query-metric-service</url>
     <modules>
