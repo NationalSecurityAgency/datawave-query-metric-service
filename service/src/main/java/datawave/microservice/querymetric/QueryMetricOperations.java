@@ -11,6 +11,7 @@ import datawave.microservice.querymetric.factory.BaseQueryMetricListResponseFact
 import datawave.microservice.querymetric.handler.QueryGeometryHandler;
 import datawave.microservice.querymetric.handler.ShardTableQueryMetricHandler;
 import datawave.microservice.querymetric.handler.SimpleQueryGeometryHandler;
+import datawave.security.authorization.DatawaveUser;
 import datawave.security.util.DnUtils;
 import datawave.util.timely.UdpClient;
 import datawave.webservice.query.exception.DatawaveErrorCode;
@@ -285,12 +286,20 @@ public class QueryMetricOperations {
                 }
                 // since we are using the incomingQueryMetricsCache, we need to make sure that the
                 // requesting user has the necessary Authorizations to view the requested query metric
-                Authorizations authorizations = new Authorizations(currentUser.getPrimaryUser().getAuths().toArray(new String[0]));
-                VisibilityEvaluator visibilityEvaluator = new VisibilityEvaluator(authorizations);
-                ColumnVisibility columnVisibility = this.markingFunctions.translateToColumnVisibility(metric.getMarkings());
-                boolean userCanSeeVisibility = visibilityEvaluator.evaluate(columnVisibility);
-                if (userCanSeeVisibility && (sameUser || allowAllMetrics)) {
-                    metricList.add(metric);
+                if (sameUser || allowAllMetrics) {
+                    ColumnVisibility columnVisibility = this.markingFunctions.translateToColumnVisibility(metric.getMarkings());
+                    boolean userCanSeeVisibility = true;
+                    for (DatawaveUser user : currentUser.getProxiedUsers()) {
+                        Authorizations authorizations = new Authorizations(user.getAuths().toArray(new String[0]));
+                        VisibilityEvaluator visibilityEvaluator = new VisibilityEvaluator(authorizations);
+                        if (visibilityEvaluator.evaluate(columnVisibility) == false) {
+                            userCanSeeVisibility = false;
+                            break;
+                        }
+                    }
+                    if (userCanSeeVisibility) {
+                        metricList.add(metric);
+                    }
                 }
             }
         } catch (Exception e) {
