@@ -57,18 +57,10 @@ public class QueryMetricConfiguration {
     
     @Bean
     @ConditionalOnMissingBean
-    datawave.webservice.query.cache.QueryMetricFactory datawaveQueryMetricFactory() {
-        return new datawave.webservice.query.cache.QueryMetricFactoryImpl();
-    }
-    
-    @Bean
-    @ConditionalOnMissingBean
     public ShardTableQueryMetricHandler shardTableQueryMetricHandler(QueryMetricHandlerProperties queryMetricHandlerProperties,
                     @Qualifier("warehouse") AccumuloConnectionPool connectionPool, QueryMetricQueryLogicFactory logicFactory, QueryMetricFactory metricFactory,
                     MarkingFunctions markingFunctions) {
-        datawave.webservice.query.cache.QueryMetricFactory datawaveQueryMetricFactory = new datawave.webservice.query.cache.QueryMetricFactoryImpl();
-        return new ShardTableQueryMetricHandler(queryMetricHandlerProperties, connectionPool, logicFactory, metricFactory, datawaveQueryMetricFactory,
-                        markingFunctions);
+        return new ShardTableQueryMetricHandler(queryMetricHandlerProperties, connectionPool, logicFactory, metricFactory, markingFunctions);
     }
     
     @Bean

@@ -10,6 +10,7 @@ import datawave.ingest.data.RawRecordContainer;
 import datawave.ingest.data.Type;
 import datawave.ingest.data.TypeRegistry;
 import datawave.ingest.data.config.NormalizedContentInterface;
+
 import datawave.ingest.data.config.ingest.AbstractContentIngestHelper;
 import datawave.ingest.mapreduce.handler.shard.AbstractColumnBasedHandler;
 import datawave.ingest.mapreduce.handler.tokenize.ContentIndexingColumnBasedHandler;
@@ -112,18 +113,16 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
     private AccumuloRecordWriter recordWriter = null;
     private QueryMetricQueryLogicFactory logicFactory;
     private QueryMetricFactory metricFactory;
-    private datawave.webservice.query.cache.QueryMetricFactory datawaveQueryMetricFactory;
     private UIDBuilder<UID> uidBuilder = UID.builder();
     private DatawavePrincipal datawavePrincipal;
     private MarkingFunctions markingFunctions;
     
     public ShardTableQueryMetricHandler(QueryMetricHandlerProperties queryMetricHandlerProperties,
                     @Qualifier("warehouse") AccumuloConnectionPool connectionPool, QueryMetricQueryLogicFactory logicFactory, QueryMetricFactory metricFactory,
-                    datawave.webservice.query.cache.QueryMetricFactory datawaveQueryMetricFactory, MarkingFunctions markingFunctions) {
+                    MarkingFunctions markingFunctions) {
         this.queryMetricHandlerProperties = queryMetricHandlerProperties;
         this.logicFactory = logicFactory;
         this.metricFactory = metricFactory;
-        this.datawaveQueryMetricFactory = datawaveQueryMetricFactory;
         this.markingFunctions = markingFunctions;
         this.connectionPool = connectionPool;
         queryMetricHandlerProperties.getProperties().entrySet().forEach(e -> conf.set(e.getKey(), e.getValue()));
@@ -611,7 +610,7 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
             Map<String,String> trackingMap = AccumuloConnectionTracking.getTrackingMap(Thread.currentThread().getStackTrace());
             connector = connectionPool.borrowObject(trackingMap);
             runningQuery = new RunningQuery(null, connector, Priority.ADMIN, queryLogic, query, query.getQueryAuthorizations(), datawavePrincipal,
-                            this.datawaveQueryMetricFactory);
+                            this.metricFactory);
             
             boolean done = false;
             List<Object> objectList = new ArrayList<>();
@@ -872,8 +871,9 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
                     Class<? extends TableConfigHelper> tableHelperClass = (Class<? extends TableConfigHelper>) Class.forName(className.trim());
                     tableHelper = tableHelperClass.getDeclaredConstructor().newInstance();
                     
-                    if (tableHelper != null)
+                    if (tableHelper != null) {
                         tableHelper.setup(table, conf, setupLogger);
+                    }
                 } catch (Exception e) {
                     throw new IllegalArgumentException(e);
                 }

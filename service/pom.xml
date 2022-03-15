@@ -20,14 +20,14 @@
         <start-class>datawave.microservice.querymetric.QueryMetricService</start-class>
         <version.base-rest-responses>1.2</version.base-rest-responses>
         <version.cache-api>1.1.1</version.cache-api>
-        <version.datawave>3.11.0</version.datawave>
+        <version.datawave>3.16.1</version.datawave>
         <version.hazelcast-kubernetes>1.4</version.hazelcast-kubernetes>
         <version.in-memory-accumulo>1.9.2.3</version.in-memory-accumulo>
         <version.log4j12>2.17.1</version.log4j12>
         <version.microservice.accumulo-api>1.2</version.microservice.accumulo-api>
         <version.microservice.hazelcast>1.5</version.microservice.hazelcast>
         <version.microservice.metadata-utils>1.8.2</version.microservice.metadata-utils>
-        <version.microservice.starter>1.6.5</version.microservice.starter>
+        <version.microservice.starter>1.6.6</version.microservice.starter>
         <version.spring.cloud.stream>2.1.4.RELEASE</version.spring.cloud.stream>
         <version.validation-api>2.0.2</version.validation-api>
     </properties>
