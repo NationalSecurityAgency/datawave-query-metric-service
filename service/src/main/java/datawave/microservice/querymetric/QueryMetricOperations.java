@@ -1,6 +1,7 @@
 package datawave.microservice.querymetric;
 
 import com.hazelcast.core.IMap;
+import com.hazelcast.monitor.LocalMapStats;
 import com.hazelcast.spring.cache.HazelcastCacheManager;
 import datawave.marking.MarkingFunctions;
 import datawave.microservice.authorization.user.ProxiedUserDetails;
@@ -11,6 +12,7 @@ import datawave.microservice.querymetric.factory.BaseQueryMetricListResponseFact
 import datawave.microservice.querymetric.handler.QueryGeometryHandler;
 import datawave.microservice.querymetric.handler.ShardTableQueryMetricHandler;
 import datawave.microservice.querymetric.handler.SimpleQueryGeometryHandler;
+import datawave.microservice.querymetric.stats.CacheStats;
 import datawave.security.authorization.DatawaveUser;
 import datawave.security.util.DnUtils;
 import datawave.util.timely.UdpClient;
@@ -45,6 +47,7 @@ import org.springframework.web.bind.annotation.RestController;
 import javax.annotation.security.PermitAll;
 import javax.annotation.security.RolesAllowed;
 import javax.inject.Named;
+import java.net.InetAddress;
 import java.text.DecimalFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -52,6 +55,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
@@ -60,7 +64,9 @@ import java.util.concurrent.locks.ReentrantLock;
 import static datawave.microservice.querymetric.QueryMetricOperations.DEFAULT_DATETIME.BEGIN;
 import static datawave.microservice.querymetric.QueryMetricOperations.DEFAULT_DATETIME.END;
 import static datawave.microservice.querymetric.config.HazelcastMetricCacheConfiguration.INCOMING_METRICS;
+import static datawave.microservice.querymetric.config.HazelcastMetricCacheConfiguration.LAST_WRITTEN_METRICS;
 import static datawave.microservice.querymetric.config.QueryMetricSourceConfiguration.QueryMetricSourceBinding.SOURCE_NAME;
+import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
 /**
  * The type Query metric operations.
@@ -74,7 +80,9 @@ public class QueryMetricOperations {
     
     private ShardTableQueryMetricHandler handler;
     private QueryGeometryHandler geometryHandler;
+    private CacheManager cacheManager;
     private Cache incomingQueryMetricsCache;
+    private Cache lastWrittenQueryMetricCache;
     private boolean isHazelCast;
     private MarkingFunctions markingFunctions;
     private TimelyProperties timelyProperties;
@@ -122,7 +130,9 @@ public class QueryMetricOperations {
         this.handler = handler;
         this.geometryHandler = geometryHandler;
         this.isHazelCast = cacheManager instanceof HazelcastCacheManager;
+        this.cacheManager = cacheManager;
         this.incomingQueryMetricsCache = cacheManager.getCache(INCOMING_METRICS);
+        this.lastWrittenQueryMetricCache = cacheManager.getCache(LAST_WRITTEN_METRICS);
         this.markingFunctions = markingFunctions;
         this.queryMetricListResponseFactory = queryMetricListResponseFactory;
         this.timelyProperties = timelyProperties;
@@ -525,5 +535,66 @@ public class QueryMetricOperations {
                 }
             }
         }
+    }
+    
+    /**
+     * Returns cache stats for the local part of the distributed Hazelcast cache
+     *
+     * @return datawave.microservice.querymetric.stats.CacheStats
+     * @HTTP 200 success
+     * @HTTP 500 internal server error
+     */
+    @RolesAllowed({"Administrator", "JBossAdministrator", "MetricsAdministrator"})
+    @RequestMapping(path = "/cacheStats", method = {RequestMethod.GET}, produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
+    public CacheStats getCacheStats() {
+        CacheStats cacheStats = new CacheStats();
+        if (this.isHazelCast) {
+            IMap<Object,Object> incomingCacheHz = ((IMap<Object,Object>) incomingQueryMetricsCache.getNativeCache());
+            cacheStats.setIncomingQueryMetrics(getStats(incomingCacheHz.getLocalMapStats()));
+            IMap<Object,Object> lastWrittenCacheHz = ((IMap<Object,Object>) lastWrittenQueryMetricCache.getNativeCache());
+            cacheStats.setLastWrittenQueryMetrics(getStats(lastWrittenCacheHz.getLocalMapStats()));
+            cacheStats.setMemberUuid(((HazelcastCacheManager) cacheManager).getHazelcastInstance().getCluster().getLocalMember().getUuid());
+            try {
+                cacheStats.setHost(InetAddress.getLocalHost().getCanonicalHostName());
+            } catch (Exception e) {
+                
+            }
+        }
+        return cacheStats;
+    }
+    
+    private Map<String,Long> getStats(LocalMapStats localMapStats) {
+        Map<String,Long> stats = new LinkedHashMap<>();
+        stats.put("getCount", localMapStats.getGetOperationCount());
+        stats.put("putCount", localMapStats.getPutOperationCount());
+        stats.put("removeCount", localMapStats.getRemoveOperationCount());
+        stats.put("numberOfOtherOperations", localMapStats.getOtherOperationCount());
+        stats.put("numberOfEvents", localMapStats.getEventOperationCount());
+        stats.put("lastAccessTime", localMapStats.getLastAccessTime());
+        stats.put("lastUpdateTime", localMapStats.getLastUpdateTime());
+        stats.put("hits", localMapStats.getHits());
+        stats.put("ownedEntryCount", localMapStats.getOwnedEntryCount());
+        stats.put("backupEntryCount", localMapStats.getBackupEntryCount());
+        stats.put("backupCount", Long.valueOf(localMapStats.getBackupCount()));
+        stats.put("ownedEntryMemoryCost", localMapStats.getOwnedEntryMemoryCost());
+        stats.put("backupEntryMemoryCost", localMapStats.getBackupEntryMemoryCost());
+        stats.put("creationTime", localMapStats.getCreationTime());
+        stats.put("lockedEntryCount", localMapStats.getLockedEntryCount());
+        stats.put("dirtyEntryCount", localMapStats.getDirtyEntryCount());
+        
+        // keep the contract as milliseconds for latencies sent using Json
+        stats.put("totalGetLatencies", NANOSECONDS.toMillis(localMapStats.getTotalGetLatency()));
+        stats.put("totalPutLatencies", NANOSECONDS.toMillis(localMapStats.getTotalPutLatency()));
+        stats.put("totalRemoveLatencies", NANOSECONDS.toMillis(localMapStats.getTotalRemoveLatency()));
+        stats.put("maxGetLatency", NANOSECONDS.toMillis(localMapStats.getMaxGetLatency()));
+        stats.put("maxPutLatency", NANOSECONDS.toMillis(localMapStats.getMaxPutLatency()));
+        stats.put("maxRemoveLatency", NANOSECONDS.toMillis(localMapStats.getMaxRemoveLatency()));
+        
+        stats.put("heapCost", localMapStats.getHeapCost());
+        stats.put("merkleTreesCost", localMapStats.getMerkleTreesCost());
+        stats.put("queryCount", localMapStats.getQueryCount());
+        stats.put("indexedQueryCount", localMapStats.getIndexedQueryCount());
+        
+        return stats;
     }
 }
