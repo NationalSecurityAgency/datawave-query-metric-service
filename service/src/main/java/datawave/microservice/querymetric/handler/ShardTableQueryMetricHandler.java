@@ -53,6 +53,7 @@ import datawave.webservice.result.VoidResponse;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations;
@@ -222,6 +223,15 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
                     contextWriter.commit(context);
                 }
             }
+        } catch (Exception e) {
+            // assume that an error happened with the AccumuloRecordWriter
+            contextWriter = null;
+            reload();
+            // we have no way of knowing if the rejected mutation is this one or a previously
+            // buffered one, but will stop the Exception propagation here just in case
+            if (!(e.getCause() instanceof MutationsRejectedException)) {
+                throw e;
+            }
         } finally {
             if (contextWriter != null && context != null) {
                 contextWriter.cleanup(context);
@@ -296,11 +306,9 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
             BulkIngestKey bulkIngestKey = entry.getKey();
             Key currentKey = bulkIngestKey.getKey();
             
-            if (table.equals(indexTable) || table.equals(reverseIndexTable)) {
-                String value = currentKey.getRow().toString();
-                if (value.length() > fieldSizeThreshold) {
-                    keysToRemove.add(bulkIngestKey);
-                }
+            String value = currentKey.getRow().toString();
+            if (value.length() > fieldSizeThreshold && (table.equals(indexTable) || table.equals(reverseIndexTable))) {
+                keysToRemove.add(bulkIngestKey);
             }
         }
         

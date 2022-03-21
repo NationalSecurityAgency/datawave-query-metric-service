@@ -17,6 +17,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
 
@@ -62,6 +63,7 @@ public class AccumuloMapStore<T extends BaseQueryMetric> extends AccumuloMapLoad
             lastWrittenQueryMetricCache.set(queryId, new QueryMetricUpdate(updatedMetric));
         } catch (Exception e) {
             log.error(e.getMessage(), e);
+            throw new RuntimeException(e);
         } finally {
             lastWrittenQueryMetricCache.unlock(queryId);
         }
@@ -69,13 +71,19 @@ public class AccumuloMapStore<T extends BaseQueryMetric> extends AccumuloMapLoad
     
     @Override
     public void storeAll(Map<String,QueryMetricUpdate<T>> map) {
-        map.forEach((queryId, updatedMetric) -> {
+        Iterator<Map.Entry<String,QueryMetricUpdate<T>>> itr = map.entrySet().iterator();
+        while (itr.hasNext()) {
+            Map.Entry<String,QueryMetricUpdate<T>> entry = itr.next();
             try {
-                this.store(queryId, updatedMetric);
+                this.store(entry.getKey(), entry.getValue());
+                // remove entries that succeeded so that a potential
+                // subsequent failure will know which updates remain
+                itr.remove();
             } catch (Exception e) {
                 log.error(e.getMessage(), e);
+                throw new RuntimeException(e);
             }
-        });
+        }
     }
     
     @Override

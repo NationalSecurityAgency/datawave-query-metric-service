@@ -31,6 +31,7 @@ import java.util.Set;
 public class ContentQueryMetricsIngestHelper extends CSVIngestHelper implements TermFrequencyIngestHelperInterface {
     
     private static final Logger log = LoggerFactory.getLogger(ContentQueryMetricsIngestHelper.class);
+    private static final Integer MAX_FIELD_VALUE_LENGTH = 500000;
     
     private Set<String> contentIndexFields = new HashSet<>();
     private HelperDelegate<BaseQueryMetric> delegate;
@@ -237,6 +238,11 @@ public class ContentQueryMetricsIngestHelper extends CSVIngestHelper implements 
             
             putExtendedFieldsToWrite(updatedQueryMetric, fields);
             
+            fields.entries().forEach(e -> {
+                if (e.getValue().length() > MAX_FIELD_VALUE_LENGTH) {
+                    e.setValue(e.getValue().substring(0, MAX_FIELD_VALUE_LENGTH) + "<truncated>");
+                }
+            });
             return fields;
         }
         
@@ -318,6 +324,11 @@ public class ContentQueryMetricsIngestHelper extends CSVIngestHelper implements 
             }
             putExtendedFieldsToDelete(updatedQueryMetric, fields);
             
+            fields.entries().forEach(e -> {
+                if (e.getValue().length() > MAX_FIELD_VALUE_LENGTH) {
+                    e.setValue(e.getValue().substring(0, MAX_FIELD_VALUE_LENGTH) + "<truncated>");
+                }
+            });
             return fields;
         }
         
