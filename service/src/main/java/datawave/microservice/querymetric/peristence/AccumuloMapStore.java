@@ -58,7 +58,12 @@ public class AccumuloMapStore<T extends BaseQueryMetric> extends AccumuloMapLoad
                 updatedMetric = handler.combineMetrics(updatedMetric, lastQueryMetric, metricType);
                 handler.writeMetric(updatedMetric, Collections.singletonList(lastQueryMetric), lastQueryMetric.getLastUpdated(), true);
             }
-            log.trace("writing metric to accumulo: " + queryId + " - " + updatedMetricHolder.getMetric());
+            if (log.isTraceEnabled()) {
+                log.trace("writing metric to accumulo: " + queryId + " - " + updatedMetricHolder.getMetric());
+            } else {
+                log.debug("writing metric to accumulo: " + queryId);
+            }
+            
             handler.writeMetric(updatedMetric, Collections.singletonList(updatedMetric), updatedMetric.getLastUpdated(), false);
             lastWrittenQueryMetricCache.set(queryId, new QueryMetricUpdate(updatedMetric));
         } catch (Exception e) {

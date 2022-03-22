@@ -76,7 +76,7 @@ import static java.util.concurrent.TimeUnit.NANOSECONDS;
 @RequestMapping(path = "/v1")
 public class QueryMetricOperations {
     
-    private Logger log = LoggerFactory.getLogger(getClass());
+    private Logger log = LoggerFactory.getLogger(QueryMetricOperations.class);
     
     private ShardTableQueryMetricHandler handler;
     private QueryGeometryHandler geometryHandler;
@@ -178,7 +178,11 @@ public class QueryMetricOperations {
                     produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
     public VoidResponse updateMetric(@RequestBody BaseQueryMetric queryMetric,
                     @RequestParam(value = "metricType", defaultValue = "DISTRIBUTED") QueryMetricType metricType) {
-        log.trace("received metric update via REST: " + queryMetric.toString());
+        if (log.isTraceEnabled()) {
+            log.trace("received metric update via REST: " + queryMetric.toString());
+        } else {
+            log.debug("received metric update via REST: " + queryMetric.getQueryId());
+        }
         output.send(MessageBuilder.withPayload(new QueryMetricUpdate(queryMetric, metricType)).build());
         return new VoidResponse();
     }
@@ -205,7 +209,11 @@ public class QueryMetricOperations {
      */
     public VoidResponse storeMetric(BaseQueryMetric queryMetric, QueryMetricType metricType) {
         
-        log.trace("storing metric update: " + queryMetric.toString());
+        if (log.isTraceEnabled()) {
+            log.trace("storing metric update: " + queryMetric.toString());
+        } else {
+            log.debug("storing metric update: " + queryMetric.getQueryId());
+        }
         VoidResponse response = new VoidResponse();
         try {
             Long lastPageNum = null;
