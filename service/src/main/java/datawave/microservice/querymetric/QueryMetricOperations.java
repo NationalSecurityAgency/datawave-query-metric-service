@@ -156,7 +156,11 @@ public class QueryMetricOperations {
                     @RequestParam(value = "metricType", defaultValue = "DISTRIBUTED") QueryMetricType metricType) {
         VoidResponse response = new VoidResponse();
         for (BaseQueryMetric m : queryMetrics) {
-            log.trace("received metric update via REST: " + m.toString());
+            if (log.isTraceEnabled()) {
+                log.trace("received metric update via REST: " + m.toString());
+            } else {
+                log.debug("received metric update via REST: " + m.getQueryId());
+            }
             output.send(MessageBuilder.withPayload(new QueryMetricUpdate(m, metricType)).build());
         }
         return response;
