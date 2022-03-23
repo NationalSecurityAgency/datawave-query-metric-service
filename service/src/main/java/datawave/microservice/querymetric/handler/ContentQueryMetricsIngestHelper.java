@@ -238,12 +238,15 @@ public class ContentQueryMetricsIngestHelper extends CSVIngestHelper implements 
             
             putExtendedFieldsToWrite(updatedQueryMetric, fields);
             
+            HashMultimap<String,String> truncatedFields = HashMultimap.create();
             fields.entries().forEach(e -> {
                 if (e.getValue().length() > MAX_FIELD_VALUE_LENGTH) {
-                    e.setValue(e.getValue().substring(0, MAX_FIELD_VALUE_LENGTH) + "<truncated>");
+                    truncatedFields.put(e.getKey(), e.getValue().substring(0, MAX_FIELD_VALUE_LENGTH) + "<truncated>");
+                } else {
+                    truncatedFields.put(e.getKey(), e.getValue());
                 }
             });
-            return fields;
+            return truncatedFields;
         }
         
         protected void putExtendedFieldsToWrite(T updatedQueryMetric, Multimap<String,String> fields) {
@@ -324,12 +327,15 @@ public class ContentQueryMetricsIngestHelper extends CSVIngestHelper implements 
             }
             putExtendedFieldsToDelete(updatedQueryMetric, fields);
             
+            HashMultimap<String,String> truncatedFields = HashMultimap.create();
             fields.entries().forEach(e -> {
                 if (e.getValue().length() > MAX_FIELD_VALUE_LENGTH) {
-                    e.setValue(e.getValue().substring(0, MAX_FIELD_VALUE_LENGTH) + "<truncated>");
+                    truncatedFields.put(e.getKey(), e.getValue().substring(0, MAX_FIELD_VALUE_LENGTH) + "<truncated>");
+                } else {
+                    truncatedFields.put(e.getKey(), e.getValue());
                 }
             });
-            return fields;
+            return truncatedFields;
         }
         
         protected void putExtendedFieldsToDelete(T updatedQueryMetric, Multimap<String,String> fields) {

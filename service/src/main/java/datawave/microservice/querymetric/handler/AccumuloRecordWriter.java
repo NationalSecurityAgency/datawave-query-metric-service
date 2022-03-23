@@ -214,8 +214,13 @@ public class AccumuloRecordWriter extends RecordWriter<Text,Mutation> {
     }
     
     public void returnConnector() {
-        if (this.connector != null) {
-            this.connectionPool.returnObject(connector);
+        try {
+            if (this.connector != null) {
+                this.connectionPool.returnObject(connector);
+            }
+            this.connector = null;
+        } catch (Exception e) {
+            log.error(e.getMessage());
         }
     }
     
