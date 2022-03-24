@@ -26,7 +26,7 @@ import java.util.Properties;
 public class AccumuloMapStore<T extends BaseQueryMetric> extends AccumuloMapLoader<T> implements MapStore<String,QueryMetricUpdate<T>> {
     
     private static AccumuloMapStore instance;
-    private Logger log = LoggerFactory.getLogger(getClass());
+    private Logger log = LoggerFactory.getLogger(AccumuloMapStore.class);
     private IMap<Object,Object> lastWrittenQueryMetricCache;
     
     public static class Factory implements MapStoreFactory<String,BaseQueryMetric> {
