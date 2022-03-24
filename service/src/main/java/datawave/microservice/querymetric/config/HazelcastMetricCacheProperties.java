@@ -44,15 +44,15 @@ public class HazelcastMetricCacheProperties {
     public void setInitialMergeDelaySeconds(int initialMergeDelaySeconds) {
         this.initialMergeDelaySeconds = initialMergeDelaySeconds;
     }
-
+    
     public int getMergeNextDelaySeconds() {
         return mergeNextDelaySeconds;
     }
-
+    
     public void setMergeNextDelaySeconds(int mergeNextDelaySeconds) {
         this.mergeNextDelaySeconds = mergeNextDelaySeconds;
     }
-
+    
     public boolean isSkipDefaultConfiguration() {
         return skipDefaultConfiguration;
     }

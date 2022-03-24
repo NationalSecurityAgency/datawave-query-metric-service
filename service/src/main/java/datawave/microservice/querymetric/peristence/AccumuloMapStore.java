@@ -17,9 +17,11 @@ import org.springframework.stereotype.Component;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 
 @Component("store")
 @ConditionalOnProperty(name = "hazelcast.server.enabled")
@@ -56,7 +58,11 @@ public class AccumuloMapStore<T extends BaseQueryMetric> extends AccumuloMapLoad
             if (lastQueryMetricUpdate != null) {
                 T lastQueryMetric = lastQueryMetricUpdate.getMetric();
                 updatedMetric = handler.combineMetrics(updatedMetric, lastQueryMetric, metricType);
-                handler.writeMetric(updatedMetric, Collections.singletonList(lastQueryMetric), lastQueryMetric.getLastUpdated(), true);
+                // if for some reason, lastQueryMetric doesn't have lastUpdated set,
+                // we can not delete the previous entries and will cause an NPE if we try
+                if (lastQueryMetric.getLastUpdated() != null) {
+                    handler.writeMetric(updatedMetric, Collections.singletonList(lastQueryMetric), lastQueryMetric.getLastUpdated(), true);
+                }
             }
             if (log.isTraceEnabled()) {
                 log.trace("writing metric to accumulo: " + queryId + " - " + updatedMetricHolder.getMetric());
@@ -64,6 +70,9 @@ public class AccumuloMapStore<T extends BaseQueryMetric> extends AccumuloMapLoad
                 log.debug("writing metric to accumulo: " + queryId);
             }
             
+            if (updatedMetric.getLastUpdated() == null) {
+                updatedMetric.setLastUpdated(new Date());
+            }
             handler.writeMetric(updatedMetric, Collections.singletonList(updatedMetric), updatedMetric.getLastUpdated(), false);
             lastWrittenQueryMetricCache.set(queryId, new QueryMetricUpdate(updatedMetric));
         } catch (Exception e) {
