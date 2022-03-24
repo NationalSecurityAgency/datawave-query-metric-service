@@ -24,7 +24,7 @@ import static datawave.query.QueryParameters.QUERY_SYNTAX;
  * This class is used to extract query geometries from the query metrics in an effort to provide those geometries for subsequent display to the user.
  */
 public class SimpleQueryGeometryHandler implements QueryGeometryHandler {
-    private static final Logger log = LoggerFactory.getLogger(ShardTableQueryMetricHandler.class);
+    private static final Logger log = LoggerFactory.getLogger(LocalShardTableQueryMetricHandler.class);
     
     private static final String LUCENE = "LUCENE";
     private static final String JEXL = "JEXL";

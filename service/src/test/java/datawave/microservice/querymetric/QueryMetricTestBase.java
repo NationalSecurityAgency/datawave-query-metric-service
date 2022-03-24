@@ -20,6 +20,9 @@ import datawave.security.authorization.DatawaveUser;
 import datawave.security.authorization.JWTTokenHandler;
 import datawave.security.authorization.SubjectIssuerDNPair;
 import datawave.security.util.DnUtils;
+import datawave.webservice.query.result.event.DefaultEvent;
+import datawave.webservice.query.result.event.DefaultField;
+import datawave.webservice.query.result.event.EventBase;
 import org.apache.accumulo.core.client.BatchDeleter;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriterConfig;
@@ -57,6 +60,7 @@ import org.springframework.web.client.RestTemplate;
 
 import javax.inject.Named;
 import java.io.ByteArrayInputStream;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -66,6 +70,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import static datawave.microservice.querymetric.config.HazelcastMetricCacheConfiguration.INCOMING_METRICS;
@@ -177,6 +182,93 @@ public class QueryMetricTestBase {
         deleteAccumuloEntries(connector, tables, this.auths);
         this.incomingQueryMetricsCache.clear();
         this.lastWrittenQueryMetricCache.clear();
+    }
+    
+    protected EventBase toEvent(BaseQueryMetric metric) {
+        SimpleDateFormat sdf_date_time1 = new SimpleDateFormat("yyyyMMdd HHmmss");
+        SimpleDateFormat sdf_date_time2 = new SimpleDateFormat("yyyyMMdd HHmmss");
+        
+        long createTime = metric.getCreateDate().getTime();
+        
+        DefaultEvent event = new DefaultEvent();
+        List<DefaultField> fields = new ArrayList<>();
+        
+        event.setMarkings(metric.getMarkings());
+        
+        addStringField(fields, "QUERY_ID", metric.getColumnVisibility(), createTime, metric.getQueryId());
+        addDateField(fields, "BEGIN_DATE", metric.getColumnVisibility(), createTime, metric.getBeginDate(), sdf_date_time1);
+        addDateField(fields, "END_DATE", metric.getColumnVisibility(), createTime, metric.getEndDate(), sdf_date_time1);
+        addDateField(fields, "LAST_UPDATED", metric.getColumnVisibility(), createTime, metric.getLastUpdated(), sdf_date_time2);
+        addLongField(fields, "NUM_UPDATES", metric.getColumnVisibility(), createTime, metric.getNumUpdates());
+        addStringField(fields, "QUERY", metric.getColumnVisibility(), createTime, metric.getQuery());
+        addStringField(fields, "QUERY_LOGIC", metric.getColumnVisibility(), createTime, metric.getQueryLogic());
+        addStringField(fields, "HOST", metric.getColumnVisibility(), createTime, metric.getHost());
+        addStringField(fields, "QUERY_TYPE", metric.getColumnVisibility(), createTime, metric.getQueryType());
+        addLifecycleField(fields, "LIFECYCLE", metric.getColumnVisibility(), createTime, metric.getLifecycle());
+        addLongField(fields, "LOGIN_TIME", metric.getColumnVisibility(), createTime, metric.getLoginTime());
+        addDateField(fields, "CREATE_DATE", metric.getColumnVisibility(), createTime, metric.getCreateDate(), sdf_date_time2);
+        addLongField(fields, "CREATE_CALL_TIME", metric.getColumnVisibility(), createTime, metric.getCreateCallTime());
+        addStringField(fields, "AUTHORIZATIONS", metric.getColumnVisibility(), createTime, metric.getQueryAuthorizations());
+        addStringField(fields, "QUERY_NAME", metric.getColumnVisibility(), createTime, metric.getQueryName());
+        addLongField(fields, "DOC_RANGES", metric.getColumnVisibility(), createTime, metric.getDocRanges());
+        addLongField(fields, "FI_RANGES", metric.getColumnVisibility(), createTime, metric.getFiRanges());
+        addStringField(fields, "ERROR_CODE", metric.getColumnVisibility(), createTime, metric.getErrorCode());
+        addStringField(fields, "ERROR_MESSAGE", metric.getColumnVisibility(), createTime, metric.getErrorMessage());
+        addLongField(fields, "SEEK_COUNT", metric.getColumnVisibility(), createTime, metric.getSeekCount());
+        addLongField(fields, "NEXT_COUNT", metric.getColumnVisibility(), createTime, metric.getNextCount());
+        addStringField(fields, "USER", metric.getColumnVisibility(), createTime, metric.getUser());
+        addStringField(fields, "USER_DN", metric.getColumnVisibility(), createTime, metric.getUserDN());
+        addPredictionField(fields, metric.getColumnVisibility(), createTime, metric.getPredictions());
+        addStringField(fields, "PLAN", metric.getColumnVisibility(), createTime, metric.getPlan());
+        addPageMetricsField(fields, metric.getColumnVisibility(), createTime, metric.getPageTimes());
+        
+        event.setFields(fields);
+        
+        return event;
+    }
+    
+    protected void addPageMetricsField(List<DefaultField> fields, String columnVisibility, long timestamp, List<BaseQueryMetric.PageMetric> pageMetrics) {
+        if (pageMetrics != null) {
+            int page = 1;
+            for (BaseQueryMetric.PageMetric pageMetric : pageMetrics) {
+                addStringField(fields, "PAGE_METRICS." + page++, columnVisibility, timestamp, pageMetric.toEventString());
+            }
+        }
+    }
+    
+    protected void addStringField(List<DefaultField> fields, String field, String columnVisibility, long timestamp, String value) {
+        if (value != null) {
+            fields.add(new DefaultField(field, columnVisibility, timestamp, value));
+        }
+    }
+    
+    protected void addLifecycleField(List<DefaultField> fields, String field, String columnVisibility, long timestamp, BaseQueryMetric.Lifecycle value) {
+        if (value != null) {
+            fields.add(new DefaultField(field, columnVisibility, timestamp, value.name()));
+        }
+    }
+    
+    protected void addLongField(List<DefaultField> fields, String field, String columnVisibility, long timestamp, Long value) {
+        if (value != null) {
+            fields.add(new DefaultField(field, columnVisibility, timestamp, Long.toString(value)));
+        }
+    }
+    
+    protected void addDateField(List<DefaultField> fields, String field, String columnVisibility, long timestamp, Date value, SimpleDateFormat sdf) {
+        if (value != null) {
+            fields.add(new DefaultField(field, columnVisibility, timestamp, sdf.format(value)));
+        }
+    }
+    
+    protected void addPredictionField(List<DefaultField> fields, String columnVisibility, long timestamp, Set<BaseQueryMetric.Prediction> value) {
+        if (value != null) {
+            for (BaseQueryMetric.Prediction prediction : value) {
+                if (prediction != null) {
+                    addStringField(fields, "PREDICTION", columnVisibility, timestamp,
+                                    String.join(":", prediction.getName(), Double.toString(prediction.getPrediction())));
+                }
+            }
+        }
     }
     
     protected BaseQueryMetric createMetric() {

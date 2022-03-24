@@ -73,6 +73,11 @@ datawave:
         queryVisibility: PUBLIC
         defaultMetricVisibility: (PUBLIC)
         baseMaps: "{}"
+        useRemoteQuery: false
+        remoteAuthTimeout: 10
+        remoteAuthTimeUnit: SECONDS
+        remoteQueryTimeout: 10
+        remoteQueryTimeUnit: SECONDS
       timely:
         enabled: false
         host: localhost

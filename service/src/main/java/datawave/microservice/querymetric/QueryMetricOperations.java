@@ -27,6 +27,7 @@ import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.http.MediaType;
@@ -57,6 +58,8 @@ import java.util.concurrent.locks.ReentrantLock;
 import static datawave.microservice.querymetric.QueryMetricOperations.DEFAULT_DATETIME.BEGIN;
 import static datawave.microservice.querymetric.QueryMetricOperations.DEFAULT_DATETIME.END;
 import static datawave.microservice.querymetric.config.HazelcastMetricCacheConfiguration.INCOMING_METRICS;
+import static datawave.security.util.DnUtils.NpeUtils.NPE_OU_PROPERTY;
+import static datawave.security.util.DnUtils.SUBJECT_DN_PATTERN_PROPERTY;
 
 /**
  * The type Query metric operations.
@@ -110,9 +113,9 @@ public class QueryMetricOperations {
      */
     @Autowired
     public QueryMetricOperations(@Named("queryMetricCacheManager") CacheManager cacheManager, ShardTableQueryMetricHandler handler,
-                    QueryGeometryHandler geometryHandler, QueryMetricHandlerProperties queryMetricHandlerProperties, MarkingFunctions markingFunctions,
-                    BaseQueryMetricListResponseFactory queryMetricListResponseFactory, TimelyProperties timelyProperties,
-                    QueryMetricSupplier queryMetricSupplier) {
+                    QueryGeometryHandler geometryHandler, MarkingFunctions markingFunctions, BaseQueryMetricListResponseFactory queryMetricListResponseFactory,
+                    TimelyProperties timelyProperties, QueryMetricSupplier queryMetricSupplier, @Value("${datawave.npe-ou-entries:}") String npeOuEntries,
+                    @Value("${datawave.subject-dn-pattern:}") String subjectDnPattern) {
         this.handler = handler;
         this.geometryHandler = geometryHandler;
         this.isHazelCast = cacheManager instanceof HazelcastCacheManager;
@@ -121,6 +124,13 @@ public class QueryMetricOperations {
         this.queryMetricListResponseFactory = queryMetricListResponseFactory;
         this.timelyProperties = timelyProperties;
         this.queryMetricSupplier = queryMetricSupplier;
+        
+        if (!npeOuEntries.isEmpty()) {
+            System.setProperty(NPE_OU_PROPERTY, npeOuEntries);
+        }
+        if (!subjectDnPattern.isEmpty()) {
+            System.setProperty(SUBJECT_DN_PATTERN_PROPERTY, subjectDnPattern);
+        }
     }
     
     /**

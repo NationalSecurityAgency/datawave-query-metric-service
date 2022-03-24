@@ -16,17 +16,22 @@ import datawave.microservice.querymetric.factory.BaseQueryMetricListResponseFact
 import datawave.microservice.querymetric.factory.QueryMetricListResponseFactory;
 import datawave.microservice.querymetric.factory.QueryMetricQueryLogicFactory;
 import datawave.microservice.querymetric.function.QueryMetricConsumer;
+import datawave.microservice.querymetric.handler.LocalShardTableQueryMetricHandler;
 import datawave.microservice.querymetric.handler.QueryGeometryHandler;
+import datawave.microservice.querymetric.handler.RemoteShardTableQueryMetricHandler;
 import datawave.microservice.querymetric.handler.ShardTableQueryMetricHandler;
 import datawave.microservice.querymetric.handler.SimpleQueryGeometryHandler;
+import datawave.security.authorization.JWTTokenHandler;
 import datawave.services.common.connection.AccumuloConnectionPool;
 import datawave.services.query.result.event.DefaultResponseObjectFactory;
 import datawave.webservice.query.result.event.ResponseObjectFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.reactive.function.client.WebClient;
 
 @Configuration
 @EnableConfigurationProperties({QueryMetricHandlerProperties.class, TimelyProperties.class})
@@ -72,10 +77,14 @@ public class QueryMetricConfiguration {
     @ConditionalOnMissingBean
     public ShardTableQueryMetricHandler shardTableQueryMetricHandler(QueryMetricHandlerProperties queryMetricHandlerProperties,
                     @Qualifier("warehouse") AccumuloConnectionPool connectionPool, QueryMetricQueryLogicFactory logicFactory, QueryMetricFactory metricFactory,
-                    MarkingFunctions markingFunctions) {
-        datawave.webservice.query.cache.QueryMetricFactory datawaveQueryMetricFactory = new datawave.webservice.query.cache.QueryMetricFactoryImpl();
-        return new ShardTableQueryMetricHandler(queryMetricHandlerProperties, connectionPool, logicFactory, metricFactory, datawaveQueryMetricFactory,
-                        markingFunctions);
+                    MarkingFunctions markingFunctions, WebClient.Builder webClientBuilder, @Autowired(required = false) JWTTokenHandler jwtTokenHandler) {
+        if (queryMetricHandlerProperties.isUseRemoteQuery()) {
+            return new RemoteShardTableQueryMetricHandler(queryMetricHandlerProperties, connectionPool, logicFactory, metricFactory, markingFunctions,
+                            webClientBuilder, jwtTokenHandler);
+        } else {
+            return new LocalShardTableQueryMetricHandler(queryMetricHandlerProperties, connectionPool, logicFactory, metricFactory,
+                            datawaveQueryMetricFactory(), markingFunctions);
+        }
     }
     
     @Bean

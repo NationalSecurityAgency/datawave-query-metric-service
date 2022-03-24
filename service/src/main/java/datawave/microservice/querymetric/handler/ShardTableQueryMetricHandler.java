@@ -28,15 +28,10 @@ import datawave.microservice.querymetric.QueryMetricsSummaryResponse;
 import datawave.microservice.querymetric.config.QueryMetricHandlerProperties;
 import datawave.microservice.querymetric.factory.QueryMetricQueryLogicFactory;
 import datawave.query.iterator.QueryOptions;
-import datawave.security.authorization.DatawavePrincipal;
 import datawave.security.authorization.DatawaveUser;
-import datawave.security.authorization.SubjectIssuerDNPair;
 import datawave.security.util.AuthorizationsUtil;
 import datawave.security.util.DnUtils;
-import datawave.services.common.connection.AccumuloConnectionFactory.Priority;
 import datawave.services.common.connection.AccumuloConnectionPool;
-import datawave.services.query.cache.ResultsPage;
-import datawave.services.query.logic.QueryLogic;
 import datawave.services.query.util.QueryUtil;
 import datawave.webservice.query.Query;
 import datawave.webservice.query.QueryImpl;
@@ -44,7 +39,6 @@ import datawave.webservice.query.exception.QueryException;
 import datawave.webservice.query.exception.QueryExceptionType;
 import datawave.webservice.query.result.event.EventBase;
 import datawave.webservice.query.result.event.FieldBase;
-import datawave.webservice.query.runner.RunningQuery;
 import datawave.webservice.result.BaseQueryResponse;
 import datawave.webservice.result.BaseResponse;
 import datawave.webservice.result.EventQueryResponseBase;
@@ -91,39 +85,33 @@ import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static datawave.security.authorization.DatawaveUser.UserType.USER;
-
-public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends BaseQueryMetricHandler<T> {
+public abstract class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends BaseQueryMetricHandler<T> {
     private static final Logger log = LoggerFactory.getLogger(ShardTableQueryMetricHandler.class);
     private static final org.apache.log4j.Logger setupLogger = org.apache.log4j.Logger.getLogger(ShardTableQueryMetricHandler.class);
     
-    protected static final String QUERY_METRICS_LOGIC_NAME = "QueryMetricsQuery";
     protected String connectorAuthorizations = null;
     
-    private AccumuloConnectionPool connectionPool;
-    private QueryMetricHandlerProperties queryMetricHandlerProperties;
+    protected AccumuloConnectionPool connectionPool;
+    protected QueryMetricHandlerProperties queryMetricHandlerProperties;
     
     @SuppressWarnings("FieldCanBeLocal")
-    private final String JOB_ID = "job_201109071404_1";
+    protected final String JOB_ID = "job_201109071404_1";
     
-    private final Configuration conf = new Configuration();
-    private final StatusReporter reporter = new MockStatusReporter();
-    private final AtomicBoolean tablesChecked = new AtomicBoolean(false);
-    private AccumuloRecordWriter recordWriter = null;
-    private QueryMetricQueryLogicFactory logicFactory;
-    private QueryMetricFactory metricFactory;
-    private datawave.webservice.query.cache.QueryMetricFactory datawaveQueryMetricFactory;
-    private UIDBuilder<UID> uidBuilder = UID.builder();
-    private DatawavePrincipal datawavePrincipal;
-    private MarkingFunctions markingFunctions;
+    protected final Configuration conf = new Configuration();
+    protected final StatusReporter reporter = new MockStatusReporter();
+    protected final AtomicBoolean tablesChecked = new AtomicBoolean(false);
+    protected AccumuloRecordWriter recordWriter = null;
+    protected QueryMetricQueryLogicFactory logicFactory;
+    protected QueryMetricFactory metricFactory;
+    protected UIDBuilder<UID> uidBuilder = UID.builder();
+    protected MarkingFunctions markingFunctions;
     
     public ShardTableQueryMetricHandler(QueryMetricHandlerProperties queryMetricHandlerProperties,
                     @Qualifier("warehouse") AccumuloConnectionPool connectionPool, QueryMetricQueryLogicFactory logicFactory, QueryMetricFactory metricFactory,
-                    datawave.webservice.query.cache.QueryMetricFactory datawaveQueryMetricFactory, MarkingFunctions markingFunctions) {
+                    MarkingFunctions markingFunctions) {
         this.queryMetricHandlerProperties = queryMetricHandlerProperties;
         this.logicFactory = logicFactory;
         this.metricFactory = metricFactory;
-        this.datawaveQueryMetricFactory = datawaveQueryMetricFactory;
         this.markingFunctions = markingFunctions;
         this.connectionPool = connectionPool;
         queryMetricHandlerProperties.getProperties().entrySet().forEach(e -> conf.set(e.getKey(), e.getValue()));
@@ -147,14 +135,6 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
                 this.connectionPool.returnObject(connector);
             }
         }
-        Collection<String> auths = new ArrayList<>();
-        if (connectorAuthorizations != null) {
-            Arrays.stream(StringUtils.split(connectorAuthorizations, ',')).forEach(a -> {
-                auths.add(a);
-            });
-        }
-        DatawaveUser datawaveUser = new DatawaveUser(SubjectIssuerDNPair.of("admin"), USER, null, auths, null, null, System.currentTimeMillis());
-        datawavePrincipal = new DatawavePrincipal(Collections.singletonList(datawaveUser));
     }
     
     @Override
@@ -242,7 +222,7 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
         return eventFields;
     }
     
-    private Multimap<BulkIngestKey,Value> getEntries(ContentIndexingColumnBasedHandler handler, T updatedQueryMetric, T storedQueryMetric, Date lastUpdated) {
+    protected Multimap<BulkIngestKey,Value> getEntries(ContentIndexingColumnBasedHandler handler, T updatedQueryMetric, T storedQueryMetric, Date lastUpdated) {
         Type type = TypeRegistry.getType("querymetrics");
         ContentQueryMetricsIngestHelper ingestHelper = (ContentQueryMetricsIngestHelper) handler.getContentIndexingDataTypeHelper();
         boolean deleteMode = ingestHelper.getDeleteMode();
@@ -340,7 +320,7 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
         return lastPage;
     }
     
-    private PageMetric combinePageMetrics(PageMetric updated, PageMetric stored) {
+    protected PageMetric combinePageMetrics(PageMetric updated, PageMetric stored) {
         if (stored == null) {
             return updated;
         }
@@ -589,9 +569,9 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
         Query queryImpl = createQuery();
         queryImpl.setBeginDate(begin);
         queryImpl.setEndDate(end);
-        queryImpl.setQueryLogicName(QUERY_METRICS_LOGIC_NAME);
+        queryImpl.setQueryLogicName(queryMetricHandlerProperties.getQueryMetricsLogic());
         queryImpl.setQuery(query);
-        queryImpl.setQueryName(QUERY_METRICS_LOGIC_NAME);
+        queryImpl.setQueryName(queryMetricHandlerProperties.getQueryMetricsLogic());
         queryImpl.setColumnVisibility(queryMetricHandlerProperties.getQueryVisibility());
         queryImpl.setQueryAuthorizations(this.connectorAuthorizations);
         queryImpl.setExpirationDate(DateUtils.addDays(new Date(), 1));
@@ -603,65 +583,67 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
     
     public List<T> getQueryMetrics(BaseResponse response, Query query) {
         List<T> queryMetrics = new ArrayList<>();
-        RunningQuery runningQuery;
         
-        Connector connector = null;
+        String queryId = query.getId().toString();
         try {
-            QueryLogic<?> queryLogic = logicFactory.getObject();
-            Map<String,String> trackingMap = AccumuloConnectionTracking.getTrackingMap(Thread.currentThread().getStackTrace());
-            connector = connectionPool.borrowObject(trackingMap);
-            runningQuery = new RunningQuery(null, connector, Priority.ADMIN, queryLogic, query, query.getQueryAuthorizations(), datawavePrincipal,
-                            this.datawaveQueryMetricFactory);
+            BaseQueryResponse queryResponse = createAndNext(query);
+            queryId = (queryResponse != null && queryResponse.getQueryId() != null) ? queryResponse.getQueryId() : queryId;
             
             boolean done = false;
-            List<Object> objectList = new ArrayList<>();
-            
-            while (!done) {
-                ResultsPage resultsPage = runningQuery.next();
-                
-                if (!resultsPage.getResults().isEmpty()) {
-                    objectList.addAll(resultsPage.getResults());
+            do {
+                if (queryResponse != null) {
+                    List<QueryExceptionType> exceptions = queryResponse.getExceptions();
+                    if (queryResponse.getExceptions() != null && !queryResponse.getExceptions().isEmpty()) {
+                        if (response != null) {
+                            response.setExceptions(new LinkedList<>(exceptions));
+                            response.setHasResults(false);
+                        }
+                        done = true;
+                    }
+                    
+                    if (!(queryResponse instanceof EventQueryResponseBase)) {
+                        if (response != null) {
+                            response.addException(new QueryException("incompatible response")); // TODO: Should this be an IllegalStateException?
+                            response.setHasResults(false);
+                        }
+                        done = true;
+                    }
+                    
+                    EventQueryResponseBase eventQueryResponse = (EventQueryResponseBase) queryResponse;
+                    List<EventBase> eventList = eventQueryResponse.getEvents();
+                    
+                    if (!eventList.isEmpty()) {
+                        for (EventBase<?,?> event : eventList) {
+                            T metric = toMetric(event);
+                            queryMetrics.add(metric);
+                        }
+                        
+                        // request the next page
+                        queryResponse = next(queryId);
+                    } else {
+                        done = true;
+                    }
                 } else {
                     done = true;
                 }
-            }
-            
-            BaseQueryResponse queryResponse = queryLogic.getTransformer(query).createResponse(new ResultsPage(objectList));
-            List<QueryExceptionType> exceptions = queryResponse.getExceptions();
-            
-            if (queryResponse.getExceptions() != null && !queryResponse.getExceptions().isEmpty()) {
-                if (response != null) {
-                    response.setExceptions(new LinkedList<>(exceptions));
-                    response.setHasResults(false);
-                }
-            }
-            
-            if (!(queryResponse instanceof EventQueryResponseBase)) {
-                if (response != null) {
-                    response.addException(new QueryException("incompatible response")); // TODO: Should this be an IllegalStateException?
-                    response.setHasResults(false);
-                }
-            }
-            
-            EventQueryResponseBase eventQueryResponse = (EventQueryResponseBase) queryResponse;
-            List<EventBase> eventList = eventQueryResponse.getEvents();
-            
-            for (EventBase<?,?> event : eventList) {
-                T metric = toMetric(event);
-                queryMetrics.add(metric);
-            }
+            } while (!done);
         } catch (Exception e) {
             log.error(e.getMessage(), e);
             if (response != null) {
                 response.addExceptions(new QueryException(e).getQueryExceptionsInStack());
             }
         } finally {
-            if (connector != null) {
-                this.connectionPool.returnObject(connector);
-            }
+            close(queryId);
         }
+        
         return queryMetrics;
     }
+    
+    protected abstract BaseQueryResponse createAndNext(Query query) throws Exception;
+    
+    protected abstract BaseQueryResponse next(String queryId) throws Exception;
+    
+    protected abstract void close(String queryId);
     
     public T toMetric(EventBase event) {
         SimpleDateFormat sdf_date_time1 = new SimpleDateFormat("yyyyMMdd HHmmss");
@@ -859,7 +841,7 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
     }
     
     @SuppressWarnings("unchecked")
-    private Map<String,TableConfigHelper> getTableConfigs(Configuration conf, String[] tableNames) {
+    protected Map<String,TableConfigHelper> getTableConfigs(Configuration conf, String[] tableNames) {
         Map<String,TableConfigHelper> helperMap = new HashMap<>();
         
         for (String table : tableNames) {
@@ -925,13 +907,13 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
             Query query = createQuery();
             query.setBeginDate(begin);
             query.setEndDate(end);
-            query.setQueryLogicName(QUERY_METRICS_LOGIC_NAME);
+            query.setQueryLogicName(queryMetricHandlerProperties.getQueryMetricsLogic());
             if (onlyCurrentUser) {
                 query.setQuery("USER == '" + datawaveUserShortName + "'");
             } else {
                 query.setQuery("((_Bounded_ = true) && (USER > 'A' && USER < 'ZZZZZZZ'))");
             }
-            query.setQueryName(QUERY_METRICS_LOGIC_NAME);
+            query.setQueryName(queryMetricHandlerProperties.getQueryMetricsLogic());
             query.setColumnVisibility(queryMetricHandlerProperties.getQueryVisibility());
             query.setQueryAuthorizations(AuthorizationsUtil.buildAuthorizationString(authorizations));
             query.setExpirationDate(DateUtils.addDays(new Date(), 1));
