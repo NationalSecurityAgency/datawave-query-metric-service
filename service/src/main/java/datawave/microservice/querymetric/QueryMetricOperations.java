@@ -5,7 +5,6 @@ import com.hazelcast.spring.cache.HazelcastCacheManager;
 import datawave.marking.MarkingFunctions;
 import datawave.microservice.authorization.user.ProxiedUserDetails;
 import datawave.microservice.querymetric.BaseQueryMetric.Lifecycle;
-import datawave.microservice.querymetric.config.QueryMetricHandlerProperties;
 import datawave.microservice.querymetric.config.TimelyProperties;
 import datawave.microservice.querymetric.factory.BaseQueryMetricListResponseFactory;
 import datawave.microservice.querymetric.function.QueryMetricSupplier;
