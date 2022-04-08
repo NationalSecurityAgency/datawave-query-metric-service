@@ -11,8 +11,8 @@ import datawave.microservice.querymetric.function.QueryMetricSupplier;
 import datawave.microservice.querymetric.handler.QueryGeometryHandler;
 import datawave.microservice.querymetric.handler.ShardTableQueryMetricHandler;
 import datawave.microservice.querymetric.handler.SimpleQueryGeometryHandler;
+import datawave.microservice.security.util.DnUtils;
 import datawave.security.authorization.DatawaveUser;
-import datawave.security.util.DnUtils;
 import datawave.util.timely.UdpClient;
 import datawave.webservice.query.exception.DatawaveErrorCode;
 import datawave.webservice.query.exception.QueryException;
@@ -57,8 +57,6 @@ import java.util.concurrent.locks.ReentrantLock;
 import static datawave.microservice.querymetric.QueryMetricOperations.DEFAULT_DATETIME.BEGIN;
 import static datawave.microservice.querymetric.QueryMetricOperations.DEFAULT_DATETIME.END;
 import static datawave.microservice.querymetric.config.HazelcastMetricCacheConfiguration.INCOMING_METRICS;
-import static datawave.security.util.DnUtils.NpeUtils.NPE_OU_PROPERTY;
-import static datawave.security.util.DnUtils.SUBJECT_DN_PATTERN_PROPERTY;
 
 /**
  * The type Query metric operations.
@@ -79,6 +77,7 @@ public class QueryMetricOperations {
     private ReentrantLock caffeineLock = new ReentrantLock();
     
     private final QueryMetricSupplier queryMetricSupplier;
+    private final DnUtils dnUtils;
     
     /**
      * The enum Default datetime.
@@ -109,12 +108,15 @@ public class QueryMetricOperations {
      *            the QueryMetricListResponseFactory
      * @param timelyProperties
      *            the TimelyProperties
+     * @param queryMetricSupplier
+     *            the query metric object supplier
+     * @param dnUtils
+     *            the dnUtils
      */
     @Autowired
     public QueryMetricOperations(@Named("queryMetricCacheManager") CacheManager cacheManager, ShardTableQueryMetricHandler handler,
                     QueryGeometryHandler geometryHandler, MarkingFunctions markingFunctions, BaseQueryMetricListResponseFactory queryMetricListResponseFactory,
-                    TimelyProperties timelyProperties, QueryMetricSupplier queryMetricSupplier, @Value("${datawave.npe-ou-entries:}") String npeOuEntries,
-                    @Value("${datawave.subject-dn-pattern:}") String subjectDnPattern) {
+                    TimelyProperties timelyProperties, QueryMetricSupplier queryMetricSupplier, DnUtils dnUtils) {
         this.handler = handler;
         this.geometryHandler = geometryHandler;
         this.isHazelCast = cacheManager instanceof HazelcastCacheManager;
@@ -123,13 +125,7 @@ public class QueryMetricOperations {
         this.queryMetricListResponseFactory = queryMetricListResponseFactory;
         this.timelyProperties = timelyProperties;
         this.queryMetricSupplier = queryMetricSupplier;
-        
-        if (!npeOuEntries.isEmpty()) {
-            System.setProperty(NPE_OU_PROPERTY, npeOuEntries);
-        }
-        if (!subjectDnPattern.isEmpty()) {
-            System.setProperty(SUBJECT_DN_PATTERN_PROPERTY, subjectDnPattern);
-        }
+        this.dnUtils = dnUtils;
     }
     
     /**
@@ -273,7 +269,7 @@ public class QueryMetricOperations {
                 boolean sameUser = false;
                 if (currentUser != null) {
                     String metricUser = metric.getUser();
-                    String requestingUser = DnUtils.getShortName(currentUser.getPrimaryUser().getName());
+                    String requestingUser = dnUtils.getShortName(currentUser.getPrimaryUser().getName());
                     sameUser = metricUser != null && metricUser.equals(requestingUser);
                     allowAllMetrics = currentUser.getPrimaryUser().getRoles().contains("MetricsAdministrator");
                 }

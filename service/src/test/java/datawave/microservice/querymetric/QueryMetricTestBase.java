@@ -16,10 +16,10 @@ import datawave.microservice.querymetric.config.QueryMetricClientProperties;
 import datawave.microservice.querymetric.config.QueryMetricHandlerProperties;
 import datawave.microservice.querymetric.function.QueryMetricSupplier;
 import datawave.microservice.querymetric.handler.ShardTableQueryMetricHandler;
+import datawave.microservice.security.util.DnUtils;
 import datawave.security.authorization.DatawaveUser;
 import datawave.security.authorization.JWTTokenHandler;
 import datawave.security.authorization.SubjectIssuerDNPair;
-import datawave.security.util.DnUtils;
 import datawave.webservice.query.result.event.DefaultEvent;
 import datawave.webservice.query.result.event.DefaultField;
 import datawave.webservice.query.result.event.EventBase;
@@ -117,6 +117,9 @@ public class QueryMetricTestBase {
     
     @Autowired
     private QueryMetricClientProperties queryMetricClientProperties;
+    
+    @Autowired
+    private DnUtils dnUtils;
     
     protected Cache incomingQueryMetricsCache;
     protected Cache lastWrittenQueryMetricCache;
@@ -300,7 +303,7 @@ public class QueryMetricTestBase {
         m.setDocRanges(300);
         m.setNextCount(300);
         m.setSeekCount(300);
-        m.setUser(DnUtils.getShortName(ALLOWED_CALLER.subjectDN()));
+        m.setUser(dnUtils.getShortName(ALLOWED_CALLER.subjectDN()));
         m.setUserDN(ALLOWED_CALLER.subjectDN());
         m.addPrediction(new BaseQueryMetric.Prediction("PredictionTest", 200.0));
     }

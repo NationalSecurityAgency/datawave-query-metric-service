@@ -8,6 +8,7 @@ import datawave.microservice.querymetric.BaseQueryMetric;
 import datawave.microservice.querymetric.QueryMetricFactory;
 import datawave.microservice.querymetric.config.QueryMetricHandlerProperties;
 import datawave.microservice.querymetric.factory.QueryMetricQueryLogicFactory;
+import datawave.microservice.security.util.DnUtils;
 import datawave.security.authorization.DatawaveUser;
 import datawave.security.authorization.JWTTokenHandler;
 import datawave.services.common.connection.AccumuloConnectionPool;
@@ -37,8 +38,8 @@ public class RemoteShardTableQueryMetricHandler<T extends BaseQueryMetric> exten
     
     public RemoteShardTableQueryMetricHandler(QueryMetricHandlerProperties queryMetricHandlerProperties,
                     @Qualifier("warehouse") AccumuloConnectionPool connectionPool, QueryMetricQueryLogicFactory logicFactory, QueryMetricFactory metricFactory,
-                    MarkingFunctions markingFunctions, WebClient.Builder webClientBuilder, JWTTokenHandler jwtTokenHandler) {
-        super(queryMetricHandlerProperties, connectionPool, logicFactory, metricFactory, markingFunctions);
+                    MarkingFunctions markingFunctions, WebClient.Builder webClientBuilder, JWTTokenHandler jwtTokenHandler, DnUtils dnUtils) {
+        super(queryMetricHandlerProperties, connectionPool, logicFactory, metricFactory, markingFunctions, dnUtils);
         
         this.webClient = webClientBuilder.baseUrl(queryMetricHandlerProperties.getQueryServiceUri()).build();
         this.jwtTokenHandler = jwtTokenHandler;

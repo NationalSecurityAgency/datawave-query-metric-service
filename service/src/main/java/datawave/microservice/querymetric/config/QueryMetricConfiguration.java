@@ -21,6 +21,7 @@ import datawave.microservice.querymetric.handler.QueryGeometryHandler;
 import datawave.microservice.querymetric.handler.RemoteShardTableQueryMetricHandler;
 import datawave.microservice.querymetric.handler.ShardTableQueryMetricHandler;
 import datawave.microservice.querymetric.handler.SimpleQueryGeometryHandler;
+import datawave.microservice.security.util.DnUtils;
 import datawave.security.authorization.JWTTokenHandler;
 import datawave.services.common.connection.AccumuloConnectionPool;
 import datawave.services.query.result.event.DefaultResponseObjectFactory;
@@ -77,13 +78,14 @@ public class QueryMetricConfiguration {
     @ConditionalOnMissingBean
     public ShardTableQueryMetricHandler shardTableQueryMetricHandler(QueryMetricHandlerProperties queryMetricHandlerProperties,
                     @Qualifier("warehouse") AccumuloConnectionPool connectionPool, QueryMetricQueryLogicFactory logicFactory, QueryMetricFactory metricFactory,
-                    MarkingFunctions markingFunctions, WebClient.Builder webClientBuilder, @Autowired(required = false) JWTTokenHandler jwtTokenHandler) {
+                    MarkingFunctions markingFunctions, WebClient.Builder webClientBuilder, @Autowired(required = false) JWTTokenHandler jwtTokenHandler,
+                    DnUtils dnUtils) {
         if (queryMetricHandlerProperties.isUseRemoteQuery()) {
             return new RemoteShardTableQueryMetricHandler(queryMetricHandlerProperties, connectionPool, logicFactory, metricFactory, markingFunctions,
-                            webClientBuilder, jwtTokenHandler);
+                            webClientBuilder, jwtTokenHandler, dnUtils);
         } else {
             return new LocalShardTableQueryMetricHandler(queryMetricHandlerProperties, connectionPool, logicFactory, metricFactory,
-                            datawaveQueryMetricFactory(), markingFunctions);
+                            datawaveQueryMetricFactory(), markingFunctions, dnUtils);
         }
     }
     

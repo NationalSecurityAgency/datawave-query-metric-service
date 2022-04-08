@@ -27,10 +27,10 @@ import datawave.microservice.querymetric.QueryMetricType;
 import datawave.microservice.querymetric.QueryMetricsSummaryResponse;
 import datawave.microservice.querymetric.config.QueryMetricHandlerProperties;
 import datawave.microservice.querymetric.factory.QueryMetricQueryLogicFactory;
+import datawave.microservice.security.util.DnUtils;
 import datawave.query.iterator.QueryOptions;
 import datawave.security.authorization.DatawaveUser;
 import datawave.security.util.AuthorizationsUtil;
-import datawave.security.util.DnUtils;
 import datawave.services.common.connection.AccumuloConnectionPool;
 import datawave.services.query.util.QueryUtil;
 import datawave.webservice.query.Query;
@@ -105,14 +105,16 @@ public abstract class ShardTableQueryMetricHandler<T extends BaseQueryMetric> ex
     protected QueryMetricFactory metricFactory;
     protected UIDBuilder<UID> uidBuilder = UID.builder();
     protected MarkingFunctions markingFunctions;
+    protected DnUtils dnUtils;
     
     public ShardTableQueryMetricHandler(QueryMetricHandlerProperties queryMetricHandlerProperties,
                     @Qualifier("warehouse") AccumuloConnectionPool connectionPool, QueryMetricQueryLogicFactory logicFactory, QueryMetricFactory metricFactory,
-                    MarkingFunctions markingFunctions) {
+                    MarkingFunctions markingFunctions, DnUtils dnUtils) {
         this.queryMetricHandlerProperties = queryMetricHandlerProperties;
         this.logicFactory = logicFactory;
         this.metricFactory = metricFactory;
         this.markingFunctions = markingFunctions;
+        this.dnUtils = dnUtils;
         this.connectionPool = connectionPool;
         queryMetricHandlerProperties.getProperties().entrySet().forEach(e -> conf.set(e.getKey(), e.getValue()));
         
@@ -894,7 +896,7 @@ public abstract class ShardTableQueryMetricHandler<T extends BaseQueryMetric> ex
         try {
             // this method is open to any user
             DatawaveUser datawaveUser = currentUser.getPrimaryUser();
-            String datawaveUserShortName = DnUtils.getShortName(datawaveUser.getName());
+            String datawaveUserShortName = dnUtils.getShortName(datawaveUser.getName());
             Collection<String> userAuths = new ArrayList<>(datawaveUser.getAuths());
             if (connectorAuthorizations != null) {
                 Collection<String> connectorAuths = new ArrayList<>();

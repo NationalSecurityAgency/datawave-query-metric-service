@@ -100,5 +100,10 @@ datawave:
     type-substitutions:
       "[datawave.data.type.DateType]": "datawave.data.type.RawDateType"
 
+  security:
+    util:
+      subjectDnPattern: "(?:^|,)\\s*OU\\s*=\\s*My Department\\s*(?:,|$)"
+      npeOuList: "iamnotaperson,npe,stillnotaperson"
+
 hazelcast.client.enabled: false
 hazelcast.server.enabled: false
