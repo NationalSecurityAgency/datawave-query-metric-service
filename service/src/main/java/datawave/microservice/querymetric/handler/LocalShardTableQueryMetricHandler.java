@@ -34,17 +34,17 @@ import static datawave.security.authorization.DatawaveUser.UserType.USER;
 public class LocalShardTableQueryMetricHandler<T extends BaseQueryMetric> extends ShardTableQueryMetricHandler<T> {
     private static final Logger log = LoggerFactory.getLogger(LocalShardTableQueryMetricHandler.class);
     
-    protected datawave.webservice.query.cache.QueryMetricFactory datawaveQueryMetricFactory;
+    protected datawave.microservice.querymetric.QueryMetricFactory datawaveQueryMetricFactory;
     
     private final DatawavePrincipal datawavePrincipal;
     private final Map<String,CachedQuery> cachedQueryMap = new HashMap<>();
     
     public LocalShardTableQueryMetricHandler(QueryMetricHandlerProperties queryMetricHandlerProperties,
                     @Qualifier("warehouse") AccumuloConnectionPool connectionPool, QueryMetricQueryLogicFactory logicFactory, QueryMetricFactory metricFactory,
-                    datawave.webservice.query.cache.QueryMetricFactory datawaveQueryMetricFactory, MarkingFunctions markingFunctions, DnUtils dnUtils) {
+                    MarkingFunctions markingFunctions, DnUtils dnUtils) {
         super(queryMetricHandlerProperties, connectionPool, logicFactory, metricFactory, markingFunctions, dnUtils);
         
-        this.datawaveQueryMetricFactory = datawaveQueryMetricFactory;
+        this.datawaveQueryMetricFactory = metricFactory;
         
         Collection<String> auths = new ArrayList<>();
         if (connectorAuthorizations != null) {

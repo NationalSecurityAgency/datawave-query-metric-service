@@ -9,7 +9,7 @@ import datawave.microservice.querymetric.config.QueryMetricTransportType;
 import datawave.microservice.querymetric.function.QueryMetricSupplier;
 import datawave.security.authorization.JWTTokenHandler;
 import datawave.webservice.result.VoidResponse;
-import org.apache.commons.lang.builder.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

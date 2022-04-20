@@ -15,7 +15,7 @@ import java.util.List;
  */
 public abstract class BaseQueryMetricHandler<T extends BaseQueryMetric> implements QueryMetricHandler<T> {
     
-    private Logger log = Logger.getLogger(datawave.query.metrics.BaseQueryMetricHandler.class);
+    private Logger log = Logger.getLogger(BaseQueryMetricHandler.class);
     
     public void populateSummary(T metric, QueryMetricSummary bucket) {
         bucket.addQuery();

@@ -3,8 +3,8 @@ package datawave.microservice.querymetric;
 import datawave.microservice.querymetric.BaseQueryMetric.PageMetric;
 import datawave.microservice.querymetric.BaseQueryMetric.Prediction;
 import datawave.webservice.query.QueryImpl.Parameter;
-import org.apache.commons.lang.StringEscapeUtils;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.text.StringEscapeUtils;
 
 import javax.xml.bind.annotation.XmlAccessOrder;
 import javax.xml.bind.annotation.XmlAccessType;
@@ -79,8 +79,8 @@ public class QueryMetricsDetailListResponse extends QueryMetricListResponse {
             builder.append("<td>").append(metric.getQueryId()).append("</td>");
             builder.append("<td>").append(metric.getQueryType()).append("</td>");
             builder.append("<td>").append(metric.getQueryLogic()).append("</td>");
-            builder.append("<td style=\"word-wrap: break-word;\">").append(StringEscapeUtils.escapeHtml(metric.getQuery())).append("</td>");
-            builder.append("<td style=\"word-wrap: break-word;\">").append(StringEscapeUtils.escapeHtml(metric.getPlan())).append("</td>");
+            builder.append("<td style=\"word-wrap: break-word;\">").append(StringEscapeUtils.escapeHtml4(metric.getQuery())).append("</td>");
+            builder.append("<td style=\"word-wrap: break-word;\">").append(StringEscapeUtils.escapeHtml4(metric.getPlan())).append("</td>");
             builder.append("<td>").append(metric.getQueryName()).append("</td>");
             
             String beginDate = metric.getBeginDate() == null ? "" : sdf.format(metric.getBeginDate());
@@ -166,9 +166,9 @@ public class QueryMetricsDetailListResponse extends QueryMetricListResponse {
             builder.append("<td>").append(metric.getLifecycle()).append("</td>");
             builder.append("<td>").append(metric.getElapsedTime()).append("</td>");
             String errorCode = metric.getErrorCode();
-            builder.append("<td style=\"word-wrap: break-word;\">").append((errorCode == null) ? "" : StringEscapeUtils.escapeHtml(errorCode)).append("</td>");
+            builder.append("<td style=\"word-wrap: break-word;\">").append((errorCode == null) ? "" : StringEscapeUtils.escapeHtml4(errorCode)).append("</td>");
             String errorMessage = metric.getErrorMessage();
-            builder.append("<td style=\"word-wrap: break-word;\">").append((errorMessage == null) ? "" : StringEscapeUtils.escapeHtml(errorMessage))
+            builder.append("<td style=\"word-wrap: break-word;\">").append((errorMessage == null) ? "" : StringEscapeUtils.escapeHtml4(errorMessage))
                             .append("</td>");
             builder.append("\n</tr>\n");
         }

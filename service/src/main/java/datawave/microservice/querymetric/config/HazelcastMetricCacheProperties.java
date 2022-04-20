@@ -12,7 +12,11 @@ public class HazelcastMetricCacheProperties {
      * Hazelcast will try to join such clusters together on a regular basis. We want to do so as soon as possible after application startup / registration with
      * the discovery service.
      */
-    private int initialMergeDelaySeconds = 30;
+    private int initialMergeDelaySeconds = 10;
+    /*
+     * Run interval of split-brain/merge process in seconds; i.e how frequently to look for new cluster members
+     */
+    private int mergeNextDelaySeconds = 10;
     /**
      * If true, then the default configuration is skipped and only the XML configuration (plus discovery configuration) is used.
      */
@@ -39,6 +43,14 @@ public class HazelcastMetricCacheProperties {
     
     public void setInitialMergeDelaySeconds(int initialMergeDelaySeconds) {
         this.initialMergeDelaySeconds = initialMergeDelaySeconds;
+    }
+    
+    public int getMergeNextDelaySeconds() {
+        return mergeNextDelaySeconds;
+    }
+    
+    public void setMergeNextDelaySeconds(int mergeNextDelaySeconds) {
+        this.mergeNextDelaySeconds = mergeNextDelaySeconds;
     }
     
     public boolean isSkipDefaultConfiguration() {

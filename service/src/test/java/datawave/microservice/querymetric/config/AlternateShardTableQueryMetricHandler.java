@@ -18,8 +18,7 @@ public class AlternateShardTableQueryMetricHandler extends LocalShardTableQueryM
     public AlternateShardTableQueryMetricHandler(QueryMetricHandlerProperties queryMetricHandlerProperties,
                     @Qualifier("warehouse") AccumuloConnectionPool connectionPool, QueryMetricQueryLogicFactory logicFactory, QueryMetricFactory metricFactory,
                     MarkingFunctions markingFunctions, DnUtils dnUtils) {
-        super(queryMetricHandlerProperties, connectionPool, logicFactory, metricFactory, new datawave.webservice.query.cache.QueryMetricFactoryImpl(),
-                        markingFunctions, dnUtils);
+        super(queryMetricHandlerProperties, connectionPool, logicFactory, metricFactory, markingFunctions, dnUtils);
     }
     
     @Override
