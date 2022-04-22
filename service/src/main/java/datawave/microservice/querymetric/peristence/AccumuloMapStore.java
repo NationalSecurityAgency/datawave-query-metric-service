@@ -5,6 +5,7 @@ import com.hazelcast.core.MapLoader;
 import com.hazelcast.core.MapStore;
 import com.hazelcast.core.MapStoreFactory;
 import datawave.microservice.querymetric.BaseQueryMetric;
+import datawave.microservice.querymetric.MergeLockLifecycleListener;
 import datawave.microservice.querymetric.QueryMetricType;
 import datawave.microservice.querymetric.handler.ShardTableQueryMetricHandler;
 import datawave.microservice.querymetric.QueryMetricUpdate;
@@ -21,7 +22,6 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
-import java.util.concurrent.TimeUnit;
 
 @Component("store")
 @ConditionalOnProperty(name = "hazelcast.server.enabled")
@@ -30,6 +30,7 @@ public class AccumuloMapStore<T extends BaseQueryMetric> extends AccumuloMapLoad
     private static AccumuloMapStore instance;
     private Logger log = LoggerFactory.getLogger(AccumuloMapStore.class);
     private IMap<Object,Object> lastWrittenQueryMetricCache;
+    private MergeLockLifecycleListener mergeLock;
     
     public static class Factory implements MapStoreFactory<String,BaseQueryMetric> {
         @Override
@@ -39,8 +40,9 @@ public class AccumuloMapStore<T extends BaseQueryMetric> extends AccumuloMapLoad
     }
     
     @Autowired
-    public AccumuloMapStore(ShardTableQueryMetricHandler handler) {
+    public AccumuloMapStore(ShardTableQueryMetricHandler handler, MergeLockLifecycleListener mergeLock) {
         this.handler = handler;
+        this.mergeLock = mergeLock;
         AccumuloMapStore.instance = this;
     }
     
@@ -50,7 +52,7 @@ public class AccumuloMapStore<T extends BaseQueryMetric> extends AccumuloMapLoad
     
     @Override
     public void store(String queryId, QueryMetricUpdate<T> updatedMetricHolder) {
-        lastWrittenQueryMetricCache.lock(queryId);
+        this.mergeLock.lock();
         try {
             T updatedMetric = updatedMetricHolder.getMetric();
             QueryMetricType metricType = updatedMetricHolder.getMetricType();
@@ -79,7 +81,7 @@ public class AccumuloMapStore<T extends BaseQueryMetric> extends AccumuloMapLoad
             log.error(e.getMessage(), e);
             throw new RuntimeException(e);
         } finally {
-            lastWrittenQueryMetricCache.unlock(queryId);
+            this.mergeLock.unlock();
         }
     }
     

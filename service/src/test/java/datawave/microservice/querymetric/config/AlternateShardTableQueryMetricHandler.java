@@ -4,6 +4,7 @@ import datawave.marking.MarkingFunctions;
 import datawave.microservice.querymetric.QueryMetricFactory;
 import datawave.microservice.querymetric.factory.QueryMetricQueryLogicFactory;
 import datawave.microservice.querymetric.handler.ContentQueryMetricsIngestHelper;
+import datawave.microservice.querymetric.handler.QueryMetricCombiner;
 import datawave.microservice.querymetric.handler.ShardTableQueryMetricHandler;
 import datawave.webservice.common.connection.AccumuloConnectionPool;
 import datawave.webservice.query.result.event.EventBase;
@@ -16,8 +17,8 @@ public class AlternateShardTableQueryMetricHandler extends ShardTableQueryMetric
     
     public AlternateShardTableQueryMetricHandler(QueryMetricHandlerProperties queryMetricHandlerProperties,
                     @Qualifier("warehouse") AccumuloConnectionPool connectionPool, QueryMetricQueryLogicFactory logicFactory, QueryMetricFactory metricFactory,
-                    MarkingFunctions markingFunctions) {
-        super(queryMetricHandlerProperties, connectionPool, logicFactory, metricFactory, markingFunctions);
+                    MarkingFunctions markingFunctions, QueryMetricCombiner queryMetricCombiner) {
+        super(queryMetricHandlerProperties, connectionPool, logicFactory, metricFactory, markingFunctions, queryMetricCombiner);
     }
     
     @Override

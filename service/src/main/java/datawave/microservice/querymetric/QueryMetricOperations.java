@@ -59,6 +59,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
 import static datawave.microservice.querymetric.QueryMetricOperations.DEFAULT_DATETIME.BEGIN;
@@ -88,6 +89,7 @@ public class QueryMetricOperations {
     private TimelyProperties timelyProperties;
     private BaseQueryMetricListResponseFactory queryMetricListResponseFactory;
     private ReentrantLock caffeineLock = new ReentrantLock();
+    private MergeLockLifecycleListener mergeLock;
     
     /**
      * The enum Default datetime.
@@ -126,16 +128,21 @@ public class QueryMetricOperations {
     @Autowired
     public QueryMetricOperations(@Named("queryMetricCacheManager") CacheManager cacheManager, ShardTableQueryMetricHandler handler,
                     QueryGeometryHandler geometryHandler, MarkingFunctions markingFunctions, BaseQueryMetricListResponseFactory queryMetricListResponseFactory,
-                    TimelyProperties timelyProperties) {
+                    TimelyProperties timelyProperties, MergeLockLifecycleListener mergeLock) {
         this.handler = handler;
         this.geometryHandler = geometryHandler;
-        this.isHazelCast = cacheManager instanceof HazelcastCacheManager;
+        if (cacheManager instanceof HazelcastCacheManager) {
+            this.isHazelCast = true;
+        } else {
+            this.isHazelCast = false;
+        }
         this.cacheManager = cacheManager;
         this.incomingQueryMetricsCache = cacheManager.getCache(INCOMING_METRICS);
         this.lastWrittenQueryMetricCache = cacheManager.getCache(LAST_WRITTEN_METRICS);
         this.markingFunctions = markingFunctions;
         this.queryMetricListResponseFactory = queryMetricListResponseFactory;
         this.timelyProperties = timelyProperties;
+        this.mergeLock = mergeLock;
     }
     
     /**
@@ -202,6 +209,10 @@ public class QueryMetricOperations {
         storeMetric(update.getMetric(), update.getMetricType());
     }
     
+    private String getClusterLocalMemberUuid() {
+        return ((HazelcastCacheManager) this.cacheManager).getHazelcastInstance().getCluster().getLocalMember().getUuid();
+    }
+    
     /**
      * Store metric void response.
      *
@@ -226,7 +237,11 @@ public class QueryMetricOperations {
                 // use a native cache set vs Cache.put to prevent the fetching and return of accumulo value
                 IMap<Object,Object> incomingQueryMetricsCacheHz = ((IMap<Object,Object>) incomingQueryMetricsCache.getNativeCache());
                 
-                incomingQueryMetricsCacheHz.lock(queryId);
+                String clusterMemberUuid = getClusterLocalMemberUuid();
+                
+                // don't lock on the Hazelcast cluster when a merge is in progress
+                this.mergeLock.lock();
+                incomingQueryMetricsCacheHz.lock(queryId, 120, TimeUnit.SECONDS);
                 try {
                     BaseQueryMetric updatedMetric = queryMetric;
                     QueryMetricUpdate lastQueryMetricUpdate = (QueryMetricUpdate) incomingQueryMetricsCacheHz.get(queryId);
@@ -237,7 +252,16 @@ public class QueryMetricOperations {
                     incomingQueryMetricsCacheHz.set(queryId, new QueryMetricUpdate(updatedMetric, metricType));
                     sendMetricsToTimely(updatedMetric, lastPageNum);
                 } finally {
-                    incomingQueryMetricsCacheHz.unlock(queryId);
+                    try {
+                        incomingQueryMetricsCacheHz.unlock(queryId);
+                    } catch (IllegalMonitorStateException e) {
+                        // if clusterMemberUuid changed between lock and unlock, we should forceUnlock
+                        if (!clusterMemberUuid.equals(getClusterLocalMemberUuid())) {
+                            incomingQueryMetricsCacheHz.forceUnlock(queryId);
+                        }
+                    } finally {
+                        this.mergeLock.unlock();
+                    }
                 }
             } else {
                 caffeineLock.lock();
@@ -295,9 +319,9 @@ public class QueryMetricOperations {
         BaseQueryMetricListResponse response = this.queryMetricListResponseFactory.createDetailedResponse();
         List<BaseQueryMetric> metricList = new ArrayList<>();
         try {
-            QueryMetricUpdate metricHolder = incomingQueryMetricsCache.get(queryId, QueryMetricUpdate.class);
-            if (metricHolder != null) {
-                BaseQueryMetric metric = metricHolder.getMetric();
+            QueryMetricUpdate metricUpdate = incomingQueryMetricsCache.get(queryId, QueryMetricUpdate.class);
+            if (metricUpdate != null) {
+                BaseQueryMetric metric = metricUpdate.getMetric();
                 boolean allowAllMetrics = false;
                 boolean sameUser = false;
                 if (currentUser != null) {
@@ -565,7 +589,7 @@ public class QueryMetricOperations {
             cacheStats.setIncomingQueryMetrics(getStats(incomingCacheHz.getLocalMapStats()));
             IMap<Object,Object> lastWrittenCacheHz = ((IMap<Object,Object>) lastWrittenQueryMetricCache.getNativeCache());
             cacheStats.setLastWrittenQueryMetrics(getStats(lastWrittenCacheHz.getLocalMapStats()));
-            cacheStats.setMemberUuid(((HazelcastCacheManager) cacheManager).getHazelcastInstance().getCluster().getLocalMember().getUuid());
+            cacheStats.setMemberUuid(getClusterLocalMemberUuid());
             try {
                 cacheStats.setHost(InetAddress.getLocalHost().getCanonicalHostName());
             } catch (Exception e) {

@@ -1,15 +1,14 @@
 package datawave.microservice.querymetric.config;
 
 import com.github.benmanes.caffeine.cache.CaffeineSpec;
-import datawave.microservice.querymetric.handler.AccumuloConnectionTracking;
 import datawave.query.composite.CompositeMetadataHelper;
 import datawave.query.util.DateIndexHelper;
 import datawave.query.util.DateIndexHelperFactory;
 import datawave.query.util.TypeMetadataHelper;
-import datawave.webservice.common.connection.AccumuloConnectionPool;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.security.Authorizations;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.cache.caffeine.CaffeineCacheManager;
 import org.springframework.context.ApplicationContext;
@@ -58,6 +57,7 @@ public class MetadataHelperConfiguration {
     }
     
     @Bean
+    @ConditionalOnMissingBean
     public DateIndexHelperFactory dateIndexHelperFactory() {
         DateIndexHelper dateIndexHelper = DateIndexHelper.getInstance();
         return new DateIndexHelperFactory() {
@@ -91,11 +91,16 @@ public class MetadataHelperConfiguration {
     }
     
     @Bean
-    public CompositeMetadataHelper compositeMetadataHelper(@Qualifier("warehouse") AccumuloConnectionPool connectionPool,
-                    QueryMetricHandlerProperties queryMetricHandlerProperties, @Qualifier("allMetadataAuths") Set<Authorizations> allMetadataAuths)
+    @Qualifier("metadataTableName")
+    public String metadataTableName(QueryMetricHandlerProperties queryMetricHandlerProperties) {
+        return queryMetricHandlerProperties.getMetadataTableName();
+    }
+    
+    @Bean
+    @ConditionalOnMissingBean
+    public CompositeMetadataHelper compositeMetadataHelper(@Qualifier("warehouse") Connector connector,
+                    @Qualifier("metadataTableName") String metadataTableName, @Qualifier("allMetadataAuths") Set<Authorizations> allMetadataAuths)
                     throws Exception {
-        Map<String,String> trackingMap = AccumuloConnectionTracking.getTrackingMap(Thread.currentThread().getStackTrace());
-        Connector connector = connectionPool.borrowObject(trackingMap);
-        return new CompositeMetadataHelper(connector, queryMetricHandlerProperties.getMetadataTableName(), allMetadataAuths);
+        return new CompositeMetadataHelper(connector, metadataTableName, allMetadataAuths);
     }
 }

@@ -17,6 +17,7 @@
         <url>https://github.com/NationalSecurityAgency/datawave-query-metric-service</url>
     </scm>
     <properties>
+        <spotbugs.excludes.file>${basedir}/spotbugs-exclude.xml</spotbugs.excludes.file>
         <start-class>datawave.microservice.querymetric.QueryMetricService</start-class>
         <version.base-rest-responses>1.2</version.base-rest-responses>
         <version.cache-api>1.1.1</version.cache-api>
@@ -102,6 +103,10 @@
                     <exclusion>
                         <artifactId>*</artifactId>
                         <groupId>org.eclipse.jetty</groupId>
+                    </exclusion>
+                    <exclusion>
+                        <artifactId>xercesImpl</artifactId>
+                        <groupId>xerces</groupId>
                     </exclusion>
                 </exclusions>
             </dependency>

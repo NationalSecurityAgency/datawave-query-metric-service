@@ -1,6 +1,7 @@
 package datawave.microservice.querymetric.config;
 
 import datawave.marking.MarkingFunctions;
+import datawave.microservice.querymetric.handler.QueryMetricCombiner;
 import datawave.microservice.querymetric.handler.ShardTableQueryMetricHandler;
 import datawave.microservice.querymetric.factory.QueryMetricQueryLogicFactory;
 import datawave.webservice.common.connection.AccumuloConnectionPool;
@@ -30,7 +31,8 @@ public class AlternateQueryMetricConfiguration {
     @Bean
     public ShardTableQueryMetricHandler shardTableQueryMetricHandler(QueryMetricHandlerProperties queryMetricHandlerProperties,
                     @Qualifier("warehouse") AccumuloConnectionPool connectionPool, QueryMetricQueryLogicFactory logicFactory, QueryMetricFactory metricFactory,
-                    MarkingFunctions markingFunctions) {
-        return new AlternateShardTableQueryMetricHandler(queryMetricHandlerProperties, connectionPool, logicFactory, metricFactory, markingFunctions);
+                    MarkingFunctions markingFunctions, QueryMetricCombiner queryMetricCombiner) {
+        return new AlternateShardTableQueryMetricHandler(queryMetricHandlerProperties, connectionPool, logicFactory, metricFactory, markingFunctions,
+                        queryMetricCombiner);
     }
 }

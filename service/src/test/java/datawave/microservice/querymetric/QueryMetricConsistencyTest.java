@@ -186,7 +186,7 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
         Assert.assertEquals("yield count should be additive", 200, returnedMetric.getYieldCount());
         Assert.assertEquals("doc ranges count should be additive", 200, returnedMetric.getDocRanges());
         Assert.assertEquals("fi ranges should be additive", 200, returnedMetric.getFiRanges());
-        long lastPageNumReturned = shardTableQueryMetricHandler.getLastPageNumber(returnedMetric);
+        long lastPageNumReturned = queryMetricCombiner.getLastPageNumber(returnedMetric);
         Assert.assertEquals("distributed update should append pages", 2, lastPageNumReturned);
         
         m.setLastUpdated(new Date(now + 1000));

@@ -12,6 +12,7 @@ import datawave.microservice.authorization.preauth.ProxiedEntityX509Filter;
 import datawave.microservice.authorization.user.ProxiedUserDetails;
 import datawave.microservice.querymetric.config.QueryMetricClientProperties;
 import datawave.microservice.querymetric.config.QueryMetricHandlerProperties;
+import datawave.microservice.querymetric.handler.QueryMetricCombiner;
 import datawave.microservice.querymetric.handler.ShardTableQueryMetricHandler;
 import datawave.security.authorization.DatawaveUser;
 import datawave.security.authorization.JWTTokenHandler;
@@ -79,6 +80,9 @@ public class QueryMetricTestBase {
     
     @Autowired
     protected ShardTableQueryMetricHandler shardTableQueryMetricHandler;
+    
+    @Autowired
+    protected QueryMetricCombiner queryMetricCombiner;
     
     @Autowired
     @Named("queryMetricCacheManager")

@@ -15,6 +15,7 @@ import datawave.microservice.querymetric.factory.BaseQueryMetricListResponseFact
 import datawave.microservice.querymetric.factory.QueryMetricListResponseFactory;
 import datawave.microservice.querymetric.factory.QueryMetricQueryLogicFactory;
 import datawave.microservice.querymetric.handler.QueryGeometryHandler;
+import datawave.microservice.querymetric.handler.QueryMetricCombiner;
 import datawave.microservice.querymetric.handler.ShardTableQueryMetricHandler;
 import datawave.microservice.querymetric.handler.SimpleQueryGeometryHandler;
 import datawave.webservice.common.connection.AccumuloConnectionPool;
@@ -28,7 +29,7 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 @EnableConfigurationProperties({QueryMetricHandlerProperties.class, TimelyProperties.class})
-public class QueryMetricConfiguration {
+public class QueryMetricHandlerConfiguration {
     
     @Bean
     public ObjectMapper objectMapper(QueryMetricFactory metricFactory) {
@@ -59,8 +60,15 @@ public class QueryMetricConfiguration {
     @ConditionalOnMissingBean
     public ShardTableQueryMetricHandler shardTableQueryMetricHandler(QueryMetricHandlerProperties queryMetricHandlerProperties,
                     @Qualifier("warehouse") AccumuloConnectionPool connectionPool, QueryMetricQueryLogicFactory logicFactory, QueryMetricFactory metricFactory,
-                    MarkingFunctions markingFunctions) {
-        return new ShardTableQueryMetricHandler(queryMetricHandlerProperties, connectionPool, logicFactory, metricFactory, markingFunctions);
+                    MarkingFunctions markingFunctions, QueryMetricCombiner queryMetricCombiner) {
+        return new ShardTableQueryMetricHandler(queryMetricHandlerProperties, connectionPool, logicFactory, metricFactory, markingFunctions,
+                        queryMetricCombiner);
+    }
+    
+    @Bean
+    @ConditionalOnMissingBean
+    public QueryMetricCombiner queryMetricCombiner() {
+        return new QueryMetricCombiner();
     }
     
     @Bean
