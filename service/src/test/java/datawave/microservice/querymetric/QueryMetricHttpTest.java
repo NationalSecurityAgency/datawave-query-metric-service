@@ -26,6 +26,8 @@ import java.util.List;
 @ActiveProfiles({"QueryMetricHttpTest", "QueryMetricTest", "http", "hazelcast-writebehind"})
 public class QueryMetricHttpTest extends QueryMetricTestBase {
     
+    static {}
+    
     @Autowired
     public List<QueryMetricUpdate> storedMetricUpdates;
     

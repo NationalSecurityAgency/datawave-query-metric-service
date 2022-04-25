@@ -10,8 +10,8 @@ import datawave.webservice.query.exception.DatawaveErrorCode;
 import io.protostuff.LinkedBuffer;
 import io.protostuff.ProtostuffIOUtil;
 import io.protostuff.Schema;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.Marshaller;
@@ -24,7 +24,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class QueryMetricTest {
     
@@ -35,7 +35,7 @@ public class QueryMetricTest {
     private static List<String> positiveSelectors = null;
     private static List<String> proxyServers = null;
     
-    @BeforeClass
+    @BeforeAll
     public static void setup() {
         queryMetric = new QueryMetric();
         markings = new HashMap<>();
@@ -206,7 +206,7 @@ public class QueryMetricTest {
         // host/pageUuid/pageSize/returnTime/callTime/serializationTime/bytesWritten/pageRequested/pageReturned/loginTime
         String pmText1 = "localhost/aa-bb-cc-dd/2500/2000/2200/3000/10000/3500/3600/1000";
         PageMetric pm1 = PageMetric.parse(pmText1);
-        assertEquals("page metrics not equal", pmRef1, pm1);
+        assertEquals(pmRef1, pm1, "page metrics not equal");
     }
     
     @Test
@@ -215,7 +215,7 @@ public class QueryMetricTest {
         // /pageUuid/pageSize/returnTime/callTime/serializationTime/bytesWritten/pageRequested/pageReturned/loginTime
         String pmText1 = "/aa-bb-cc-dd/2500/2000/2200/3000/10000/3500/3600/1000";
         PageMetric pm1 = PageMetric.parse(pmText1);
-        assertEquals("page metrics not equal", pmRef1, pm1);
+        assertEquals(pmRef1, pm1, "page metrics not equal");
     }
     
     @Test
@@ -224,7 +224,7 @@ public class QueryMetricTest {
         // pageSize/returnTime/callTime/serializationTime/bytesWritten/pageRequested/pageReturned
         String pmText1 = "2500/2000/2200/3000/10000/3500/3600";
         PageMetric pm1 = PageMetric.parse(pmText1);
-        assertEquals("page metrics not equal", pmRef1, pm1);
+        assertEquals(pmRef1, pm1, "page metrics not equal");
     }
     
     @Test
@@ -233,7 +233,7 @@ public class QueryMetricTest {
         // pageSize/returnTime/callTime/serializationTime/bytesWritten
         String pmText1 = "2500/2000/2200/3000/10000";
         PageMetric pm1 = PageMetric.parse(pmText1);
-        assertEquals("page metrics not equal", pmRef1, pm1);
+        assertEquals(pmRef1, pm1, "page metrics not equal");
     }
     
     @Test
@@ -242,6 +242,6 @@ public class QueryMetricTest {
         // pageSize/returnTime
         String pmText1 = "2500/2000";
         PageMetric pm1 = PageMetric.parse(pmText1);
-        assertEquals("page metrics not equal", pmRef1, pm1);
+        assertEquals(pmRef1, pm1, "page metrics not equal");
     }
 }

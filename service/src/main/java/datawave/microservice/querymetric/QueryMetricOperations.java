@@ -33,6 +33,7 @@ import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.http.MediaType;
 import org.springframework.messaging.support.MessageBuilder;
+import org.springframework.security.access.annotation.Secured;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -42,7 +43,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.annotation.security.PermitAll;
-import javax.annotation.security.RolesAllowed;
 import javax.inject.Named;
 import java.net.InetAddress;
 import java.text.DecimalFormat;
@@ -149,7 +149,7 @@ public class QueryMetricOperations {
      */
     // Messages that arrive via http/https get placed on the message queue
     // to ensure a quick response and to maintain a single queue of work
-    @RolesAllowed({"Administrator", "JBossAdministrator"})
+    @Secured({"Administrator", "JBossAdministrator"})
     @RequestMapping(path = "/updateMetrics", method = {RequestMethod.POST}, consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE},
                     produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
     public VoidResponse updateMetrics(@RequestBody List<BaseQueryMetric> queryMetrics,
@@ -177,7 +177,7 @@ public class QueryMetricOperations {
      */
     // Messages that arrive via http/https get placed on the message queue
     // to ensure a quick response and to maintain a single queue of work
-    @RolesAllowed({"Administrator", "JBossAdministrator"})
+    @Secured({"Administrator", "JBossAdministrator"})
     @RequestMapping(path = "/updateMetric", method = {RequestMethod.POST}, consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE},
                     produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
     public VoidResponse updateMetric(@RequestBody BaseQueryMetric queryMetric,
@@ -409,7 +409,7 @@ public class QueryMetricOperations {
      * @HTTP 200 success
      * @HTTP 500 internal server error
      */
-    @RolesAllowed({"Administrator", "JBossAdministrator", "MetricsAdministrator"})
+    @Secured({"Administrator", "JBossAdministrator", "MetricsAdministrator"})
     @RequestMapping(path = "/summary/all", method = {RequestMethod.GET},
                     produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE, MediaType.TEXT_HTML_VALUE})
     public QueryMetricsSummaryResponse getQueryMetricsSummary(@AuthenticationPrincipal ProxiedUserDetails currentUser,
@@ -545,7 +545,7 @@ public class QueryMetricOperations {
      * @HTTP 200 success
      * @HTTP 500 internal server error
      */
-    @RolesAllowed({"Administrator", "JBossAdministrator", "MetricsAdministrator"})
+    @Secured({"Administrator", "JBossAdministrator", "MetricsAdministrator"})
     @RequestMapping(path = "/cacheStats", method = {RequestMethod.GET}, produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
     public CacheStats getCacheStats() {
         CacheStats cacheStats = new CacheStats();
