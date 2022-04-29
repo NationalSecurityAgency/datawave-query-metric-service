@@ -10,18 +10,18 @@ import datawave.webservice.query.result.event.EventBase;
 import datawave.webservice.query.result.event.FieldBase;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -35,7 +35,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-@RunWith(SpringRunner.class)
+@ExtendWith(SpringExtension.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles({"QueryMetricConsistencyTest", "QueryMetricTest", "MessageRouting", "hazelcast-writethrough"})
 public class QueryMetricConsistencyTest extends QueryMetricTestBase {
@@ -43,12 +43,12 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
     @Autowired
     AccumuloMapStore mapStore;
     
-    @Before
+    @BeforeEach
     public void setup() {
         super.setup();
     }
     
-    @After
+    @AfterEach
     public void cleanup() {
         super.cleanup();
     }
@@ -75,9 +75,9 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
             // @formatter:on
             ResponseEntity<BaseQueryMetricListResponse> metricResponse = restTemplate.exchange(metricUri.toUri(), HttpMethod.GET, metricRequestEntity,
                             BaseQueryMetricListResponse.class);
-            Assert.assertEquals(1, metricResponse.getBody().getNumResults());
+            Assertions.assertEquals(1, metricResponse.getBody().getNumResults());
             BaseQueryMetric returnedMetric = (BaseQueryMetric) metricResponse.getBody().getResult().get(0);
-            Assert.assertEquals(i + 1, returnedMetric.getPageTimes().size());
+            Assertions.assertEquals(i + 1, returnedMetric.getPageTimes().size());
             assertEquals(m, returnedMetric);
         }
     }
@@ -101,9 +101,9 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
         ResponseEntity<BaseQueryMetricListResponse> metricResponse = restTemplate.exchange(metricUri.toUri(), HttpMethod.GET, metricRequestEntity,
                         BaseQueryMetricListResponse.class);
         
-        Assert.assertEquals(1, metricResponse.getBody().getNumResults());
+        Assertions.assertEquals(1, metricResponse.getBody().getNumResults());
         BaseQueryMetric returnedMetric = (BaseQueryMetric) metricResponse.getBody().getResult().get(0);
-        Assert.assertEquals("lifecycle incorrect", BaseQueryMetric.Lifecycle.CLOSED, returnedMetric.getLifecycle());
+        Assertions.assertEquals(BaseQueryMetric.Lifecycle.CLOSED, returnedMetric.getLifecycle(), "lifecycle incorrect");
         assertEquals(m, returnedMetric);
         
         // send an update with out-of-sequence lifecycle
@@ -119,10 +119,10 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
         metricRequestEntity = createRequestEntity(null, adminUser, null);
         metricResponse = restTemplate.exchange(metricUri.toUri(), HttpMethod.GET, metricRequestEntity, BaseQueryMetricListResponse.class);
         
-        Assert.assertEquals(1, metricResponse.getBody().getNumResults());
+        Assertions.assertEquals(1, metricResponse.getBody().getNumResults());
         returnedMetric = (BaseQueryMetric) metricResponse.getBody().getResult().get(0);
         // metric should have been updated without backtracking on the lifecycle
-        Assert.assertEquals("lifecycle incorrect", BaseQueryMetric.Lifecycle.CLOSED, returnedMetric.getLifecycle());
+        Assertions.assertEquals(BaseQueryMetric.Lifecycle.CLOSED, returnedMetric.getLifecycle(), "lifecycle incorrect");
     }
     
     @Test
@@ -176,18 +176,18 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
         ResponseEntity<BaseQueryMetricListResponse> metricResponse = restTemplate.exchange(metricUri.toUri(), HttpMethod.GET, metricRequestEntity,
                         BaseQueryMetricListResponse.class);
         
-        Assert.assertEquals(1, metricResponse.getBody().getNumResults());
+        Assertions.assertEquals(1, metricResponse.getBody().getNumResults());
         BaseQueryMetric returnedMetric = (BaseQueryMetric) metricResponse.getBody().getResult().get(0);
-        Assert.assertEquals("create date should not change", new Date(now), returnedMetric.getLastUpdated());
-        Assert.assertEquals("last updated should only increase", new Date(now), returnedMetric.getLastUpdated());
-        Assert.assertEquals("source count should be additive", 200, returnedMetric.getSourceCount());
-        Assert.assertEquals("next count should be additive", 200, returnedMetric.getNextCount());
-        Assert.assertEquals("seek count should be additive", 200, returnedMetric.getSeekCount());
-        Assert.assertEquals("yield count should be additive", 200, returnedMetric.getYieldCount());
-        Assert.assertEquals("doc ranges count should be additive", 200, returnedMetric.getDocRanges());
-        Assert.assertEquals("fi ranges should be additive", 200, returnedMetric.getFiRanges());
+        Assertions.assertEquals(new Date(now), returnedMetric.getLastUpdated(), "create date should not change");
+        Assertions.assertEquals(new Date(now), returnedMetric.getLastUpdated(), "last updated should only increase");
+        Assertions.assertEquals(200, returnedMetric.getSourceCount(), "source count should be additive");
+        Assertions.assertEquals(200, returnedMetric.getNextCount(), "next count should be additive");
+        Assertions.assertEquals(200, returnedMetric.getSeekCount(), "seek count should be additive");
+        Assertions.assertEquals(200, returnedMetric.getYieldCount(), "yield count should be additive");
+        Assertions.assertEquals(200, returnedMetric.getDocRanges(), "doc ranges count should be additive");
+        Assertions.assertEquals(200, returnedMetric.getFiRanges(), "fi ranges should be additive");
         long lastPageNumReturned = shardTableQueryMetricHandler.getLastPageNumber(returnedMetric);
-        Assert.assertEquals("distributed update should append pages", 2, lastPageNumReturned);
+        Assertions.assertEquals(2, lastPageNumReturned, "distributed update should append pages");
         
         m.setLastUpdated(new Date(now + 1000));
         m.setSourceCount(1000);
@@ -206,15 +206,15 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
         metricRequestEntity = createRequestEntity(null, adminUser, null);
         metricResponse = restTemplate.exchange(metricUri.toUri(), HttpMethod.GET, metricRequestEntity, BaseQueryMetricListResponse.class);
         
-        Assert.assertEquals(1, metricResponse.getBody().getNumResults());
+        Assertions.assertEquals(1, metricResponse.getBody().getNumResults());
         returnedMetric = (BaseQueryMetric) metricResponse.getBody().getResult().get(0);
-        Assert.assertEquals("last updated should only increase", new Date(now + 1000), returnedMetric.getLastUpdated());
-        Assert.assertEquals("latest source count should be used", 1000, returnedMetric.getSourceCount());
-        Assert.assertEquals("latest next count should be used", 1000, returnedMetric.getNextCount());
-        Assert.assertEquals("latest seek count should be used", 1000, returnedMetric.getSeekCount());
-        Assert.assertEquals("latest yield count should be used", 1000, returnedMetric.getYieldCount());
-        Assert.assertEquals("latest doc ranges count should be used", 1000, returnedMetric.getDocRanges());
-        Assert.assertEquals("latest fi ranges should be used", 1000, returnedMetric.getFiRanges());
+        Assertions.assertEquals(new Date(now + 1000), returnedMetric.getLastUpdated(), "last updated should only increase");
+        Assertions.assertEquals(1000, returnedMetric.getSourceCount(), "latest source count should be used");
+        Assertions.assertEquals(1000, returnedMetric.getNextCount(), "latest next count should be used");
+        Assertions.assertEquals(1000, returnedMetric.getSeekCount(), "latest seek count should be used");
+        Assertions.assertEquals(1000, returnedMetric.getYieldCount(), "latest yield count should be used");
+        Assertions.assertEquals(1000, returnedMetric.getDocRanges(), "latest doc ranges count should be used");
+        Assertions.assertEquals(1000, returnedMetric.getFiRanges(), "latest fi ranges should be used");
     }
     
     @Test
@@ -251,8 +251,8 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
         BaseQueryMetric combinedMetric = shardTableQueryMetricHandler.combineMetrics(storedQueryMetric, updatedQueryMetric, QueryMetricType.COMPLETE);
         QueryMetricTestBase.assertEquals("metric should not change", storedQueryMetricCopy, storedQueryMetric);
         QueryMetricTestBase.assertEquals("metric should not change", updatedQueryMetricCopy, updatedQueryMetricCopy);
-        Assert.assertEquals(BaseQueryMetric.Lifecycle.CLOSED, combinedMetric.getLifecycle());
-        Assert.assertEquals(2, combinedMetric.getNumPages());
+        Assertions.assertEquals(BaseQueryMetric.Lifecycle.CLOSED, combinedMetric.getLifecycle());
+        Assertions.assertEquals(2, combinedMetric.getNumPages());
     }
     
     @Test
@@ -279,25 +279,25 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
         updatedFields.put("DOC_RANGES", "400");
         updatedFields.put("NEXT_COUNT", "400");
         updatedFields.put("SEEK_COUNT", "400");
-        Assert.assertFalse("There should be entries in Accumulo", entries.isEmpty());
+        Assertions.assertFalse(entries.isEmpty(), "There should be entries in Accumulo");
         for (Map.Entry<Key,Value> e : entries) {
             if (e.getKey().getColumnFamily().toString().startsWith("querymetrics")) {
                 String fieldName = fieldSplit(e, 0);
                 if (updatedFields.containsKey(fieldName)) {
-                    Assert.fail(fieldName + " should have been deleted");
+                    Assertions.fail(fieldName + " should have been deleted");
                 }
             }
         }
         
         shardTableQueryMetricHandler.writeMetric(updatedQueryMetric, Collections.singletonList(storedQueryMetric), now, false);
         entries = QueryMetricTestBase.getAccumuloEntries(connector, queryMetricHandlerProperties.getShardTableName(), this.auths);
-        Assert.assertFalse("There should be entries in Accumulo", entries.isEmpty());
+        Assertions.assertFalse(entries.isEmpty(), "There should be entries in Accumulo");
         for (Map.Entry<Key,Value> e : entries) {
             if (e.getKey().getColumnFamily().toString().startsWith("querymetrics")) {
                 String fieldName = fieldSplit(e, 0);
                 String fieldValue = fieldSplit(e, 1);
                 if (updatedFields.containsKey(fieldName)) {
-                    Assert.assertEquals(fieldName + " should have been updated", updatedFields.get(fieldName), fieldValue);
+                    Assertions.assertEquals(updatedFields.get(fieldName), fieldValue, fieldName + " should have been updated");
                 }
             }
         }
@@ -317,23 +317,23 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
         
         mapStore.store(queryId, new QueryMetricUpdate(storedQueryMetric, QueryMetricType.COMPLETE));
         QueryMetricUpdate lastWrittenMetricUpdate = lastWrittenQueryMetricCache.get(queryId, QueryMetricUpdate.class);
-        Assert.assertEquals(storedQueryMetric, lastWrittenMetricUpdate.getMetric());
+        Assertions.assertEquals(storedQueryMetric, lastWrittenMetricUpdate.getMetric());
         
         mapStore.store(queryId, new QueryMetricUpdate(updatedQueryMetric, QueryMetricType.COMPLETE));
         lastWrittenMetricUpdate = lastWrittenQueryMetricCache.get(queryId, QueryMetricUpdate.class);
         // all fields that were changed should be reflected in the updated metric
-        Assert.assertEquals(updatedQueryMetric, lastWrittenMetricUpdate.getMetric());
+        Assertions.assertEquals(updatedQueryMetric, lastWrittenMetricUpdate.getMetric());
         
         Collection<Map.Entry<Key,Value>> entries = QueryMetricTestBase.getAccumuloEntries(connector, queryMetricHandlerProperties.getShardTableName(),
                         this.auths);
         
-        Assert.assertFalse("There should be entries in Accumulo", entries.isEmpty());
+        Assertions.assertFalse(entries.isEmpty(), "There should be entries in Accumulo");
         Set<String> foundFields = new HashSet<>();
         for (Map.Entry<Key,Value> e : entries) {
             if (e.getKey().getColumnFamily().toString().startsWith("querymetrics")) {
                 String fieldName = fieldSplit(e, 0);
                 if (foundFields.contains(fieldName)) {
-                    Assert.fail("duplicate field " + fieldName + " found in Accumulo");
+                    Assertions.fail("duplicate field " + fieldName + " found in Accumulo");
                 } else {
                     foundFields.add(fieldName);
                 }

@@ -1,28 +1,28 @@
 package datawave.microservice.querymetric;
 
 import com.hazelcast.map.IMap;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import java.util.Collections;
 
-@RunWith(SpringRunner.class)
+@ExtendWith(SpringExtension.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles({"HazelcastCachingTest", "QueryMetricTest", "hazelcast-writethrough"})
 public class HazelcastCachingTest extends QueryMetricTestBase {
     
-    @Before
+    @BeforeEach
     public void setup() {
         super.setup();
     }
     
-    @After
+    @AfterEach
     public void cleanup() {
         super.cleanup();
     }
@@ -38,7 +38,7 @@ public class HazelcastCachingTest extends QueryMetricTestBase {
             assertEquals("read through cache failed", m, metricFromReadThroughCache);
         } catch (Exception e) {
             log.error(e.getMessage(), e);
-            Assert.fail(e.getMessage());
+            Assertions.fail(e.getMessage());
         }
     }
     
@@ -60,6 +60,6 @@ public class HazelcastCachingTest extends QueryMetricTestBase {
     @Test
     public void InMemoryAccumuloAndCachesReset() {
         // ensure that the Hazelcast caches and in-memory Accumulo are being reset between each test
-        Assert.assertEquals("accumulo not empty", 0, getAllAccumuloEntries().size());
+        Assertions.assertEquals(0, getAllAccumuloEntries().size(), "accumulo not empty");
     }
 }

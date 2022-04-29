@@ -2,9 +2,9 @@ package datawave.microservice.querymetric;
 
 import datawave.marking.MarkingFunctions;
 import datawave.microservice.querymetric.function.QueryMetricSupplier;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.cache.CacheManager;
@@ -16,7 +16,7 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Profile;
 import org.springframework.messaging.Message;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import javax.inject.Named;
 import java.util.ArrayList;
@@ -29,7 +29,7 @@ import java.util.Map;
  * when a JWTTokenHandler is not AutoWired due to SpringBootTest.WebEnvironment.NONE
  * and ConditionalOnWebApplication in JWTConfiguration
  */
-@RunWith(SpringRunner.class)
+@ExtendWith(SpringExtension.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @ActiveProfiles({"NonWebApplicationMessagingTest", "QueryMetricTest"})
 public class NonWebApplicationMessagingTest {
@@ -48,7 +48,7 @@ public class NonWebApplicationMessagingTest {
     
     private Map<String,String> metricMarkings;
     
-    @Before
+    @BeforeEach
     public void setup() {
         this.metricMarkings = new HashMap<>();
         this.metricMarkings.put(MarkingFunctions.Default.COLUMN_VISIBILITY, "A&C");

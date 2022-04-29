@@ -1,10 +1,10 @@
 package datawave.microservice.querymetric;
 
 import datawave.microservice.querymetric.function.QueryMetricSupplier;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Bean;
@@ -15,13 +15,13 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Profile;
 import org.springframework.messaging.Message;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.web.client.HttpClientErrorException;
 
 import java.util.ArrayList;
 import java.util.List;
 
-@RunWith(SpringRunner.class)
+@ExtendWith(SpringExtension.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles({"QueryMetricHttpTest", "QueryMetricTest", "http", "hazelcast-writebehind"})
 public class QueryMetricHttpTest extends QueryMetricTestBase {
@@ -31,34 +31,34 @@ public class QueryMetricHttpTest extends QueryMetricTestBase {
     @Autowired
     public List<QueryMetricUpdate> storedMetricUpdates;
     
-    @Before
+    @BeforeEach
     public void setup() {
         super.setup();
         storedMetricUpdates.clear();
     }
     
-    @Test(expected = HttpClientErrorException.Forbidden.class)
+    @Test
     public void RejectNonAdminUserForUpdateMetric() throws Exception {
         // @formatter:off
-        client.submit(new QueryMetricClient.Request.Builder()
+        Assertions.assertThrows(HttpClientErrorException.Forbidden.class, () -> client.submit(new QueryMetricClient.Request.Builder()
                 .withMetric(createMetric())
                 .withMetricType(QueryMetricType.COMPLETE)
                 .withUser(nonAdminUser)
-                .build());
+                .build()));
         // @formatter:on
     }
     
-    @Test(expected = HttpClientErrorException.Forbidden.class)
+    @Test
     public void RejectNonAdminUserForUpdateMetrics() throws Exception {
         List<BaseQueryMetric> metrics = new ArrayList<>();
         metrics.add(createMetric());
         metrics.add(createMetric());
         // @formatter:off
-        client.submit(new QueryMetricClient.Request.Builder()
+        Assertions.assertThrows(HttpClientErrorException.Forbidden.class, () -> client.submit(new QueryMetricClient.Request.Builder()
                 .withMetrics(metrics)
                 .withMetricType(QueryMetricType.COMPLETE)
                 .withUser(nonAdminUser)
-                .build());
+                .build()));
         // @formatter:on
     }
     
@@ -101,7 +101,7 @@ public class QueryMetricHttpTest extends QueryMetricTestBase {
                 .withUser(adminUser)
                 .build());
         // @formatter:on
-        Assert.assertEquals(2, storedMetricUpdates.size());
+        Assertions.assertEquals(2, storedMetricUpdates.size());
     }
     
     @Configuration

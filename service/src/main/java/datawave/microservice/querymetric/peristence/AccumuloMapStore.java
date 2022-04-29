@@ -21,7 +21,6 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
-import java.util.concurrent.TimeUnit;
 
 @Component("store")
 @ConditionalOnProperty(name = "hazelcast.server.enabled")
