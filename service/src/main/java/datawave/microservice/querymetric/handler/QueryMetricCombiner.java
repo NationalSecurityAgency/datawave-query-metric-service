@@ -1,6 +1,7 @@
 package datawave.microservice.querymetric.handler;
 
 import datawave.microservice.querymetric.BaseQueryMetric;
+import datawave.microservice.querymetric.BaseQueryMetric.PageMetric;
 import datawave.microservice.querymetric.QueryMetricType;
 
 import java.util.ArrayList;
@@ -8,14 +9,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-public class QueryMetricCombiner {
+public class QueryMetricCombiner<T extends BaseQueryMetric> {
     
-    public BaseQueryMetric combineMetrics(BaseQueryMetric updatedQueryMetric, BaseQueryMetric cachedQueryMetric, QueryMetricType metricType) throws Exception {
+    public T combineMetrics(T updatedQueryMetric, T cachedQueryMetric, QueryMetricType metricType) throws Exception {
         
         // new metrics coming in may be complete or partial updates
         if (cachedQueryMetric != null) {
             // duplicate cachedQueryMetric so that we leave that object unchanged and return a combined metric
-            BaseQueryMetric combinedMetric = cachedQueryMetric.duplicate();
+            T combinedMetric = (T) cachedQueryMetric.duplicate();
             
             // only update once
             if (combinedMetric.getQueryType() == null && updatedQueryMetric.getQueryType() != null) {
@@ -48,8 +49,8 @@ public class QueryMetricCombiner {
             }
             
             // Map page numbers to page metrics and update
-            Map<Long,BaseQueryMetric.PageMetric> storedPagesByPageNumMap = new TreeMap<>();
-            Map<String,BaseQueryMetric.PageMetric> storedPagesByUuidMap = new TreeMap<>();
+            Map<Long,PageMetric> storedPagesByPageNumMap = new TreeMap<>();
+            Map<String,PageMetric> storedPagesByUuidMap = new TreeMap<>();
             if (combinedMetric.getPageTimes() != null) {
                 combinedMetric.getPageTimes().forEach(pm -> {
                     storedPagesByPageNumMap.put(pm.getPageNumber(), pm);
@@ -61,8 +62,8 @@ public class QueryMetricCombiner {
             // combine all of the page metrics from the cached metric and the updated metric
             if (updatedQueryMetric.getPageTimes() != null) {
                 long pageNum = getLastPageNumber(combinedMetric) + 1;
-                for (BaseQueryMetric.PageMetric updatedPage : updatedQueryMetric.getPageTimes()) {
-                    BaseQueryMetric.PageMetric storedPage = null;
+                for (PageMetric updatedPage : updatedQueryMetric.getPageTimes()) {
+                    PageMetric storedPage = null;
                     if (updatedPage.getPageUuid() != null) {
                         storedPage = storedPagesByUuidMap.get(updatedPage.getPageUuid());
                     }
@@ -194,8 +195,8 @@ public class QueryMetricCombiner {
     
     public long getLastPageNumber(BaseQueryMetric m) {
         long lastPage = 0;
-        List<BaseQueryMetric.PageMetric> pageMetrics = m.getPageTimes();
-        for (BaseQueryMetric.PageMetric pm : pageMetrics) {
+        List<PageMetric> pageMetrics = m.getPageTimes();
+        for (PageMetric pm : pageMetrics) {
             if (lastPage == 0 || pm.getPageNumber() > lastPage) {
                 lastPage = pm.getPageNumber();
             }
@@ -203,7 +204,7 @@ public class QueryMetricCombiner {
         return lastPage;
     }
     
-    private BaseQueryMetric.PageMetric combinePageMetrics(BaseQueryMetric.PageMetric updated, BaseQueryMetric.PageMetric stored) {
+    protected PageMetric combinePageMetrics(PageMetric updated, PageMetric stored) {
         if (stored == null) {
             return updated;
         }
@@ -213,7 +214,7 @@ public class QueryMetricCombiner {
             throw new IllegalStateException(
                             "can not combine page metrics with different pageUuids: " + "updated:" + updated.getPageUuid() + " stored:" + stored.getPageUuid());
         }
-        BaseQueryMetric.PageMetric pm = new BaseQueryMetric.PageMetric(stored);
+        PageMetric pm = new PageMetric(stored);
         if (pm.getHost() == null) {
             pm.setHost(updated.getHost());
         }
