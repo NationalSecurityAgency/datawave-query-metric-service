@@ -100,24 +100,24 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
     private static final org.apache.log4j.Logger setupLogger = org.apache.log4j.Logger.getLogger(ShardTableQueryMetricHandler.class);
     
     protected static final String QUERY_METRICS_LOGIC_NAME = "QueryMetricsQuery";
-    protected String connectorAuthorizations = null;
+    protected String connectorAuthorizations;
     
-    private AccumuloConnectionPool connectionPool;
-    private QueryMetricHandlerProperties queryMetricHandlerProperties;
+    protected AccumuloConnectionPool connectionPool;
+    protected QueryMetricHandlerProperties queryMetricHandlerProperties;
     
     @SuppressWarnings("FieldCanBeLocal")
-    private final String JOB_ID = "job_201109071404_1";
+    protected final String JOB_ID = "job_201109071404_1";
     
-    private final Configuration conf = new Configuration();
-    private final StatusReporter reporter = new MockStatusReporter();
-    private final AtomicBoolean tablesChecked = new AtomicBoolean(false);
-    private AccumuloRecordWriter recordWriter = null;
-    private QueryMetricQueryLogicFactory logicFactory;
-    private QueryMetricFactory metricFactory;
-    private UIDBuilder<UID> uidBuilder = UID.builder();
-    private DatawavePrincipal datawavePrincipal;
-    private MarkingFunctions markingFunctions;
-    private QueryMetricCombiner queryMetricCombiner;
+    protected final Configuration conf = new Configuration();
+    protected final StatusReporter reporter = new MockStatusReporter();
+    protected final AtomicBoolean tablesChecked = new AtomicBoolean(false);
+    protected AccumuloRecordWriter recordWriter = null;
+    protected QueryMetricQueryLogicFactory logicFactory;
+    protected QueryMetricFactory metricFactory;
+    protected UIDBuilder<UID> uidBuilder = UID.builder();
+    protected DatawavePrincipal datawavePrincipal;
+    protected MarkingFunctions markingFunctions;
+    protected QueryMetricCombiner queryMetricCombiner;
     
     public ShardTableQueryMetricHandler(QueryMetricHandlerProperties queryMetricHandlerProperties,
                     @Qualifier("warehouse") AccumuloConnectionPool connectionPool, QueryMetricQueryLogicFactory logicFactory, QueryMetricFactory metricFactory,
