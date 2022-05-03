@@ -60,23 +60,28 @@ public class MergeLockLifecycleListener implements LifecycleListener, HazelcastI
     
     // A writeLock around STARTING and STARTED is taken care of in HazelcastMetricCacheConfiguration.hazelcastInstance to
     // ensure that the lastWrittenQueryMetricCache is set into the MapStore before the instance is active and the writeLock is released
+    // multiple log lines are used to keep log/lock sequencing consistent (lock, log, <do stuff>, log, unlock) for paired events
     @Override
     public void stateChanged(LifecycleEvent event) {
-        log.info(event.toString() + " [" + getLocalMemberUuid() + "]");
         switch (event.getState()) {
             case MERGING:
                 // lock for a maximum time so that we don't lock forever
                 this.writeLockRunnable.lock(120000);
+                log.info(event + " [" + getLocalMemberUuid() + "]");
                 break;
             case SHUTTING_DOWN:
                 // lock for a maximum time so that we don't lock forever
                 this.writeLockRunnable.lock(60000);
+                log.info(event + " [" + getLocalMemberUuid() + "]");
                 break;
             case MERGED:
             case MERGE_FAILED:
             case SHUTDOWN:
+                log.info(event + " [" + getLocalMemberUuid() + "]");
                 this.writeLockRunnable.unlock();
                 break;
+            default:
+                log.info(event + " [" + getLocalMemberUuid() + "]");
         }
     }
     
