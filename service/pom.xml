@@ -23,7 +23,6 @@
         <version.datawave>3.21.0-SNAPSHOT</version.datawave>
         <version.hazelcast-kubernetes>2.2.3</version.hazelcast-kubernetes>
         <version.in-memory-accumulo>1.9.3-SNAPSHOT</version.in-memory-accumulo>
-        <version.log4j12>2.17.1</version.log4j12>
         <version.microservice.accumulo-api>1.4-SNAPSHOT</version.microservice.accumulo-api>
         <version.microservice.hazelcast>1.9-SNAPSHOT</version.microservice.hazelcast>
         <version.microservice.metadata-utils>1.10-SNAPSHOT</version.microservice.metadata-utils>
@@ -52,6 +51,10 @@
                         <artifactId>*</artifactId>
                         <groupId>org.eclipse.jetty</groupId>
                     </exclusion>
+                    <exclusion>
+                        <artifactId>slf4j-reload4j</artifactId>
+                        <groupId>org.slf4j</groupId>
+                    </exclusion>
                 </exclusions>
             </dependency>
             <dependency>
@@ -68,7 +71,7 @@
                         <groupId>gov.nsa.datawave.webservices</groupId>
                     </exclusion>
                     <exclusion>
-                        <artifactId>*</artifactId>
+                        <artifactId>slf4j-reload4j</artifactId>
                         <groupId>org.slf4j</groupId>
                     </exclusion>
                     <exclusion>
@@ -122,6 +125,10 @@
                         <artifactId>log4j</artifactId>
                         <groupId>log4j</groupId>
                     </exclusion>
+                    <exclusion>
+                        <artifactId>slf4j-reload4j</artifactId>
+                        <groupId>org.slf4j</groupId>
+                    </exclusion>
                 </exclusions>
             </dependency>
             <dependency>
@@ -153,6 +160,10 @@
                         <artifactId>log4j</artifactId>
                         <groupId>log4j</groupId>
                     </exclusion>
+                    <exclusion>
+                        <artifactId>slf4j-reload4j</artifactId>
+                        <groupId>org.slf4j</groupId>
+                    </exclusion>
                 </exclusions>
             </dependency>
             <dependency>
@@ -180,6 +191,10 @@
                         <artifactId>log4j</artifactId>
                         <groupId>log4j</groupId>
                     </exclusion>
+                    <exclusion>
+                        <artifactId>slf4j-reload4j</artifactId>
+                        <groupId>org.slf4j</groupId>
+                    </exclusion>
                 </exclusions>
             </dependency>
             <dependency>
@@ -202,31 +217,6 @@
                 <groupId>javax.cache</groupId>
                 <artifactId>cache-api</artifactId>
                 <version>${version.cache-api}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.logging.log4j</groupId>
-                <artifactId>log4j-1.2-api</artifactId>
-                <version>${version.log4j12}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.logging.log4j</groupId>
-                <artifactId>log4j-api</artifactId>
-                <version>${version.log4j12}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.logging.log4j</groupId>
-                <artifactId>log4j-core</artifactId>
-                <version>${version.log4j12}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.logging.log4j</groupId>
-                <artifactId>log4j-jul</artifactId>
-                <version>${version.log4j12}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.logging.log4j</groupId>
-                <artifactId>log4j-slf4j-impl</artifactId>
-                <version>${version.log4j12}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.zookeeper</groupId>
@@ -295,10 +285,6 @@
         <dependency>
             <groupId>javax.cache</groupId>
             <artifactId>cache-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-1.2-api</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
