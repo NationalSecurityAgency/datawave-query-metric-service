@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.fasterxml.jackson.module.jaxb.JaxbAnnotationModule;
+import com.github.benmanes.caffeine.cache.CaffeineSpec;
 import datawave.marking.MarkingFunctions;
 import datawave.microservice.querymetric.BaseQueryMetric;
 import datawave.microservice.querymetric.QueryMetricFactory;
@@ -22,6 +23,9 @@ import datawave.microservice.querymetric.handler.RemoteShardTableQueryMetricHand
 import datawave.microservice.querymetric.handler.ShardTableQueryMetricHandler;
 import datawave.microservice.querymetric.handler.SimpleQueryGeometryHandler;
 import datawave.microservice.security.util.DnUtils;
+import datawave.query.util.DateIndexHelper;
+import datawave.query.util.DateIndexHelperFactory;
+import datawave.query.util.TypeMetadataHelper;
 import datawave.security.authorization.JWTTokenHandler;
 import datawave.services.common.connection.AccumuloConnectionPool;
 import datawave.services.query.result.event.DefaultResponseObjectFactory;
@@ -30,9 +34,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.cache.caffeine.CaffeineCacheManager;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.reactive.function.client.WebClient;
+
+import static datawave.query.util.MetadataHelperFactory.ALL_AUTHS_PROPERTY;
 
 @Configuration
 @EnableConfigurationProperties({QueryMetricHandlerProperties.class, TimelyProperties.class})
@@ -91,5 +99,31 @@ public class QueryMetricConfiguration {
     @Bean
     public BaseQueryMetricListResponseFactory queryMetricListResponseFactory() {
         return new QueryMetricListResponseFactory();
+    }
+    
+    // This bean is used via autowire in DateIndexHelper
+    @Bean(name = "dateIndexHelperCacheManager")
+    public CaffeineCacheManager dateIndexHelperCacheManager(QueryMetricHandlerProperties queryMetricHandlerProperties) {
+        System.setProperty(ALL_AUTHS_PROPERTY, queryMetricHandlerProperties.getMetadataDefaultAuths());
+        CaffeineCacheManager caffeineCacheManager = new CaffeineCacheManager();
+        caffeineCacheManager.setCaffeineSpec(CaffeineSpec.parse("maximumSize=1000, expireAfterAccess=24h, expireAfterWrite=24h"));
+        return caffeineCacheManager;
+    }
+    
+    @Bean
+    public DateIndexHelperFactory dateIndexHelperFactory() {
+        DateIndexHelper dateIndexHelper = DateIndexHelper.getInstance();
+        return new DateIndexHelperFactory() {
+            @Override
+            public DateIndexHelper createDateIndexHelper() {
+                return dateIndexHelper;
+            }
+        };
+    }
+    
+    @Bean
+    @Qualifier("queryMetrics")
+    public TypeMetadataHelper.Factory typeMetadataFactory(ApplicationContext context) {
+        return new TypeMetadataHelper.Factory(context);
     }
 }
