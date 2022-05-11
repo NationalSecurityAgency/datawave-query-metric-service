@@ -245,10 +245,15 @@ public class QueryMetricOperations {
                 try {
                     BaseQueryMetric updatedMetric = queryMetric;
                     QueryMetricUpdate lastQueryMetricUpdate = (QueryMetricUpdate) incomingQueryMetricsCacheHz.get(queryId);
-                    if (lastQueryMetricUpdate != null) {
-                        updatedMetric = handler.combineMetrics(updatedMetric, lastQueryMetricUpdate.getMetric(), metricType);
-                        lastPageNum = getLastPageNumber(lastQueryMetricUpdate.getMetric());
+                    if (lastQueryMetricUpdate == null) {
+                        updatedMetric.setNumUpdates(1);
+                    } else {
+                        BaseQueryMetric lastQueryMetric = lastQueryMetricUpdate.getMetric();
+                        updatedMetric.setNumUpdates(lastQueryMetric.getNumUpdates() + 1);
+                        updatedMetric = handler.combineMetrics(updatedMetric, lastQueryMetric, metricType);
+                        lastPageNum = getLastPageNumber(lastQueryMetric);
                     }
+                    handler.populateMetricSelectors(updatedMetric);
                     incomingQueryMetricsCacheHz.set(queryId, new QueryMetricUpdate(updatedMetric, metricType));
                     sendMetricsToTimely(updatedMetric, lastPageNum);
                 } finally {
@@ -268,12 +273,16 @@ public class QueryMetricOperations {
                 try {
                     QueryMetricUpdate lastQueryMetricUpdate = incomingQueryMetricsCache.get(queryId, QueryMetricUpdate.class);
                     BaseQueryMetric updatedMetric = queryMetric;
-                    if (lastQueryMetricUpdate != null) {
+                    if (lastQueryMetricUpdate == null) {
+                        updatedMetric.setNumUpdates(1);
+                    } else {
                         BaseQueryMetric lastQueryMetric = lastQueryMetricUpdate.getMetric();
+                        updatedMetric.setNumUpdates(lastQueryMetric.getNumUpdates() + 1);
                         updatedMetric = handler.combineMetrics(updatedMetric, lastQueryMetric, metricType);
                         handler.writeMetric(updatedMetric, Collections.singletonList(lastQueryMetric), lastQueryMetric.getLastUpdated(), true);
                         lastPageNum = getLastPageNumber(lastQueryMetric);
                     }
+                    handler.populateMetricSelectors(updatedMetric);
                     handler.writeMetric(updatedMetric, Collections.singletonList(updatedMetric), updatedMetric.getLastUpdated(), false);
                     this.incomingQueryMetricsCache.put(queryId, new QueryMetricUpdate(updatedMetric, metricType));
                     sendMetricsToTimely(updatedMetric, lastPageNum);

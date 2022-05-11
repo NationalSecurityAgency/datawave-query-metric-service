@@ -4,6 +4,7 @@ import datawave.marking.MarkingFunctions;
 import datawave.microservice.querymetric.handler.QueryMetricCombiner;
 import datawave.microservice.querymetric.handler.ShardTableQueryMetricHandler;
 import datawave.microservice.querymetric.factory.QueryMetricQueryLogicFactory;
+import datawave.query.language.parser.jexl.LuceneToJexlQueryParser;
 import datawave.webservice.common.connection.AccumuloConnectionPool;
 import datawave.microservice.querymetric.QueryMetricFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -31,8 +32,8 @@ public class AlternateQueryMetricConfiguration {
     @Bean
     public ShardTableQueryMetricHandler shardTableQueryMetricHandler(QueryMetricHandlerProperties queryMetricHandlerProperties,
                     @Qualifier("warehouse") AccumuloConnectionPool connectionPool, QueryMetricQueryLogicFactory logicFactory, QueryMetricFactory metricFactory,
-                    MarkingFunctions markingFunctions, QueryMetricCombiner queryMetricCombiner) {
+                    MarkingFunctions markingFunctions, QueryMetricCombiner queryMetricCombiner, LuceneToJexlQueryParser luceneToJexlQueryParser) {
         return new AlternateShardTableQueryMetricHandler(queryMetricHandlerProperties, connectionPool, logicFactory, metricFactory, markingFunctions,
-                        queryMetricCombiner);
+                        queryMetricCombiner, luceneToJexlQueryParser);
     }
 }

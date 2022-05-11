@@ -18,6 +18,14 @@ import datawave.microservice.querymetric.handler.QueryGeometryHandler;
 import datawave.microservice.querymetric.handler.QueryMetricCombiner;
 import datawave.microservice.querymetric.handler.ShardTableQueryMetricHandler;
 import datawave.microservice.querymetric.handler.SimpleQueryGeometryHandler;
+import datawave.query.language.builder.jexl.JexlTreeBuilder;
+import datawave.query.language.functions.jexl.AtomValuesMatchFunction;
+import datawave.query.language.functions.jexl.Compare;
+import datawave.query.language.functions.jexl.EvaluationOnly;
+import datawave.query.language.functions.jexl.GroupBy;
+import datawave.query.language.functions.jexl.JexlQueryFunction;
+import datawave.query.language.functions.jexl.NoExpansion;
+import datawave.query.language.parser.jexl.LuceneToJexlQueryParser;
 import datawave.webservice.common.connection.AccumuloConnectionPool;
 import datawave.webservice.query.result.event.DefaultResponseObjectFactory;
 import datawave.webservice.query.result.event.ResponseObjectFactory;
@@ -26,6 +34,12 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Set;
 
 @Configuration
 @EnableConfigurationProperties({QueryMetricHandlerProperties.class, TimelyProperties.class})
@@ -60,9 +74,9 @@ public class QueryMetricHandlerConfiguration {
     @ConditionalOnMissingBean
     public ShardTableQueryMetricHandler shardTableQueryMetricHandler(QueryMetricHandlerProperties queryMetricHandlerProperties,
                     @Qualifier("warehouse") AccumuloConnectionPool connectionPool, QueryMetricQueryLogicFactory logicFactory, QueryMetricFactory metricFactory,
-                    MarkingFunctions markingFunctions, QueryMetricCombiner queryMetricCombiner) {
+                    MarkingFunctions markingFunctions, QueryMetricCombiner queryMetricCombiner, LuceneToJexlQueryParser luceneToJexlQueryParser) {
         return new ShardTableQueryMetricHandler(queryMetricHandlerProperties, connectionPool, logicFactory, metricFactory, markingFunctions,
-                        queryMetricCombiner);
+                        queryMetricCombiner, luceneToJexlQueryParser);
     }
     
     @Bean
@@ -80,5 +94,29 @@ public class QueryMetricHandlerConfiguration {
     @Bean
     public BaseQueryMetricListResponseFactory queryMetricListResponseFactory() {
         return new QueryMetricListResponseFactory();
+    }
+    
+    @Bean
+    @ConditionalOnMissingBean
+    public LuceneToJexlQueryParser luceneToJexlQueryParser() {
+        LuceneToJexlQueryParser luceneToJexlQueryParser = new LuceneToJexlQueryParser();
+        Set<String> skipTokenizedUnfieldedFields = new LinkedHashSet<>();
+        skipTokenizedUnfieldedFields.add("DOMETA");
+        luceneToJexlQueryParser.setSkipTokenizeUnfieldedFields(skipTokenizedUnfieldedFields);
+        Map<String,JexlQueryFunction> allowedFunctions = new LinkedHashMap<>();
+        for (JexlQueryFunction f : JexlTreeBuilder.DEFAULT_ALLOWED_FUNCTION_LIST) {
+            allowedFunctions.put(getClass().getCanonicalName(), f);
+        }
+        // next four were missing from Datawave
+        allowedFunctions.put(AtomValuesMatchFunction.class.getCanonicalName(), new AtomValuesMatchFunction());
+        allowedFunctions.put(GroupBy.class.getCanonicalName(), new GroupBy());
+        allowedFunctions.put(NoExpansion.class.getCanonicalName(), new NoExpansion());
+        allowedFunctions.put(Compare.class.getCanonicalName(), new Compare());
+        // configure EvaluationOnly with this parser
+        EvaluationOnly evaluationOnly = new EvaluationOnly();
+        evaluationOnly.setParser(luceneToJexlQueryParser);
+        allowedFunctions.put(EvaluationOnly.class.getCanonicalName(), evaluationOnly);
+        luceneToJexlQueryParser.setAllowedFunctions(new ArrayList<>(allowedFunctions.values()));
+        return luceneToJexlQueryParser;
     }
 }

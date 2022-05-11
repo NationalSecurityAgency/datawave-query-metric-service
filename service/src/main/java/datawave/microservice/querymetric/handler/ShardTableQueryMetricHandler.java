@@ -29,6 +29,10 @@ import datawave.microservice.querymetric.QueryMetricsSummaryResponse;
 import datawave.microservice.querymetric.config.QueryMetricHandlerProperties;
 import datawave.microservice.querymetric.factory.QueryMetricQueryLogicFactory;
 import datawave.query.iterator.QueryOptions;
+import datawave.query.jexl.JexlASTHelper;
+import datawave.query.jexl.visitors.TreeFlatteningRebuildingVisitor;
+import datawave.query.language.parser.jexl.LuceneToJexlQueryParser;
+import datawave.query.language.tree.QueryNode;
 import datawave.security.authorization.DatawavePrincipal;
 import datawave.security.authorization.DatawaveUser;
 import datawave.security.authorization.SubjectIssuerDNPair;
@@ -60,6 +64,8 @@ import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
+import org.apache.commons.jexl2.parser.ASTEQNode;
+import org.apache.commons.jexl2.parser.ASTJexlScript;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.time.DateUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -118,10 +124,11 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
     protected DatawavePrincipal datawavePrincipal;
     protected MarkingFunctions markingFunctions;
     protected QueryMetricCombiner queryMetricCombiner;
+    protected LuceneToJexlQueryParser luceneToJexlQueryParser;
     
     public ShardTableQueryMetricHandler(QueryMetricHandlerProperties queryMetricHandlerProperties,
                     @Qualifier("warehouse") AccumuloConnectionPool connectionPool, QueryMetricQueryLogicFactory logicFactory, QueryMetricFactory metricFactory,
-                    MarkingFunctions markingFunctions, QueryMetricCombiner queryMetricCombiner) {
+                    MarkingFunctions markingFunctions, QueryMetricCombiner queryMetricCombiner, LuceneToJexlQueryParser luceneToJexlQueryParser) {
         this.queryMetricHandlerProperties = queryMetricHandlerProperties;
         this.logicFactory = logicFactory;
         this.metricFactory = metricFactory;
@@ -135,10 +142,10 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
             log.info("creating connector with username:" + queryMetricHandlerProperties.getUsername());
             Map<String,String> trackingMap = AccumuloConnectionTracking.getTrackingMap(Thread.currentThread().getStackTrace());
             connector = connectionPool.borrowObject(trackingMap);
-            connectorAuthorizations = connector.securityOperations().getUserAuthorizations(connector.whoami()).toString();
+            this.connectorAuthorizations = connector.securityOperations().getUserAuthorizations(connector.whoami()).toString();
             reload();
             
-            if (tablesChecked.compareAndSet(false, true)) {
+            if (this.tablesChecked.compareAndSet(false, true)) {
                 verifyTables();
             }
         } catch (Exception e) {
@@ -150,13 +157,14 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
             }
         }
         Collection<String> auths = new ArrayList<>();
-        if (connectorAuthorizations != null) {
-            Arrays.stream(StringUtils.split(connectorAuthorizations, ',')).forEach(a -> {
+        if (this.connectorAuthorizations != null) {
+            Arrays.stream(StringUtils.split(this.connectorAuthorizations, ',')).forEach(a -> {
                 auths.add(a);
             });
         }
         DatawaveUser datawaveUser = new DatawaveUser(SubjectIssuerDNPair.of("admin"), USER, null, auths, null, null, System.currentTimeMillis());
-        datawavePrincipal = new DatawavePrincipal(Collections.singletonList(datawaveUser));
+        this.datawavePrincipal = new DatawavePrincipal(Collections.singletonList(datawaveUser));
+        this.luceneToJexlQueryParser = luceneToJexlQueryParser;
     }
     
     @Override
@@ -230,8 +238,11 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
             contextWriter = null;
             reload();
             // we have no way of knowing if the rejected mutation is this one or a previously
-            // buffered one, but will stop the Exception propagation here just in case
-            if (!(e.getCause() instanceof MutationsRejectedException)) {
+            // buffered one, but will stop the Exception propagation here just in case.
+            // Otherwise, Hazelcast will keep trying to write the metric
+            if (e.getCause() instanceof MutationsRejectedException) {
+                log.error(e.getMessage(), e);
+            } else {
                 throw e;
             }
         } finally {

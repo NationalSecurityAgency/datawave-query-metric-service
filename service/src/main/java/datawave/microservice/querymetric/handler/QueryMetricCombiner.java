@@ -91,7 +91,6 @@ public class QueryMetricCombiner<T extends BaseQueryMetric> {
                 }
             }
             combinedMetric.setPageTimes(new ArrayList<>(storedPagesByPageNumMap.values()));
-            combinedMetric.setNumUpdates(combinedMetric.getNumUpdates() + 1);
             
             // only update once
             if (combinedMetric.getProxyServers() == null && updatedQueryMetric.getProxyServers() != null) {
@@ -187,6 +186,8 @@ public class QueryMetricCombiner<T extends BaseQueryMetric> {
             if (combinedMetric.getPredictions() == null && updatedQueryMetric.getPredictions() != null) {
                 combinedMetric.setPredictions(updatedQueryMetric.getPredictions());
             }
+            // use numUpdates from the updatedQueryMetric
+            combinedMetric.setNumUpdates(updatedQueryMetric.getNumUpdates());
             return combinedMetric;
         } else {
             return updatedQueryMetric;
