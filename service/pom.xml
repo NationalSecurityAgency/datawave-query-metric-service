@@ -21,7 +21,7 @@
         <start-class>datawave.microservice.querymetric.QueryMetricService</start-class>
         <version.base-rest-responses>1.2</version.base-rest-responses>
         <version.cache-api>1.1.1</version.cache-api>
-        <version.datawave>3.16.1</version.datawave>
+        <version.datawave>3.21.1</version.datawave>
         <version.hazelcast-kubernetes>2.2.3</version.hazelcast-kubernetes>
         <version.in-memory-accumulo>1.9.2.3</version.in-memory-accumulo>
         <version.log4j12>2.17.1</version.log4j12>
