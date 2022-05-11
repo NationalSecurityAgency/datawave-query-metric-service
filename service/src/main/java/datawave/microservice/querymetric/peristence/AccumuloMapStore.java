@@ -1,5 +1,6 @@
 package datawave.microservice.querymetric.peristence;
 
+import com.google.common.cache.CacheBuilder;
 import com.hazelcast.core.IMap;
 import com.hazelcast.core.MapLoader;
 import com.hazelcast.core.MapStore;
@@ -9,6 +10,7 @@ import datawave.microservice.querymetric.MergeLockLifecycleListener;
 import datawave.microservice.querymetric.QueryMetricType;
 import datawave.microservice.querymetric.handler.ShardTableQueryMetricHandler;
 import datawave.microservice.querymetric.QueryMetricUpdate;
+import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +24,8 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 @Component("store")
 @ConditionalOnProperty(name = "hazelcast.server.enabled")
@@ -31,6 +35,7 @@ public class AccumuloMapStore<T extends BaseQueryMetric> extends AccumuloMapLoad
     private Logger log = LoggerFactory.getLogger(AccumuloMapStore.class);
     private IMap<Object,Object> lastWrittenQueryMetricCache;
     private MergeLockLifecycleListener mergeLock;
+    private com.google.common.cache.Cache failures;
     
     public static class Factory implements MapStoreFactory<String,BaseQueryMetric> {
         @Override
@@ -43,6 +48,7 @@ public class AccumuloMapStore<T extends BaseQueryMetric> extends AccumuloMapLoad
     public AccumuloMapStore(ShardTableQueryMetricHandler handler, MergeLockLifecycleListener mergeLock) {
         this.handler = handler;
         this.mergeLock = mergeLock;
+        this.failures = CacheBuilder.newBuilder().expireAfterWrite(10, TimeUnit.MINUTES).build();
         AccumuloMapStore.instance = this;
     }
     
@@ -53,8 +59,9 @@ public class AccumuloMapStore<T extends BaseQueryMetric> extends AccumuloMapLoad
     @Override
     public void store(String queryId, QueryMetricUpdate<T> updatedMetricHolder) {
         this.mergeLock.lock();
+        T updatedMetric = null;
         try {
-            T updatedMetric = updatedMetricHolder.getMetric();
+            updatedMetric = updatedMetricHolder.getMetric();
             QueryMetricType metricType = updatedMetricHolder.getMetricType();
             QueryMetricUpdate<T> lastQueryMetricUpdate = (QueryMetricUpdate<T>) lastWrittenQueryMetricCache.get(queryId);
             if (lastQueryMetricUpdate != null) {
@@ -77,11 +84,30 @@ public class AccumuloMapStore<T extends BaseQueryMetric> extends AccumuloMapLoad
             }
             handler.writeMetric(updatedMetric, Collections.singletonList(updatedMetric), updatedMetric.getLastUpdated(), false);
             lastWrittenQueryMetricCache.set(queryId, new QueryMetricUpdate(updatedMetric));
+            failures.invalidate(queryId);
         } catch (Exception e) {
-            log.error(e.getMessage(), e);
-            throw new RuntimeException(e);
+            handleException(queryId, updatedMetric, e);
         } finally {
             this.mergeLock.unlock();
+        }
+    }
+    
+    private void handleException(String queryId, T metric, Exception e) {
+        Integer numFailures = 1;
+        try {
+            numFailures = (Integer) this.failures.get(queryId, () -> 0) + 1;
+        } catch (ExecutionException e1) {
+            log.error(e1.getMessage(), e1);
+        }
+        if (numFailures < 3) {
+            // track the number of failures and throw an exception
+            // Hazelcast will continue trying to write the failed entry
+            this.failures.put(queryId, numFailures);
+            throw new RuntimeException(e);
+        } else {
+            // stop trying by not propagating the exception
+            log.error("writing metric to accumulo: " + queryId + " failed 3 times, will stop trying: " + metric, e);
+            this.failures.invalidate(queryId);
         }
     }
     
