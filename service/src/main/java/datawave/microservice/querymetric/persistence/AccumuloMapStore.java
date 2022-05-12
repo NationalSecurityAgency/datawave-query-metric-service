@@ -1,4 +1,4 @@
-package datawave.microservice.querymetric.peristence;
+package datawave.microservice.querymetric.persistence;
 
 import com.google.common.cache.CacheBuilder;
 import com.hazelcast.core.IMap;
@@ -10,7 +10,6 @@ import datawave.microservice.querymetric.MergeLockLifecycleListener;
 import datawave.microservice.querymetric.QueryMetricType;
 import datawave.microservice.querymetric.handler.ShardTableQueryMetricHandler;
 import datawave.microservice.querymetric.QueryMetricUpdate;
-import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

@@ -1,4 +1,4 @@
-package datawave.microservice.querymetric.peristence;
+package datawave.microservice.querymetric.persistence;
 
 import com.hazelcast.core.MapLoader;
 import com.hazelcast.core.MapStoreFactory;
