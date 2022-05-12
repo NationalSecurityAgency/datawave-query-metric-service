@@ -11,6 +11,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
 
 import javax.validation.constraints.Min;
+import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.Positive;
 import java.nio.charset.Charset;
 import java.util.Arrays;
@@ -25,11 +26,17 @@ import java.util.TreeSet;
 @ConfigurationProperties(prefix = "datawave.query.metric.handler")
 public class QueryMetricHandlerProperties {
     
+    @NotBlank
     protected String defaultMetricVisibility;
+    @NotBlank
     protected String queryVisibility;
+    @NotBlank
     protected String zookeepers;
+    @NotBlank
     protected String instanceName;
+    @NotBlank
     protected String username;
+    @NotBlank
     protected String password;
     protected int numShards = 10;
     protected String shardTableName = "QueryMetrics_e";
