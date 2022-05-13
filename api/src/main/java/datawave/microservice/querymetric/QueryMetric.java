@@ -182,6 +182,8 @@ public class QueryMetric extends BaseQueryMetric implements Serializable, Messag
         buf.append(" Query Type: ").append(queryType);
         buf.append(" Query Logic: ").append(queryLogic);
         buf.append(" Query Name: ").append(queryName);
+        buf.append(" Positive Selectors: ").append(this.getPositiveSelectors());
+        buf.append(" Negative Selectors: ").append(this.getNegativeSelectors());
         buf.append(" Authorizations: ").append(queryAuthorizations);
         buf.append(" ColumnVisibility: ").append(this.columnVisibility);
         buf.append(" Begin Date: ").append(this.beginDate);
