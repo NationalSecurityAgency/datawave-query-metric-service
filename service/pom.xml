@@ -8,7 +8,7 @@
         <relativePath />
     </parent>
     <artifactId>query-metric-service</artifactId>
-    <version>1.5.0</version>
+    <version>1.5.1-SNAPSHOT</version>
     <description>DATAWAVE Query Metric Microservice</description>
     <url>https://code.nsa.gov/datawave-query-metric-service</url>
     <scm>
