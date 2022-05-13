@@ -29,10 +29,7 @@ import datawave.microservice.querymetric.QueryMetricsSummaryResponse;
 import datawave.microservice.querymetric.config.QueryMetricHandlerProperties;
 import datawave.microservice.querymetric.factory.QueryMetricQueryLogicFactory;
 import datawave.query.iterator.QueryOptions;
-import datawave.query.jexl.JexlASTHelper;
-import datawave.query.jexl.visitors.TreeFlatteningRebuildingVisitor;
 import datawave.query.language.parser.jexl.LuceneToJexlQueryParser;
-import datawave.query.language.tree.QueryNode;
 import datawave.security.authorization.DatawavePrincipal;
 import datawave.security.authorization.DatawaveUser;
 import datawave.security.authorization.SubjectIssuerDNPair;
@@ -64,8 +61,6 @@ import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
-import org.apache.commons.jexl2.parser.ASTEQNode;
-import org.apache.commons.jexl2.parser.ASTJexlScript;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.time.DateUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -124,11 +119,11 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
     protected DatawavePrincipal datawavePrincipal;
     protected MarkingFunctions markingFunctions;
     protected QueryMetricCombiner queryMetricCombiner;
-    protected LuceneToJexlQueryParser luceneToJexlQueryParser;
     
     public ShardTableQueryMetricHandler(QueryMetricHandlerProperties queryMetricHandlerProperties,
                     @Qualifier("warehouse") AccumuloConnectionPool connectionPool, QueryMetricQueryLogicFactory logicFactory, QueryMetricFactory metricFactory,
                     MarkingFunctions markingFunctions, QueryMetricCombiner queryMetricCombiner, LuceneToJexlQueryParser luceneToJexlQueryParser) {
+        super(luceneToJexlQueryParser);
         this.queryMetricHandlerProperties = queryMetricHandlerProperties;
         this.logicFactory = logicFactory;
         this.metricFactory = metricFactory;
@@ -164,7 +159,6 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
         }
         DatawaveUser datawaveUser = new DatawaveUser(SubjectIssuerDNPair.of("admin"), USER, null, auths, null, null, System.currentTimeMillis());
         this.datawavePrincipal = new DatawavePrincipal(Collections.singletonList(datawaveUser));
-        this.luceneToJexlQueryParser = luceneToJexlQueryParser;
     }
     
     @Override

@@ -15,7 +15,6 @@ import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 
@@ -25,6 +24,11 @@ import java.util.List;
 public abstract class BaseQueryMetricHandler<T extends BaseQueryMetric> implements QueryMetricHandler<T> {
     
     private Logger log = Logger.getLogger(BaseQueryMetricHandler.class);
+    protected LuceneToJexlQueryParser luceneToJexlQueryParser;
+    
+    public BaseQueryMetricHandler(LuceneToJexlQueryParser luceneToJexlQueryParser) {
+        this.luceneToJexlQueryParser = luceneToJexlQueryParser;
+    }
     
     public void populateSummary(T metric, QueryMetricSummary bucket) {
         bucket.addQuery();
@@ -101,11 +105,9 @@ public abstract class BaseQueryMetricHandler<T extends BaseQueryMetric> implemen
                     try {
                         // Parse and flatten here before visitors visit.
                         jexlScript = JexlASTHelper.parseAndFlattenJexlQuery(query);
-                    } catch (Throwable t1) {
+                    } catch (Exception e) {
                         // not JEXL, try LUCENE
-                        LuceneToJexlQueryParser luceneToJexlParser = new LuceneToJexlQueryParser();
-                        QueryNode node = luceneToJexlParser.parse(query);
-                        // QueryNode node = this.luceneToJexlQueryParser.parse(query);
+                        QueryNode node = this.luceneToJexlQueryParser.parse(query);
                         String jexlQuery = node.getOriginalQuery();
                         jexlScript = JexlASTHelper.parseAndFlattenJexlQuery(jexlQuery);
                     }

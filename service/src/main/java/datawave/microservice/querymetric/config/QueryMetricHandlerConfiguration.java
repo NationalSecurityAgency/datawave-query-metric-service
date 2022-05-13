@@ -103,15 +103,11 @@ public class QueryMetricHandlerConfiguration {
         Set<String> skipTokenizedUnfieldedFields = new LinkedHashSet<>();
         skipTokenizedUnfieldedFields.add("DOMETA");
         luceneToJexlQueryParser.setSkipTokenizeUnfieldedFields(skipTokenizedUnfieldedFields);
+        
         Map<String,JexlQueryFunction> allowedFunctions = new LinkedHashMap<>();
         for (JexlQueryFunction f : JexlTreeBuilder.DEFAULT_ALLOWED_FUNCTION_LIST) {
-            allowedFunctions.put(getClass().getCanonicalName(), f);
+            allowedFunctions.put(f.getClass().getCanonicalName(), f);
         }
-        // next four were missing from Datawave
-        allowedFunctions.put(AtomValuesMatchFunction.class.getCanonicalName(), new AtomValuesMatchFunction());
-        allowedFunctions.put(GroupBy.class.getCanonicalName(), new GroupBy());
-        allowedFunctions.put(NoExpansion.class.getCanonicalName(), new NoExpansion());
-        allowedFunctions.put(Compare.class.getCanonicalName(), new Compare());
         // configure EvaluationOnly with this parser
         EvaluationOnly evaluationOnly = new EvaluationOnly();
         evaluationOnly.setParser(luceneToJexlQueryParser);
