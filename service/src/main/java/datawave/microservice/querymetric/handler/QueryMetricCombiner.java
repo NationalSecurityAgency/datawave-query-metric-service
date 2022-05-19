@@ -3,6 +3,8 @@ package datawave.microservice.querymetric.handler;
 import datawave.microservice.querymetric.BaseQueryMetric;
 import datawave.microservice.querymetric.BaseQueryMetric.PageMetric;
 import datawave.microservice.querymetric.QueryMetricType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -11,12 +13,15 @@ import java.util.TreeMap;
 
 public class QueryMetricCombiner<T extends BaseQueryMetric> {
     
+    private final Logger log = LoggerFactory.getLogger(getClass());
+    
     public T combineMetrics(T updatedQueryMetric, T cachedQueryMetric, QueryMetricType metricType) throws Exception {
         
+        T combinedMetric = updatedQueryMetric;
         // new metrics coming in may be complete or partial updates
         if (cachedQueryMetric != null) {
             // duplicate cachedQueryMetric so that we leave that object unchanged and return a combined metric
-            T combinedMetric = (T) cachedQueryMetric.duplicate();
+            combinedMetric = (T) cachedQueryMetric.duplicate();
             
             // only update once
             if (combinedMetric.getQueryType() == null && updatedQueryMetric.getQueryType() != null) {
@@ -188,10 +193,9 @@ public class QueryMetricCombiner<T extends BaseQueryMetric> {
             }
             // use numUpdates from the updatedQueryMetric
             combinedMetric.setNumUpdates(updatedQueryMetric.getNumUpdates());
-            return combinedMetric;
-        } else {
-            return updatedQueryMetric;
         }
+        log.trace("Combined metrics cached: " + cachedQueryMetric + " updated: " + updatedQueryMetric + " combined: " + combinedMetric);
+        return combinedMetric;
     }
     
     public long getLastPageNumber(BaseQueryMetric m) {
