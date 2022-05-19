@@ -46,6 +46,10 @@ public class QueryMetricHandlerProperties {
     protected String metadataDefaultAuths = "";
     protected boolean metadataTableFrequencyEnabled = true;
     protected boolean createTables = true;
+    @Positive
+    protected long maxWriteMilliseconds = 60000l;
+    @Positive
+    protected long maxReadMilliseconds = 60000l;
     protected List<String> fatalErrors = Collections.singletonList("UUID_MISSING");
     protected String dateField = "CREATE_DATE";
     protected String dateFormat = "yyyyMMdd HHmmss.S";
@@ -290,6 +294,22 @@ public class QueryMetricHandlerProperties {
     
     public void setCreateTables(boolean createTables) {
         this.createTables = createTables;
+    }
+    
+    public long getMaxReadMilliseconds() {
+        return maxReadMilliseconds;
+    }
+    
+    public void setMaxReadMilliseconds(long maxReadMilliseconds) {
+        this.maxReadMilliseconds = maxReadMilliseconds;
+    }
+    
+    public long getMaxWriteMilliseconds() {
+        return maxWriteMilliseconds;
+    }
+    
+    public void setMaxWriteMilliseconds(long maxWriteMilliseconds) {
+        this.maxWriteMilliseconds = maxWriteMilliseconds;
     }
     
     public List<String> getFatalErrors() {

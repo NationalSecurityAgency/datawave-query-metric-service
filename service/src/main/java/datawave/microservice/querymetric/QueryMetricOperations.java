@@ -237,8 +237,6 @@ public class QueryMetricOperations {
                 // use a native cache set vs Cache.put to prevent the fetching and return of accumulo value
                 IMap<Object,Object> incomingQueryMetricsCacheHz = ((IMap<Object,Object>) incomingQueryMetricsCache.getNativeCache());
                 
-                String clusterMemberUuid = getClusterLocalMemberUuid();
-                
                 // don't lock on the Hazelcast cluster when a merge is in progress
                 this.mergeLock.lock();
                 incomingQueryMetricsCacheHz.lock(queryId, 120, TimeUnit.SECONDS);
@@ -259,11 +257,8 @@ public class QueryMetricOperations {
                 } finally {
                     try {
                         incomingQueryMetricsCacheHz.unlock(queryId);
-                    } catch (IllegalMonitorStateException e) {
-                        // if clusterMemberUuid changed between lock and unlock, we should forceUnlock
-                        if (!clusterMemberUuid.equals(getClusterLocalMemberUuid())) {
-                            incomingQueryMetricsCacheHz.forceUnlock(queryId);
-                        }
+                    } catch (Exception e) {
+                        incomingQueryMetricsCacheHz.forceUnlock(queryId);
                     } finally {
                         this.mergeLock.unlock();
                     }

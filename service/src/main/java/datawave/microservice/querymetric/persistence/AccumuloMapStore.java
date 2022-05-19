@@ -8,6 +8,7 @@ import com.hazelcast.core.MapStoreFactory;
 import datawave.microservice.querymetric.BaseQueryMetric;
 import datawave.microservice.querymetric.MergeLockLifecycleListener;
 import datawave.microservice.querymetric.QueryMetricType;
+import datawave.microservice.querymetric.config.QueryMetricHandlerProperties;
 import datawave.microservice.querymetric.handler.ShardTableQueryMetricHandler;
 import datawave.microservice.querymetric.QueryMetricUpdate;
 import org.slf4j.Logger;
@@ -24,7 +25,11 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 @Component("store")
 @ConditionalOnProperty(name = "hazelcast.server.enabled")
@@ -34,6 +39,7 @@ public class AccumuloMapStore<T extends BaseQueryMetric> extends AccumuloMapLoad
     private Logger log = LoggerFactory.getLogger(AccumuloMapStore.class);
     private IMap<Object,Object> lastWrittenQueryMetricCache;
     private MergeLockLifecycleListener mergeLock;
+    private QueryMetricHandlerProperties queryMetricHandlerProperties;
     private com.google.common.cache.Cache failures;
     
     public static class Factory implements MapStoreFactory<String,BaseQueryMetric> {
@@ -44,9 +50,11 @@ public class AccumuloMapStore<T extends BaseQueryMetric> extends AccumuloMapLoad
     }
     
     @Autowired
-    public AccumuloMapStore(ShardTableQueryMetricHandler handler, MergeLockLifecycleListener mergeLock) {
+    public AccumuloMapStore(ShardTableQueryMetricHandler handler, QueryMetricHandlerProperties queryMetricHandlerProperties,
+                    MergeLockLifecycleListener mergeLock) {
         this.handler = handler;
         this.mergeLock = mergeLock;
+        this.queryMetricHandlerProperties = queryMetricHandlerProperties;
         this.failures = CacheBuilder.newBuilder().expireAfterWrite(10, TimeUnit.MINUTES).build();
         AccumuloMapStore.instance = this;
     }
@@ -57,9 +65,13 @@ public class AccumuloMapStore<T extends BaseQueryMetric> extends AccumuloMapLoad
     
     @Override
     public void store(String queryId, QueryMetricUpdate<T> updatedMetricHolder) {
-        this.mergeLock.lock();
+        long startTime = System.currentTimeMillis();
+        long maxElapsedTime = this.queryMetricHandlerProperties.getMaxWriteMilliseconds();
         T updatedMetric = null;
+        this.mergeLock.lock();
         try {
+            ExecutorService executor = Executors.newSingleThreadExecutor();
+            
             updatedMetric = updatedMetricHolder.getMetric();
             QueryMetricType metricType = updatedMetricHolder.getMetricType();
             QueryMetricUpdate<T> lastQueryMetricUpdate = (QueryMetricUpdate<T>) lastWrittenQueryMetricCache.get(queryId);
@@ -69,7 +81,23 @@ public class AccumuloMapStore<T extends BaseQueryMetric> extends AccumuloMapLoad
                 // if for some reason, lastQueryMetric doesn't have lastUpdated set,
                 // we can not delete the previous entries and will cause an NPE if we try
                 if (lastQueryMetric.getLastUpdated() != null) {
-                    handler.writeMetric(updatedMetric, Collections.singletonList(lastQueryMetric), lastQueryMetric.getLastUpdated(), true);
+                    final T updatedMetricFinal = updatedMetric;
+                    Future<Object> future = executor.submit(() -> {
+                        try {
+                            handler.writeMetric(updatedMetricFinal, Collections.singletonList(lastQueryMetric), lastQueryMetric.getLastUpdated(), true);
+                            return null;
+                        } catch (Exception e) {
+                            return e;
+                        }
+                    });
+                    try {
+                        Exception exception = (Exception) future.get(maxElapsedTime - (System.currentTimeMillis() - startTime), TimeUnit.MILLISECONDS);
+                        if (exception != null) {
+                            throw exception;
+                        }
+                    } finally {
+                        future.cancel(true);
+                    }
                 }
             }
             if (log.isTraceEnabled()) {
@@ -81,7 +109,24 @@ public class AccumuloMapStore<T extends BaseQueryMetric> extends AccumuloMapLoad
             if (updatedMetric.getLastUpdated() == null) {
                 updatedMetric.setLastUpdated(new Date());
             }
-            handler.writeMetric(updatedMetric, Collections.singletonList(updatedMetric), updatedMetric.getLastUpdated(), false);
+            
+            final T updatedMetricFinal = updatedMetric;
+            Future<Object> future = executor.submit(() -> {
+                try {
+                    handler.writeMetric(updatedMetricFinal, Collections.singletonList(updatedMetricFinal), updatedMetricFinal.getLastUpdated(), false);
+                    return null;
+                } catch (Exception e) {
+                    return e;
+                }
+            });
+            try {
+                Exception exception = (Exception) future.get(maxElapsedTime - (System.currentTimeMillis() - startTime), TimeUnit.MILLISECONDS);
+                if (exception != null) {
+                    throw exception;
+                }
+            } finally {
+                future.cancel(true);
+            }
             lastWrittenQueryMetricCache.set(queryId, new QueryMetricUpdate(updatedMetric));
             failures.invalidate(queryId);
         } catch (Exception e) {
@@ -92,21 +137,25 @@ public class AccumuloMapStore<T extends BaseQueryMetric> extends AccumuloMapLoad
     }
     
     private void handleException(String queryId, T metric, Exception e) {
-        Integer numFailures = 1;
-        try {
-            numFailures = (Integer) this.failures.get(queryId, () -> 0) + 1;
-        } catch (ExecutionException e1) {
-            log.error(e1.getMessage(), e1);
-        }
-        if (numFailures < 3) {
-            // track the number of failures and throw an exception
-            // Hazelcast will continue trying to write the failed entry
-            this.failures.put(queryId, numFailures);
-            throw new RuntimeException(e);
+        if (e instanceof TimeoutException || e instanceof ExecutionException) {
+            log.error("Throwing " + e.getClass().getName() + " to make Hazelcast retry store: " + e.getMessage());
         } else {
-            // stop trying by not propagating the exception
-            log.error("writing metric to accumulo: " + queryId + " failed 3 times, will stop trying: " + metric, e);
-            this.failures.invalidate(queryId);
+            Integer numFailures = 1;
+            try {
+                numFailures = (Integer) this.failures.get(queryId, () -> 0) + 1;
+            } catch (ExecutionException e1) {
+                log.error(e1.getMessage(), e1);
+            }
+            if (numFailures < 3) {
+                // track the number of failures and throw an exception
+                // Hazelcast will continue trying to write the failed entry
+                this.failures.put(queryId, numFailures);
+                throw new RuntimeException(e);
+            } else {
+                // stop trying by not propagating the exception
+                log.error("writing metric to accumulo: " + queryId + " failed 3 times, will stop trying: " + metric, e);
+                this.failures.invalidate(queryId);
+            }
         }
     }
     

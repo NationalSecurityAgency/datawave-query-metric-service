@@ -40,7 +40,6 @@ import datawave.webservice.common.connection.AccumuloConnectionPool;
 import datawave.webservice.query.Query;
 import datawave.webservice.query.QueryImpl;
 import datawave.webservice.query.cache.ResultsPage;
-import datawave.webservice.query.exception.QueryException;
 import datawave.webservice.query.exception.QueryExceptionType;
 import datawave.webservice.query.logic.QueryLogic;
 import datawave.webservice.query.result.event.EventBase;
@@ -48,9 +47,7 @@ import datawave.webservice.query.result.event.FieldBase;
 import datawave.webservice.query.runner.RunningQuery;
 import datawave.webservice.query.util.QueryUtil;
 import datawave.webservice.result.BaseQueryResponse;
-import datawave.webservice.result.BaseResponse;
 import datawave.webservice.result.EventQueryResponseBase;
-import datawave.webservice.result.VoidResponse;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
@@ -76,7 +73,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 
-import java.io.IOException;
 import java.nio.charset.Charset;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -86,19 +82,22 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static datawave.security.authorization.DatawaveUser.UserType.USER;
 
 public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends BaseQueryMetricHandler<T> {
-    private static final Logger log = LoggerFactory.getLogger(ShardTableQueryMetricHandler.class);
-    private static final org.apache.log4j.Logger setupLogger = org.apache.log4j.Logger.getLogger(ShardTableQueryMetricHandler.class);
+    private final Logger log = LoggerFactory.getLogger(getClass());
+    private final org.apache.log4j.Logger setupLogger = org.apache.log4j.Logger.getLogger(getClass());
     
     protected static final String QUERY_METRICS_LOGIC_NAME = "QueryMetricsQuery";
     protected String connectorAuthorizations;
@@ -349,16 +348,9 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
         return (T) queryMetricCombiner.combineMetrics(updatedQueryMetric, cachedQueryMetric, metricType);
     }
     
-    public T getQueryMetric(final String queryId) {
+    public T getQueryMetric(final String queryId) throws Exception {
         List<T> queryMetrics;
-        VoidResponse response = new VoidResponse();
-        queryMetrics = getQueryMetrics(response, "QUERY_ID == '" + queryId + "'");
-        List<QueryExceptionType> exceptions = response.getExceptions();
-        if (exceptions != null && !exceptions.isEmpty()) {
-            exceptions.forEach(e -> {
-                log.error(e.getMessage());
-            });
-        }
+        queryMetrics = getQueryMetrics("QUERY_ID == '" + queryId + "'");
         return queryMetrics.isEmpty() ? null : queryMetrics.get(0);
     }
     
@@ -366,7 +358,7 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
         return new QueryImpl();
     }
     
-    public List<T> getQueryMetrics(BaseResponse response, final String query) {
+    public List<T> getQueryMetrics(final String query) throws Exception {
         Date end = new Date();
         Date begin = DateUtils.setYears(end, 2000);
         Query queryImpl = createQuery();
@@ -381,62 +373,90 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
         queryImpl.setPagesize(1000);
         queryImpl.setId(UUID.randomUUID());
         queryImpl.setParameters(ImmutableMap.of(QueryOptions.INCLUDE_GROUPING_CONTEXT, "true"));
-        return getQueryMetrics(response, queryImpl);
+        return getQueryMetrics(queryImpl);
     }
     
-    public List<T> getQueryMetrics(BaseResponse response, Query query) {
+    public List<T> getQueryMetrics(Query query) throws Exception {
+        long startTime = System.currentTimeMillis();
+        long maxReadMilliseconds = queryMetricHandlerProperties.getMaxReadMilliseconds();
         List<T> queryMetrics = new ArrayList<>();
-        RunningQuery runningQuery;
-        
         Connector connector = null;
         try {
             QueryLogic<?> queryLogic = logicFactory.getObject();
             Map<String,String> trackingMap = AccumuloConnectionTracking.getTrackingMap(Thread.currentThread().getStackTrace());
             connector = connectionPool.borrowObject(trackingMap);
-            runningQuery = new RunningQuery(null, connector, Priority.ADMIN, queryLogic, query, query.getQueryAuthorizations(), datawavePrincipal,
-                            this.metricFactory);
+            final Connector finalConnector = connector;
+            // create RunningQuery inside an Executor/Future so that we can handle a non-responsive Accumulo and timeout
+            ExecutorService executor = Executors.newSingleThreadExecutor();
+            Future<Object> future1 = executor.submit(() -> {
+                try {
+                    return new RunningQuery(null, finalConnector, Priority.ADMIN, queryLogic, query, query.getQueryAuthorizations(), datawavePrincipal,
+                                    this.metricFactory);
+                } catch (Exception e) {
+                    return e;
+                }
+            });
             
-            boolean done = false;
-            List<Object> objectList = new ArrayList<>();
-            
-            while (!done) {
-                ResultsPage resultsPage = runningQuery.next();
-                
-                if (!resultsPage.getResults().isEmpty()) {
-                    objectList.addAll(resultsPage.getResults());
+            RunningQuery runningQuery;
+            try {
+                Object o = future1.get(maxReadMilliseconds - (System.currentTimeMillis() - startTime), TimeUnit.MILLISECONDS);
+                if (o instanceof RunningQuery) {
+                    runningQuery = (RunningQuery) o;
                 } else {
-                    done = true;
+                    throw (Exception) o;
                 }
+            } finally {
+                future1.cancel(true);
             }
             
-            BaseQueryResponse queryResponse = queryLogic.getTransformer(query).createResponse(new ResultsPage(objectList));
-            List<QueryExceptionType> exceptions = queryResponse.getExceptions();
-            
-            if (queryResponse.getExceptions() != null && !queryResponse.getExceptions().isEmpty()) {
-                if (response != null) {
-                    response.setExceptions(new LinkedList<>(exceptions));
-                    response.setHasResults(false);
+            if (runningQuery != null) {
+                // Call RunningQuery.next inside an Executor/Future so that we can handle a non-responsive Accumulo and timeout
+                Future<Object> future2 = executor.submit(() -> {
+                    try {
+                        boolean done = false;
+                        List<Object> objectList = new ArrayList<>();
+                        
+                        while (!done) {
+                            ResultsPage resultsPage = runningQuery.next();
+                            
+                            if (!resultsPage.getResults().isEmpty()) {
+                                objectList.addAll(resultsPage.getResults());
+                            } else {
+                                done = true;
+                            }
+                        }
+                        
+                        BaseQueryResponse queryResponse = queryLogic.getTransformer(query).createResponse(new ResultsPage(objectList));
+                        List<QueryExceptionType> exceptions = queryResponse.getExceptions();
+                        
+                        if (queryResponse.getExceptions() != null && !queryResponse.getExceptions().isEmpty()) {
+                            throw new RuntimeException(exceptions.get(0).getMessage());
+                        }
+                        
+                        if (!(queryResponse instanceof EventQueryResponseBase)) {
+                            throw new IllegalStateException("incompatible response");
+                        }
+                        
+                        EventQueryResponseBase eventQueryResponse = (EventQueryResponseBase) queryResponse;
+                        List<EventBase> eventList = eventQueryResponse.getEvents();
+                        
+                        for (EventBase<?,?> event : eventList) {
+                            T metric = toMetric(event);
+                            queryMetrics.add(metric);
+                        }
+                        return null;
+                    } catch (Exception e) {
+                        return e;
+                    }
+                });
+                try {
+                    Exception exception = (Exception) future2.get(maxReadMilliseconds - (System.currentTimeMillis() - startTime), TimeUnit.MILLISECONDS);
+                    if (exception != null) {
+                        throw exception;
+                    }
+                } finally {
+                    future2.cancel(true);
                 }
-            }
-            
-            if (!(queryResponse instanceof EventQueryResponseBase)) {
-                if (response != null) {
-                    response.addException(new QueryException("incompatible response")); // TODO: Should this be an IllegalStateException?
-                    response.setHasResults(false);
-                }
-            }
-            
-            EventQueryResponseBase eventQueryResponse = (EventQueryResponseBase) queryResponse;
-            List<EventBase> eventList = eventQueryResponse.getEvents();
-            
-            for (EventBase<?,?> event : eventList) {
-                T metric = toMetric(event);
-                queryMetrics.add(metric);
-            }
-        } catch (Exception e) {
-            log.error(e.getMessage(), e);
-            if (response != null) {
-                response.addExceptions(new QueryException(e).getQueryExceptionsInStack());
             }
         } finally {
             if (connector != null) {
@@ -692,7 +712,6 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
     @Override
     public QueryMetricsSummaryResponse getQueryMetricsSummary(Date begin, Date end, ProxiedUserDetails currentUser, boolean onlyCurrentUser) {
         QueryMetricsSummaryResponse response = new QueryMetricsSummaryResponse();
-        
         try {
             // this method is open to any user
             DatawaveUser datawaveUser = currentUser.getPrimaryUser();
@@ -724,12 +743,10 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
             query.setId(UUID.randomUUID());
             query.setParameters(ImmutableMap.of(QueryOptions.INCLUDE_GROUPING_CONTEXT, "true"));
             
-            List<T> queryMetrics = getQueryMetrics(response, query);
-            List<QueryExceptionType> exceptions = response.getExceptions();
-            if (exceptions == null || exceptions.isEmpty()) {
-                response = processQueryMetricsSummary(queryMetrics, end);
-            }
-        } catch (IOException e) {
+            List<T> queryMetrics = getQueryMetrics(query);
+            response = processQueryMetricsSummary(queryMetrics, end);
+            
+        } catch (Exception e) {
             log.error(e.getMessage(), e);
             response.addException(e);
         }
