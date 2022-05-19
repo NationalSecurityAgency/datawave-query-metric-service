@@ -66,19 +66,19 @@ public class MergeLockLifecycleListener implements LifecycleListener, HazelcastI
         switch (event.getState()) {
             case MERGING:
                 // lock for a maximum time so that we don't lock forever
-                this.writeLockRunnable.lock(120000);
+                this.writeLockRunnable.lock(120000, event.getState());
                 log.info(event + " [" + getLocalMemberUuid() + "]");
                 break;
             case SHUTTING_DOWN:
                 // lock for a maximum time so that we don't lock forever
-                this.writeLockRunnable.lock(60000);
+                this.writeLockRunnable.lock(60000, event.getState());
                 log.info(event + " [" + getLocalMemberUuid() + "]");
                 break;
             case MERGED:
             case MERGE_FAILED:
             case SHUTDOWN:
                 log.info(event + " [" + getLocalMemberUuid() + "]");
-                this.writeLockRunnable.unlock();
+                this.writeLockRunnable.unlock(event.getState());
                 break;
             default:
                 log.info(event + " [" + getLocalMemberUuid() + "]");
@@ -148,8 +148,8 @@ public class MergeLockLifecycleListener implements LifecycleListener, HazelcastI
             }
         }
         
-        public void lock(long maxLockMilliseconds) {
-            log.info("locking for write");
+        public void lock(long maxLockMilliseconds, LifecycleEvent.LifecycleState state) {
+            log.info("locking for write [" + state + "]");
             // prompt run() method to lock the writeLock
             if (this.requestLock.compareAndSet(false, true)) {
                 this.scheduledUnlockTime = System.currentTimeMillis() + maxLockMilliseconds;
@@ -162,11 +162,11 @@ public class MergeLockLifecycleListener implements LifecycleListener, HazelcastI
                     }
                 }
             }
-            log.info("locked for write");
+            log.info("locked for write [" + state + "]");
         }
         
-        public void unlock() {
-            log.info("unlocking for write");
+        public void unlock(LifecycleEvent.LifecycleState state) {
+            log.info("unlocking for write [" + state + "]");
             // cancel any scheduled unlock
             this.scheduledUnlockTime = Long.MAX_VALUE;
             // prompt run() method to unlock the writeLock
@@ -180,7 +180,7 @@ public class MergeLockLifecycleListener implements LifecycleListener, HazelcastI
                     }
                 }
             }
-            log.info("unlocked for write");
+            log.info("unlocked for write [" + state + "]");
         }
         
         public void shutdown() {

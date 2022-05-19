@@ -1,14 +1,14 @@
 hazelcast:
+  clusterName: '${spring.application.name}'
   server:
     enabled: true
     # How long to wait (in seconds) before performing the first split-brain merge. When a number
     # of cache servers start up at once, they will form individual clusters because the attempt
     # to create a cluster happens before the server has registered in Consul. Therefore, the split
     # brain merge will take care of joining the multiple clusters.
-    initialMergeDelaySeconds: 5
+    mergeDelaySeconds: 5
     # Run interval of split-brain/merge process in seconds; i.e how frequently to look for new cluster members
-    mergeNextDelaySeconds: 10
-    initialMinClusterSize: 1
+    mergeIntervalSeconds: 10
     xml-config: |
       <hazelcast xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
                   xsi:schemaLocation="http://www.hazelcast.com/schema/config http://www.hazelcast.com/schema/config/hazelcast-config-3.11.xsd"

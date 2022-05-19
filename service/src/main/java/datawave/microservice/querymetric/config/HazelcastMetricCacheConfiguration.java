@@ -9,6 +9,7 @@ import com.hazelcast.config.TcpIpConfig;
 import com.hazelcast.config.XmlConfigBuilder;
 import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
+import com.hazelcast.core.LifecycleEvent;
 import com.hazelcast.kubernetes.HazelcastKubernetesDiscoveryStrategyFactory;
 import com.hazelcast.kubernetes.KubernetesProperties;
 import com.hazelcast.spi.discovery.integration.DiscoveryServiceProvider;
@@ -59,7 +60,7 @@ public class HazelcastMetricCacheConfiguration {
                     MergeLockLifecycleListener lifecycleListener) {
         // Autowire both the AccumuloMapStore and AccumuloMapLoader so that they both get created
         // Ensure that the lastWrittenQueryMetricCache is set into the MapStore before the instance is active and the writeLock is released
-        lifecycleListener.writeLockRunnable.lock(60000);
+        lifecycleListener.writeLockRunnable.lock(60000, LifecycleEvent.LifecycleState.STARTING);
         HazelcastInstance instance = Hazelcast.newHazelcastInstance(config);
         
         try {
@@ -82,7 +83,7 @@ public class HazelcastMetricCacheConfiguration {
         } catch (Exception e) {
             log.error(e.getMessage(), e);
         } finally {
-            lifecycleListener.writeLockRunnable.unlock();
+            lifecycleListener.writeLockRunnable.unlock(LifecycleEvent.LifecycleState.STARTED);
         }
         return instance;
     }
@@ -175,9 +176,8 @@ public class HazelcastMetricCacheConfiguration {
             config.setProperty("hazelcast.logging.type", "slf4j"); // Override the default log handler
             config.setProperty("hazelcast.rest.enabled", Boolean.TRUE.toString()); // Enable the REST endpoints so we can test/debug on them
             config.setProperty("hazelcast.phone.home.enabled", Boolean.FALSE.toString()); // Don't try to send stats back to Hazelcast
-            config.setProperty("hazelcast.merge.first.run.delay.seconds", Integer.toString(serverProperties.getInitialMergeDelaySeconds()));
-            config.setProperty("hazelcast.merge.next.run.delay.seconds", Integer.toString(serverProperties.getMergeNextDelaySeconds()));
-            config.setProperty("hazelcast.initial.min.cluster.size", Integer.toString(serverProperties.getInitialMinClusterSize()));
+            config.setProperty("hazelcast.merge.first.run.delay.seconds", Integer.toString(serverProperties.getMergeDelaySeconds()));
+            config.setProperty("hazelcast.merge.next.run.delay.seconds", Integer.toString(serverProperties.getMergeIntervalSeconds()));
             config.getNetworkConfig().setReuseAddress(true); // Reuse addresses (so we can try to keep our port on a restart)
             ListenerConfig lifecycleListenerConfig = new ListenerConfig();
             lifecycleListenerConfig.setImplementation(lifecycleListener);
