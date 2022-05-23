@@ -27,6 +27,10 @@ public class QueryMetricService {
         SpringApplication.run(QueryMetricService.class, args);
     }
     
+    public static void shutdown() {
+        System.exit(-1);
+    }
+    
     private static int getNextPort(int start) {
         for (int port = start; port < start + MAX_PORT; ++port) {
             try {

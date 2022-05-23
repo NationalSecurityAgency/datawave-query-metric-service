@@ -75,10 +75,15 @@ public class MergeLockLifecycleListener implements LifecycleListener, HazelcastI
                 log.info(event + " [" + getLocalMemberUuid() + "]");
                 break;
             case MERGED:
-            case MERGE_FAILED:
             case SHUTDOWN:
                 log.info(event + " [" + getLocalMemberUuid() + "]");
                 this.writeLockRunnable.unlock(event.getState());
+                break;
+            case MERGE_FAILED:
+                log.info(event + " [" + getLocalMemberUuid() + "]");
+                this.writeLockRunnable.unlock(event.getState());
+                this.writeLockRunnable.shutdown();
+                QueryMetricService.shutdown();
                 break;
             default:
                 log.info(event + " [" + getLocalMemberUuid() + "]");
