@@ -191,8 +191,8 @@ public class QueryMetricCombiner<T extends BaseQueryMetric> {
             if (combinedMetric.getPredictions() == null && updatedQueryMetric.getPredictions() != null) {
                 combinedMetric.setPredictions(updatedQueryMetric.getPredictions());
             }
-            // use numUpdates from the updatedQueryMetric
-            combinedMetric.setNumUpdates(updatedQueryMetric.getNumUpdates());
+            // use the max numUpdates
+            combinedMetric.setNumUpdates(Math.max(combinedMetric.getNumUpdates(), updatedQueryMetric.getNumUpdates()));
         }
         log.trace("Combined metrics cached: " + cachedQueryMetric + " updated: " + updatedQueryMetric + " combined: " + combinedMetric);
         return combinedMetric;
