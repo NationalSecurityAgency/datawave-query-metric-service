@@ -26,7 +26,11 @@ public class QueryMetricSplitBrainMergePolicy<V extends QueryMetricUpdate,T exte
         QueryMetricUpdate mergedValue;
         if (existingValue == null) {
             mergedValue = mergingValue.getDeserializedValue();
-            log.trace("Merged metrics existing is null, using merging: " + mergedValue.getMetric());
+            if (log.isTraceEnabled()) {
+                log.trace("Merged metrics existing is null, using merging: " + mergedValue.getMetric());
+            } else {
+                log.debug("Merged metric: " + mergedValue.getMetric().getQueryId());
+            }
         } else {
             
             QueryMetricUpdate merging = mergingValue.getDeserializedValue();
@@ -42,7 +46,11 @@ public class QueryMetricSplitBrainMergePolicy<V extends QueryMetricUpdate,T exte
                     mergedValue = merging;
                 }
             }
-            log.trace("Merged metrics existing: " + existing.getMetric() + " merging: " + merging.getMetric() + " merged: " + mergedValue.getMetric());
+            if (log.isTraceEnabled()) {
+                log.trace("Merged metrics existing: " + existing.getMetric() + " merging: " + merging.getMetric() + " merged: " + mergedValue.getMetric());
+            } else {
+                log.debug("Merged metric: " + mergedValue.getMetric().getQueryId());
+            }
         }
         
         return (V) mergedValue;
