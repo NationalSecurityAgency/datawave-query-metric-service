@@ -349,8 +349,7 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
     }
     
     public T getQueryMetric(final String queryId) throws Exception {
-        List<T> queryMetrics;
-        queryMetrics = getQueryMetrics("QUERY_ID == '" + queryId + "'");
+        List<T> queryMetrics = getQueryMetrics("QUERY_ID == '" + queryId + "'");
         return queryMetrics.isEmpty() ? null : queryMetrics.get(0);
     }
     
