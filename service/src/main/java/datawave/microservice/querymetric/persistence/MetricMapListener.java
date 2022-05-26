@@ -1,4 +1,4 @@
-package datawave.microservice.querymetric.peristence;
+package datawave.microservice.querymetric.persistence;
 
 import com.hazelcast.core.EntryEvent;
 import com.hazelcast.map.MapEvent;
@@ -58,12 +58,16 @@ public class MetricMapListener implements EntryAddedListener, EntryUpdatedListen
     
     @Override
     public void entryAdded(EntryEvent event) {
-        log.debug(mapName + " " + printEvent(event));
+        if (event.getMember().localMember()) {
+            log.debug(mapName + " " + printEvent(event));
+        }
     }
     
     @Override
     public void entryUpdated(EntryEvent event) {
-        log.debug(mapName + " " + printEvent(event));
+        if (event.getMember().localMember()) {
+            log.debug(mapName + " " + printEvent(event));
+        }
     }
     
     @Override
@@ -73,17 +77,23 @@ public class MetricMapListener implements EntryAddedListener, EntryUpdatedListen
     
     @Override
     public void entryEvicted(EntryEvent event) {
-        log.debug(mapName + " " + printEvent(event));
+        if (event.getMember().localMember()) {
+            log.debug(mapName + " " + printEvent(event));
+        }
     }
     
     @Override
     public void entryMerged(EntryEvent event) {
-        log.debug(mapName + " " + printEvent(event));
+        if (event.getMember().localMember()) {
+            log.debug(mapName + " " + printEvent(event));
+        }
     }
     
     @Override
     public void entryRemoved(EntryEvent event) {
-        log.debug(mapName + " " + printEvent(event));
+        if (event.getMember().localMember()) {
+            log.debug(mapName + " " + printEvent(event));
+        }
     }
     
     @Override

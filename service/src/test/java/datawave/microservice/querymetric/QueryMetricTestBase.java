@@ -15,6 +15,7 @@ import datawave.microservice.querymetric.config.HazelcastMetricCacheProperties;
 import datawave.microservice.querymetric.config.QueryMetricClientProperties;
 import datawave.microservice.querymetric.config.QueryMetricHandlerProperties;
 import datawave.microservice.querymetric.function.QueryMetricSupplier;
+import datawave.microservice.querymetric.handler.QueryMetricCombiner;
 import datawave.microservice.querymetric.handler.ShardTableQueryMetricHandler;
 import datawave.microservice.security.util.DnUtils;
 import datawave.security.authorization.DatawaveUser;
@@ -98,6 +99,9 @@ public class QueryMetricTestBase {
     
     @Autowired
     protected ShardTableQueryMetricHandler shardTableQueryMetricHandler;
+    
+    @Autowired
+    protected QueryMetricCombiner queryMetricCombiner;
     
     @Autowired
     @Named("queryMetricCacheManager")

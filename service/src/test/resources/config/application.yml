@@ -44,11 +44,11 @@ logging:
   level:
     ROOT: warn
     datawave:
-      microservice.querymetric: error
       iterators: error
       query: error
       ingest: error
       security: error
+      microservice.querymetric: error
 
 datawave:
   query:

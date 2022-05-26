@@ -50,11 +50,16 @@ public class HazelcastCachingTest extends QueryMetricTestBase {
         
         // use a native cache set vs Cache.put to prevent the fetching and return of Accumulo value
         ((IMap<Object,Object>) incomingQueryMetricsCache.getNativeCache()).set(queryId, new QueryMetricUpdate(m));
-        BaseQueryMetric metricFromAccumulo = null;
-        do {
-            metricFromAccumulo = shardTableQueryMetricHandler.getQueryMetric(queryId);
-        } while (metricFromAccumulo == null);
-        assertEquals("write through cache failed", m, metricFromAccumulo);
+        try {
+            BaseQueryMetric metricFromAccumulo = null;
+            do {
+                metricFromAccumulo = shardTableQueryMetricHandler.getQueryMetric(queryId);
+            } while (metricFromAccumulo == null);
+            assertEquals("write through cache failed", m, metricFromAccumulo);
+        } catch (Exception e) {
+            log.error(e.getMessage(), e);
+            Assertions.fail(e.getMessage());
+        }
     }
     
     @Test

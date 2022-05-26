@@ -5,7 +5,9 @@ import datawave.microservice.querymetric.QueryMetricFactory;
 import datawave.microservice.querymetric.factory.QueryMetricQueryLogicFactory;
 import datawave.microservice.querymetric.handler.ContentQueryMetricsIngestHelper;
 import datawave.microservice.querymetric.handler.LocalShardTableQueryMetricHandler;
+import datawave.microservice.querymetric.handler.QueryMetricCombiner;
 import datawave.microservice.security.util.DnUtils;
+import datawave.query.language.parser.jexl.LuceneToJexlQueryParser;
 import datawave.services.common.connection.AccumuloConnectionPool;
 import datawave.webservice.query.result.event.EventBase;
 import datawave.webservice.query.result.event.FieldBase;
@@ -17,8 +19,10 @@ public class AlternateShardTableQueryMetricHandler extends LocalShardTableQueryM
     
     public AlternateShardTableQueryMetricHandler(QueryMetricHandlerProperties queryMetricHandlerProperties,
                     @Qualifier("warehouse") AccumuloConnectionPool connectionPool, QueryMetricQueryLogicFactory logicFactory, QueryMetricFactory metricFactory,
-                    MarkingFunctions markingFunctions, DnUtils dnUtils) {
-        super(queryMetricHandlerProperties, connectionPool, logicFactory, metricFactory, markingFunctions, dnUtils);
+                    MarkingFunctions markingFunctions, QueryMetricCombiner queryMetricCombiner, LuceneToJexlQueryParser luceneToJexlQueryParser,
+                    DnUtils dnUtils) {
+        super(queryMetricHandlerProperties, connectionPool, logicFactory, metricFactory, markingFunctions, queryMetricCombiner, luceneToJexlQueryParser,
+                        dnUtils);
     }
     
     @Override

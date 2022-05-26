@@ -1,6 +1,7 @@
 package datawave.microservice.querymetric;
 
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -63,7 +64,12 @@ public abstract class QueryMetricOperationsTest extends QueryMetricTestBase {
                 waitForWriteBehind(incomingQueryMetricsCache, lastWrittenQueryMetricCache, queryId);
                 assertEquals("lastWrittenQueryMetricCache metric wrong", m, lastWrittenQueryMetricCache.get(queryId, QueryMetricUpdate.class).getMetric());
             }
-            assertEquals("accumulo metric wrong", m, shardTableQueryMetricHandler.getQueryMetric(queryId));
+            try {
+                assertEquals("accumulo metric wrong", m, shardTableQueryMetricHandler.getQueryMetric(queryId));
+            } catch (Exception e) {
+                log.error(e.getMessage(), e);
+                Assertions.fail(e.getMessage());
+            }
             assertEquals("incomingQueryMetricsCache metric wrong", m, incomingQueryMetricsCache.get(queryId, QueryMetricUpdate.class).getMetric());
         });
     }
@@ -91,7 +97,12 @@ public abstract class QueryMetricOperationsTest extends QueryMetricTestBase {
                 assertEquals("lastWrittenQueryMetricCache metric wrong", m, lastWrittenQueryMetricCache.get(queryId, QueryMetricUpdate.class).getMetric());
             }
             assertEquals("incomingQueryMetricsCache metric wrong", m, incomingQueryMetricsCache.get(queryId, QueryMetricUpdate.class).getMetric());
-            assertEquals("accumulo metric wrong", m, shardTableQueryMetricHandler.getQueryMetric(queryId));
+            try {
+                assertEquals("accumulo metric wrong", m, shardTableQueryMetricHandler.getQueryMetric(queryId));
+            } catch (Exception e) {
+                log.error(e.getMessage(), e);
+                Assertions.fail(e.getMessage());
+            }
         });
     }
 }

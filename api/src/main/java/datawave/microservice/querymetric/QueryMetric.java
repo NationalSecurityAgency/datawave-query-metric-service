@@ -134,8 +134,8 @@ public class QueryMetric extends BaseQueryMetric implements Serializable, Messag
                         .append(this.getHost()).append(this.getPageTimes()).append(this.getProxyServers()).append(this.getLifecycle())
                         .append(this.getErrorMessage()).append(this.getCreateCallTime()).append(this.getErrorCode()).append(this.getQueryName())
                         .append(this.getParameters()).append(this.getSourceCount()).append(this.getNextCount()).append(this.getSeekCount())
-                        .append(this.getYieldCount()).append(this.getDocRanges()).append(this.getFiRanges()).append(this.getPlan()).append(this.getVersion())
-                        .append(this.getLoginTime()).append(this.getPredictions()).toHashCode();
+                        .append(this.getYieldCount()).append(this.getDocRanges()).append(this.getFiRanges()).append(this.getPlan()).append(this.getLoginTime())
+                        .append(this.getPredictions()).append(this.getMarkings()).append(this.getNumUpdates()).append(this.getVersion()).toHashCode();
     }
     
     @Override
@@ -162,8 +162,9 @@ public class QueryMetric extends BaseQueryMetric implements Serializable, Messag
                             .append(this.getNextCount(), other.getNextCount()).append(this.getSeekCount(), other.getSeekCount())
                             .append(this.getYieldCount(), other.getYieldCount()).append(this.getDocRanges(), other.getDocRanges())
                             .append(this.getFiRanges(), other.getFiRanges()).append(this.getPlan(), other.getPlan())
-                            .append(this.getVersion(), other.getVersion()).append(this.getLoginTime(), other.getLoginTime())
-                            .append(this.getPredictions(), other.getPredictions()).append(this.getMarkings(), other.getMarkings()).isEquals();
+                            .append(this.getLoginTime(), other.getLoginTime()).append(this.getPredictions(), other.getPredictions())
+                            .append(this.getMarkings(), other.getMarkings()).append(this.getNumUpdates(), other.getNumUpdates())
+                            .append(this.getVersion(), other.getVersion()).isEquals();
         } else {
             return false;
         }
@@ -182,6 +183,8 @@ public class QueryMetric extends BaseQueryMetric implements Serializable, Messag
         buf.append(" Query Type: ").append(queryType);
         buf.append(" Query Logic: ").append(queryLogic);
         buf.append(" Query Name: ").append(queryName);
+        buf.append(" Positive Selectors: ").append(this.getPositiveSelectors());
+        buf.append(" Negative Selectors: ").append(this.getNegativeSelectors());
         buf.append(" Authorizations: ").append(queryAuthorizations);
         buf.append(" ColumnVisibility: ").append(this.columnVisibility);
         buf.append(" Begin Date: ").append(this.beginDate);
@@ -203,6 +206,8 @@ public class QueryMetric extends BaseQueryMetric implements Serializable, Messag
         buf.append(" FI Ranges: ").append(this.getFiRanges());
         buf.append(" Login Time: ").append(this.getLoginTime());
         buf.append(" Predictions: ").append(this.getPredictions());
+        buf.append(" Markings: ").append(this.getMarkings());
+        buf.append(" NumUpdates: ").append(this.getNumUpdates());
         buf.append(" Version: ").append(this.getVersion());
         buf.append("\n");
         return buf.toString();

@@ -2,7 +2,7 @@ package datawave.microservice.querymetric;
 
 import com.google.common.collect.Multimap;
 import datawave.microservice.querymetric.handler.ContentQueryMetricsIngestHelper;
-import datawave.microservice.querymetric.peristence.AccumuloMapStore;
+import datawave.microservice.querymetric.persistence.AccumuloMapStore;
 import datawave.util.StringUtils;
 import datawave.webservice.query.result.event.DefaultEvent;
 import datawave.webservice.query.result.event.DefaultField;
@@ -186,7 +186,7 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
         Assertions.assertEquals(200, returnedMetric.getYieldCount(), "yield count should be additive");
         Assertions.assertEquals(200, returnedMetric.getDocRanges(), "doc ranges count should be additive");
         Assertions.assertEquals(200, returnedMetric.getFiRanges(), "fi ranges should be additive");
-        long lastPageNumReturned = shardTableQueryMetricHandler.getLastPageNumber(returnedMetric);
+        long lastPageNumReturned = queryMetricCombiner.getLastPageNumber(returnedMetric);
         Assertions.assertEquals(2, lastPageNumReturned, "distributed update should append pages");
         
         m.setLastUpdated(new Date(now + 1000));

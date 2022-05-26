@@ -12,11 +12,11 @@ public class HazelcastMetricCacheProperties {
      * Hazelcast will try to join such clusters together on a regular basis. We want to do so as soon as possible after application startup / registration with
      * the discovery service.
      */
-    private int initialMergeDelaySeconds = 10;
+    private int mergeDelaySeconds = 30;
     /*
      * Run interval of split-brain/merge process in seconds; i.e how frequently to look for new cluster members
      */
-    private int mergeNextDelaySeconds = 10;
+    private int mergeIntervalSeconds = 60;
     /**
      * If true, then the default configuration is skipped and only the XML configuration (plus discovery configuration) is used.
      */
@@ -25,8 +25,6 @@ public class HazelcastMetricCacheProperties {
      * If true, then configuration of discovery is skipped. Don't use this unless you really know what you are doing, since you will likely break clustering.
      */
     private boolean skipDiscoveryConfiguration = false;
-    
-    private int initialMinClusterSize = 1;
     
     /**
      * A Hazelcast XML configuration. Ideally this should only define cache configurations.
@@ -37,20 +35,20 @@ public class HazelcastMetricCacheProperties {
     @NestedConfigurationProperty
     private KubernetesProperties k8s = new KubernetesProperties();
     
-    public int getInitialMergeDelaySeconds() {
-        return initialMergeDelaySeconds;
+    public int getMergeDelaySeconds() {
+        return mergeDelaySeconds;
     }
     
-    public void setInitialMergeDelaySeconds(int initialMergeDelaySeconds) {
-        this.initialMergeDelaySeconds = initialMergeDelaySeconds;
+    public void setMergeDelaySeconds(int mergeDelaySeconds) {
+        this.mergeDelaySeconds = mergeDelaySeconds;
     }
     
-    public int getMergeNextDelaySeconds() {
-        return mergeNextDelaySeconds;
+    public int getMergeIntervalSeconds() {
+        return mergeIntervalSeconds;
     }
     
-    public void setMergeNextDelaySeconds(int mergeNextDelaySeconds) {
-        this.mergeNextDelaySeconds = mergeNextDelaySeconds;
+    public void setMergeIntervalSeconds(int mergeIntervalSeconds) {
+        this.mergeIntervalSeconds = mergeIntervalSeconds;
     }
     
     public boolean isSkipDefaultConfiguration() {
@@ -67,14 +65,6 @@ public class HazelcastMetricCacheProperties {
     
     public void setSkipDiscoveryConfiguration(boolean skipDiscoveryConfiguration) {
         this.skipDiscoveryConfiguration = skipDiscoveryConfiguration;
-    }
-    
-    public int getInitialMinClusterSize() {
-        return initialMinClusterSize;
-    }
-    
-    public void setInitialMinClusterSize(int initialMinClusterSize) {
-        this.initialMinClusterSize = initialMinClusterSize;
     }
     
     public String getXmlConfig() {

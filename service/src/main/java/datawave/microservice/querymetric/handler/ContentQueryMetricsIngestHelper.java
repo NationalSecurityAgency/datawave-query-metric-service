@@ -9,14 +9,8 @@ import datawave.ingest.data.config.ingest.TermFrequencyIngestHelperInterface;
 import datawave.microservice.querymetric.BaseQueryMetric;
 import datawave.microservice.querymetric.BaseQueryMetric.PageMetric;
 import datawave.microservice.querymetric.BaseQueryMetric.Prediction;
-import datawave.query.jexl.JexlASTHelper;
-import datawave.query.jexl.visitors.TreeFlatteningRebuildingVisitor;
-import datawave.query.language.parser.jexl.LuceneToJexlQueryParser;
-import datawave.query.language.tree.QueryNode;
 import datawave.services.query.util.QueryUtil;
 import datawave.webservice.query.QueryImpl;
-import org.apache.commons.jexl2.parser.ASTEQNode;
-import org.apache.commons.jexl2.parser.ASTJexlScript;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -104,51 +98,12 @@ public class ContentQueryMetricsIngestHelper extends CSVIngestHelper implements 
             SimpleDateFormat sdf_date_time1 = new SimpleDateFormat("yyyyMMdd HHmmss");
             SimpleDateFormat sdf_date_time2 = new SimpleDateFormat("yyyyMMdd HHmmss");
             
-            String type = updatedQueryMetric.getQueryType();
-            // this is time consuming - we only need to parse the query and write the selectors once
-            if (type != null && type.equalsIgnoreCase("RunningQuery") && updatedQueryMetric.getNumUpdates() == 0) {
-                
-                String query = updatedQueryMetric.getQuery();
-                if (query != null) {
-                    ASTJexlScript jexlScript = null;
-                    try {
-                        // Parse and flatten here before visitors visit.
-                        jexlScript = JexlASTHelper.parseAndFlattenJexlQuery(query);
-                    } catch (Throwable t1) {
-                        // not JEXL, try LUCENE
-                        try {
-                            LuceneToJexlQueryParser luceneToJexlParser = new LuceneToJexlQueryParser();
-                            QueryNode node = luceneToJexlParser.parse(query);
-                            String jexlQuery = node.getOriginalQuery();
-                            jexlScript = JexlASTHelper.parseAndFlattenJexlQuery(jexlQuery);
-                        } catch (Throwable t2) {
-                            
-                        }
-                    }
-                    
-                    jexlScript = TreeFlatteningRebuildingVisitor.flatten(jexlScript);
-                    
-                    if (jexlScript != null) {
-                        List<ASTEQNode> positiveEQNodes = JexlASTHelper.getPositiveEQNodes(jexlScript);
-                        for (ASTEQNode pos : positiveEQNodes) {
-                            String identifier = JexlASTHelper.getIdentifier(pos);
-                            Object literal = JexlASTHelper.getLiteralValue(pos);
-                            if (identifier != null && literal != null) {
-                                fields.put("POSITIVE_SELECTORS", identifier + ":" + literal);
-                            }
-                        }
-                        List<ASTEQNode> negativeEQNodes = JexlASTHelper.getNegativeEQNodes(jexlScript);
-                        for (ASTEQNode neg : negativeEQNodes) {
-                            String identifier = JexlASTHelper.getIdentifier(neg);
-                            Object literal = JexlASTHelper.getLiteralValue(neg);
-                            if (identifier != null && literal != null) {
-                                fields.put("NEGATIVE_SELECTORS", identifier + ":" + literal);
-                            }
-                        }
-                    }
-                }
+            if (updatedQueryMetric.getPositiveSelectors() != null) {
+                fields.putAll("POSITIVE_SELECTORS", updatedQueryMetric.getPositiveSelectors());
             }
-            
+            if (updatedQueryMetric.getNegativeSelectors() != null) {
+                fields.putAll("NEGATIVE_SELECTORS", updatedQueryMetric.getNegativeSelectors());
+            }
             if (updatedQueryMetric.getQueryAuthorizations() != null) {
                 fields.put("AUTHORIZATIONS", updatedQueryMetric.getQueryAuthorizations());
             }
@@ -286,7 +241,9 @@ public class ContentQueryMetricsIngestHelper extends CSVIngestHelper implements 
             if (updatedQueryMetric.getLoginTime() != storedQueryMetric.getLoginTime()) {
                 fields.put("LOGIN_TIME", Long.toString(storedQueryMetric.getLoginTime()));
             }
-            fields.put("NUM_UPDATES", Long.toString(storedQueryMetric.getNumUpdates()));
+            if (updatedQueryMetric.getNumUpdates() != storedQueryMetric.getNumUpdates()) {
+                fields.put("NUM_UPDATES", Long.toString(storedQueryMetric.getNumUpdates()));
+            }
             if (updatedQueryMetric.getNextCount() != storedQueryMetric.getNextCount()) {
                 fields.put("NEXT_COUNT", Long.toString(storedQueryMetric.getNextCount()));
             }

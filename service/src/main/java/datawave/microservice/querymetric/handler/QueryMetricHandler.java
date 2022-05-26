@@ -13,6 +13,8 @@ public interface QueryMetricHandler<T extends BaseQueryMetric> {
     
     T combineMetrics(T metric, T cachedQueryMetric, QueryMetricType metricType) throws Exception;
     
+    void populateMetricSelectors(T queryMetric);
+    
     Map<String,String> getEventFields(BaseQueryMetric queryMetric);
     
     ContentQueryMetricsIngestHelper getQueryMetricsIngestHelper(boolean deleteMode);

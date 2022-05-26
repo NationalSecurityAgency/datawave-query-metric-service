@@ -1,4 +1,4 @@
-package datawave.microservice.querymetric.peristence;
+package datawave.microservice.querymetric.persistence;
 
 import com.hazelcast.map.MapLoader;
 import com.hazelcast.map.MapStoreFactory;
@@ -17,7 +17,7 @@ import java.util.Map;
 import java.util.Properties;
 
 @Component("loader")
-@ConditionalOnProperty(name = "hazelcast.server.enabled")
+@ConditionalOnProperty(name = "hazelcast.server.enabled", havingValue = "true")
 public class AccumuloMapLoader<T extends BaseQueryMetric> implements MapLoader<String,QueryMetricUpdate<T>> {
     
     private Logger log = LoggerFactory.getLogger(getClass());
