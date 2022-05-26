@@ -94,7 +94,8 @@ public class LocalShardTableQueryMetricHandler<T extends BaseQueryMetric> extend
                 return response;
             });
             
-            return createAndNextFuture.get(queryMetricHandlerProperties.getMaxReadMilliseconds() - (System.currentTimeMillis() - cachedQuery.getStartTime()),
+            return createAndNextFuture.get(
+                            Math.max(0, queryMetricHandlerProperties.getMaxReadMilliseconds() - (System.currentTimeMillis() - cachedQuery.getStartTime())),
                             TimeUnit.MILLISECONDS);
         } catch (ExecutionException e) {
             log.error(e.getMessage(), e);
@@ -117,7 +118,8 @@ public class LocalShardTableQueryMetricHandler<T extends BaseQueryMetric> extend
         try {
             nextFuture = cachedQuery.getExecutor().submit(() -> cachedQuery.getTransformer().createResponse(cachedQuery.getRunningQuery().next()));
             
-            return nextFuture.get(queryMetricHandlerProperties.getMaxReadMilliseconds() - (System.currentTimeMillis() - cachedQuery.getStartTime()),
+            return nextFuture.get(
+                            Math.max(0, queryMetricHandlerProperties.getMaxReadMilliseconds() - (System.currentTimeMillis() - cachedQuery.getStartTime())),
                             TimeUnit.MILLISECONDS);
         } catch (ExecutionException e) {
             log.error(e.getMessage(), e);
