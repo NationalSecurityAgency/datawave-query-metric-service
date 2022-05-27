@@ -19,6 +19,7 @@
     <properties>
         <spotbugs.excludes.file>${basedir}/spotbugs-exclude.xml</spotbugs.excludes.file>
         <start-class>datawave.microservice.querymetric.QueryMetricService</start-class>
+        <surefire.forkCount>3</surefire.forkCount>
         <version.base-rest-responses>1.3-SNAPSHOT</version.base-rest-responses>
         <version.cache-api>1.1.1</version.cache-api>
         <version.datawave>3.21.0-SNAPSHOT</version.datawave>

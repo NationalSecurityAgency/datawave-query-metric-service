@@ -78,6 +78,7 @@ datawave:
         remoteAuthTimeUnit: SECONDS
         remoteQueryTimeout: 10
         remoteQueryTimeUnit: SECONDS
+        maxReadMilliseconds: 10000
       timely:
         enabled: false
         host: localhost
