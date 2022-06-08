@@ -61,6 +61,8 @@ public class QueryMetricsDetailListResponse extends QueryMetricListResponse {
         
         int x = 0;
         for (QueryMetric metric : metricMap.values()) {
+            Set<Parameter> parameters = metric.getParameters();
+            
             // highlight alternating rows
             if (x % 2 == 0) {
                 builder.append("<tr class=\"highlight\">\n");
@@ -79,15 +81,15 @@ public class QueryMetricsDetailListResponse extends QueryMetricListResponse {
             builder.append("<td>").append(metric.getQueryId()).append("</td>");
             builder.append("<td>").append(metric.getQueryType()).append("</td>");
             builder.append("<td>").append(metric.getQueryLogic()).append("</td>");
-            builder.append("<td style=\"word-wrap: break-word;\">").append(StringEscapeUtils.escapeHtml4(metric.getQuery())).append("</td>");
-            builder.append("<td style=\"word-wrap: break-word;\">").append(StringEscapeUtils.escapeHtml4(metric.getPlan())).append("</td>");
+            builder.append(isJexlQuery(parameters) ? "<td style=\"white-space: pre; word-wrap: break-word;\">" : "<td style=\"word-wrap: break-word;\">")
+                            .append(StringEscapeUtils.escapeHtml4(metric.getQuery())).append("</td>");
+            builder.append("<td style=\"white-space: pre; word-wrap: break-word;\">").append(StringEscapeUtils.escapeHtml4(metric.getPlan())).append("</td>");
             builder.append("<td>").append(metric.getQueryName()).append("</td>");
             
             String beginDate = metric.getBeginDate() == null ? "" : sdf.format(metric.getBeginDate());
             builder.append("<td style=\"min-width:125px !important;\">").append(beginDate).append("</td>");
             String endDate = metric.getEndDate() == null ? "" : sdf.format(metric.getEndDate());
             builder.append("<td style=\"min-width:125px !important;\">").append(endDate).append("</td>");
-            Set<Parameter> parameters = metric.getParameters();
             builder.append("<td>").append(parameters == null ? "" : toParametersString(parameters)).append("</td>");
             String queryAuths = metric.getQueryAuthorizations() == null ? "" : metric.getQueryAuthorizations().replaceAll(",", " ");
             builder.append("<td style=\"word-wrap: break-word; min-width:300px !important;\">").append(queryAuths).append("</td>");
@@ -179,6 +181,10 @@ public class QueryMetricsDetailListResponse extends QueryMetricListResponse {
         builder.append(pageTimesBuilder);
         
         return builder.toString();
+    }
+    
+    private static boolean isJexlQuery(Set<Parameter> params) {
+        return params.stream().anyMatch(p -> p.getParameterName().equals("query.syntax") && p.getParameterValue().equals("JEXL"));
     }
     
     private static String numToString(long number, long minValue) {
