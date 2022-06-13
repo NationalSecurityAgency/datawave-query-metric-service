@@ -14,6 +14,7 @@ import datawave.microservice.querymetric.handler.ShardTableQueryMetricHandler;
 import datawave.microservice.querymetric.handler.SimpleQueryGeometryHandler;
 import datawave.microservice.querymetric.stats.CacheStats;
 import datawave.microservice.security.util.DnUtils;
+import datawave.query.jexl.visitors.JexlFormattedStringBuildingVisitor;
 import datawave.security.authorization.DatawaveUser;
 import datawave.util.timely.UdpClient;
 import datawave.webservice.query.exception.DatawaveErrorCode;
@@ -309,11 +310,11 @@ public class QueryMetricOperations {
                     @Parameter(description = "queryId to return") @PathVariable("queryId") String queryId) {
         
         BaseQueryMetricListResponse response = this.queryMetricListResponseFactory.createDetailedResponse();
-        List<BaseQueryMetric> metricList = new ArrayList<>();
+        List<QueryMetric> metricList = new ArrayList<>();
         try {
             QueryMetricUpdate metricUpdate = incomingQueryMetricsCache.get(queryId, QueryMetricUpdate.class);
             if (metricUpdate != null) {
-                BaseQueryMetric metric = metricUpdate.getMetric();
+                QueryMetric metric = (QueryMetric) metricUpdate.getMetric();
                 boolean allowAllMetrics = false;
                 boolean sameUser = false;
                 if (currentUser != null) {
@@ -343,7 +344,8 @@ public class QueryMetricOperations {
         } catch (Exception e) {
             response.addException(new QueryException(e.getMessage(), 500));
         }
-        response.setResult(metricList);
+        // Set the result to have the formatted query and query plan
+        response.setResult(JexlFormattedStringBuildingVisitor.formatMetrics(metricList));
         if (metricList.isEmpty()) {
             response.setHasResults(false);
         } else {
