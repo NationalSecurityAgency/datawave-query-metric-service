@@ -25,6 +25,7 @@ import java.util.TreeMap;
 public class QueryMetricsDetailListResponse extends QueryMetricListResponse {
     
     private static final long serialVersionUID = 1L;
+    private static final String NEWLINE = System.getProperty("line.separator");
     
     @Override
     public String getMainContent() {
@@ -81,16 +82,17 @@ public class QueryMetricsDetailListResponse extends QueryMetricListResponse {
             builder.append("<td>").append(metric.getQueryId()).append("</td>");
             builder.append("<td>").append(metric.getQueryType()).append("</td>");
             builder.append("<td>").append(metric.getQueryLogic()).append("</td>");
-            builder.append(isJexlQuery(parameters) ? "<td style=\"white-space: pre; word-wrap: break-word;\">" : "<td style=\"word-wrap: break-word;\">")
-                            .append(StringEscapeUtils.escapeHtml4(metric.getQuery())).append("</td>");
-            builder.append("<td style=\"white-space: pre; word-wrap: break-word;\">").append(StringEscapeUtils.escapeHtml4(metric.getPlan())).append("</td>");
+            builder.append(isJexlQuery(parameters) ? "<td id=\"query\" style=\"white-space: pre; word-wrap: break-word;\">"
+                            : "<td id=\"query\" style=\"word-wrap: break-word;\">").append("</td>");
+            builder.append("<td id=\"query-plan\" style=\"white-space: pre; word-wrap: break-word;\">").append("</td>");
             builder.append("<td>").append(metric.getQueryName()).append("</td>");
             
             String beginDate = metric.getBeginDate() == null ? "" : sdf.format(metric.getBeginDate());
             builder.append("<td style=\"min-width:125px !important;\">").append(beginDate).append("</td>");
             String endDate = metric.getEndDate() == null ? "" : sdf.format(metric.getEndDate());
             builder.append("<td style=\"min-width:125px !important;\">").append(endDate).append("</td>");
-            builder.append("<td>").append(parameters == null ? "" : toParametersString(parameters)).append("</td>");
+            builder.append("<td style=\"white-space: pre; word-wrap: break-word;\">").append(parameters == null ? "" : toFormattedParametersString(parameters))
+                            .append("</td>");
             String queryAuths = metric.getQueryAuthorizations() == null ? "" : metric.getQueryAuthorizations().replaceAll(",", " ");
             builder.append("<td style=\"word-wrap: break-word; min-width:300px !important;\">").append(queryAuths).append("</td>");
             
@@ -173,6 +175,8 @@ public class QueryMetricsDetailListResponse extends QueryMetricListResponse {
             builder.append("<td style=\"word-wrap: break-word;\">").append((errorMessage == null) ? "" : StringEscapeUtils.escapeHtml4(errorMessage))
                             .append("</td>");
             builder.append("\n</tr>\n");
+            
+            queryInteractiveParens(builder, metric);
         }
         
         builder.append("</table>\n<br/>\n");
@@ -191,7 +195,7 @@ public class QueryMetricsDetailListResponse extends QueryMetricListResponse {
         return number < minValue ? "" : Long.toString(number);
     }
     
-    private static String toParametersString(final Set<Parameter> parameters) {
+    private static String toFormattedParametersString(final Set<Parameter> parameters) {
         final StringBuilder params = new StringBuilder();
         final String PARAMETER_SEPARATOR = ";";
         final String PARAMETER_NAME_VALUE_SEPARATOR = ":";
@@ -199,7 +203,7 @@ public class QueryMetricsDetailListResponse extends QueryMetricListResponse {
         if (null != parameters) {
             for (final Parameter param : parameters) {
                 if (params.length() > 0) {
-                    params.append(PARAMETER_SEPARATOR);
+                    params.append(PARAMETER_SEPARATOR + NEWLINE);
                 }
                 
                 params.append(param.getParameterName());
@@ -209,5 +213,99 @@ public class QueryMetricsDetailListResponse extends QueryMetricListResponse {
         }
         
         return params.toString();
+    }
+    
+    /**
+     * Adds javascript to the builder to make the metric's query and the metric's query plan interactive (highlight matching parens on mouse over, clicking a
+     * paren brings you to its matching paren)
+     * 
+     * @param builder
+     *            the string builder which the javascript is added to
+     * @param metric
+     *            the metric that will be used to get the Query and Query Plan
+     */
+    private static void queryInteractiveParens(StringBuilder builder, QueryMetric metric) {
+        builder.append("<script>");
+        
+        builder.append("function highlight(line) {" + NEWLINE); // start of function highlight
+        builder.append("line.style.backgroundColor = \"yellow\"" + NEWLINE);
+        builder.append("}" + NEWLINE); // end of function highlight
+        
+        builder.append("function unhighlight(line) {" + NEWLINE); // start of function unhighlight
+        builder.append("line.style.backgroundColor = \"transparent\"" + NEWLINE);
+        builder.append("}" + NEWLINE); // end of function unhighlight
+        // Function to make the provided query or query plan's parenthesis interactive
+        builder.append("function interactiveParens(query = '', isQueryPlan = false) {" + NEWLINE); // start of function interactiveParens
+        builder.append("const lines = query.split(/\\r?\\n/);" + NEWLINE);
+        builder.append("for (let i = 0; i < lines.length; i++) {" + NEWLINE); // start of for
+        // If the line is 0 or more spaces followed by and ending with an open paren, find its matching closing paren (on a different line)
+        builder.append("if (/^\\s*\\($/.test(lines[i])) {" + NEWLINE); // start of if
+        builder.append("for (let j = i + 1; j < lines.length; j++) {" + NEWLINE); // start of inner for
+        builder.append("var id_line_i, id_line_j;" + NEWLINE);
+        builder.append("if (isQueryPlan) {" + NEWLINE); // start of inner if
+        builder.append("id_line_i = `query-plan-line-${i+1}`;" + NEWLINE);
+        builder.append("id_line_j = `query-plan-line-${j+1}`;" + NEWLINE);
+        builder.append("} else {" + NEWLINE);
+        builder.append("id_line_i = `query-line-${i+1}`;" + NEWLINE);
+        builder.append("id_line_j = `query-line-${j+1}`;" + NEWLINE);
+        builder.append("}" + NEWLINE); // end of inner if
+        // if this is true, we have found the matching paren
+        builder.append("if (lines[j].replace(')', '(').substring(0, lines[i].length) === lines[i]) {" + NEWLINE); // start of inner if
+        builder.append("lines[j] = `<a style=\"text-decoration: none; color: #000000;\" href=#${id_line_i} id=${id_line_j} "
+                        + "onmouseover=\"highlight(this); highlight(document.getElementById('${id_line_i}'));\" "
+                        + "onmouseout=\"unhighlight(this); unhighlight(document.getElementById('${id_line_i}'));\">${lines[j]}</a>`;" + NEWLINE);
+        builder.append("break;" + NEWLINE);
+        builder.append("}" + NEWLINE); // end of inner if
+        builder.append("}" + NEWLINE); // end of inner for
+        builder.append("lines[i] = `<a style=\"text-decoration: none; color: #000000;\" href=#${id_line_j} id=${id_line_i} "
+                        + "onmouseover=\"highlight(this); highlight(document.getElementById('${id_line_j}'));\" "
+                        + "onmouseout=\"unhighlight(this); unhighlight(document.getElementById('${id_line_j}'));\">${lines[i]}</a>`;" + NEWLINE);
+        builder.append("}" + NEWLINE); // end of if
+        // Otherwise, if the line just includes an open paren, match all parens on this line
+        builder.append("else if (lines[i].includes('(') && /^<a/.test(lines[i]) === false) {" + NEWLINE); // start of else if
+        builder.append("let lineAsArr = lines[i].split('');" + NEWLINE);
+        builder.append("let numParens = 0;" + NEWLINE);
+        builder.append("for (let k = 0; k < lineAsArr.length; k++) {" + NEWLINE); // start of inner for
+        builder.append("if (lineAsArr[k] === '(') {" + NEWLINE); // start of if
+        builder.append("numParens++;" + NEWLINE);
+        builder.append("let count = 1;" + NEWLINE);
+        builder.append("for (let m = k + 1; m < lineAsArr.length; m++) {" + NEWLINE); // start of inner inner for
+        builder.append("var id_line_i_open_paren, id_line_i_close_paren;" + NEWLINE);
+        builder.append("if (isQueryPlan) {" + NEWLINE); // start of inner if
+        builder.append("id_line_i_open_paren = `query-plan-line-${i+1}-open-paren-${numParens}`;" + NEWLINE);
+        builder.append("id_line_i_close_paren = `query-plan-line-${i+1}-close-paren-${numParens}`;" + NEWLINE);
+        builder.append("} else {" + NEWLINE);
+        builder.append("id_line_i_open_paren = `query-line-${i+1}-open-paren-${numParens}`;" + NEWLINE);
+        builder.append("id_line_i_close_paren = `query-line-${i+1}-close-paren-${numParens}`;" + NEWLINE);
+        builder.append("}" + NEWLINE); // end of inner if
+        builder.append("if (lineAsArr[m] === ')') count--;" + NEWLINE);
+        builder.append("else if (lineAsArr[m] === '(') count++;" + NEWLINE);
+        // If count is 0, we have found the matching closing paren
+        builder.append("if (count === 0) {" + NEWLINE);
+        builder.append("lineAsArr[m] = `<a style=\"text-decoration: none; color: #000000;\" href=#${id_line_i_open_paren} id=${id_line_i_close_paren} "
+                        + "onmouseover=\"highlight(this); highlight(document.getElementById('${id_line_i_open_paren}'));\" "
+                        + "onmouseout=\"unhighlight(this); unhighlight(document.getElementById('${id_line_i_open_paren}'))\">)</a>`;" + NEWLINE);
+        builder.append("break;" + NEWLINE);
+        builder.append("}" + NEWLINE);
+        builder.append("}" + NEWLINE); // end of inner inner for
+        // highlight paren and matching closing paren
+        builder.append("lineAsArr[k] = `<a style=\"text-decoration: none; color: #000000;\" href=#${id_line_i_close_paren} id=${id_line_i_open_paren} "
+                        + "onmouseover=\"highlight(this); highlight(document.getElementById('${id_line_i_close_paren}'));\" "
+                        + "onmouseout=\"unhighlight(this); unhighlight(document.getElementById('${id_line_i_close_paren}'))\">(</a>`;" + NEWLINE);
+        builder.append("}" + NEWLINE); // end of if
+        builder.append("}" + NEWLINE); // end of inner for
+        builder.append("lines[i] = lineAsArr.join('');" + NEWLINE);
+        builder.append("}" + NEWLINE); // end of else if
+        builder.append("}" + NEWLINE); // end of for
+        builder.append("if (isQueryPlan)" + NEWLINE);
+        builder.append("document.getElementById('query-plan').innerHTML = lines.join('\\n');" + NEWLINE);
+        builder.append("else" + NEWLINE);
+        builder.append("document.getElementById('query').innerHTML = lines.join('\\n');" + NEWLINE);
+        builder.append("}" + NEWLINE); // end of function interactiveParens
+        
+        builder.append("interactiveParens(`" + StringEscapeUtils.escapeHtml4(metric.getQuery()) + "`, false);" + NEWLINE);
+        builder.append("interactiveParens(`" + StringEscapeUtils.escapeHtml4(metric.getPlan()) + "`, true);" + NEWLINE);
+        
+        builder.append("</script>");
     }
 }
