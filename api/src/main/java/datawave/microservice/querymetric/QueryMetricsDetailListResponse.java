@@ -176,7 +176,7 @@ public class QueryMetricsDetailListResponse extends QueryMetricListResponse {
                             .append("</td>");
             builder.append("\n</tr>\n");
             
-            queryInteractiveParens(builder, metric);
+            queryInteractiveParens(builder, metric, x);
         }
         
         builder.append("</table>\n<br/>\n");
@@ -224,7 +224,7 @@ public class QueryMetricsDetailListResponse extends QueryMetricListResponse {
      * @param metric
      *            the metric that will be used to get the Query and Query Plan
      */
-    private static void queryInteractiveParens(StringBuilder builder, QueryMetric metric) {
+    private static void queryInteractiveParens(StringBuilder builder, QueryMetric metric, int queryNum) {
         builder.append("<script>");
         
         builder.append("function highlight(line) {" + NEWLINE); // start of function highlight
@@ -243,21 +243,21 @@ public class QueryMetricsDetailListResponse extends QueryMetricListResponse {
         builder.append("for (let j = i + 1; j < lines.length; j++) {" + NEWLINE); // start of inner for
         builder.append("var id_line_i, id_line_j;" + NEWLINE);
         builder.append("if (isQueryPlan) {" + NEWLINE); // start of inner if
-        builder.append("id_line_i = `query-plan-line-${i+1}`;" + NEWLINE);
-        builder.append("id_line_j = `query-plan-line-${j+1}`;" + NEWLINE);
+        builder.append(String.format("id_line_i = `query-plan%d-line${i+1}`;", queryNum) + NEWLINE);
+        builder.append(String.format("id_line_j = `query-plan%d-line${j+1}`;", queryNum) + NEWLINE);
         builder.append("} else {" + NEWLINE);
-        builder.append("id_line_i = `query-line-${i+1}`;" + NEWLINE);
-        builder.append("id_line_j = `query-line-${j+1}`;" + NEWLINE);
+        builder.append(String.format("id_line_i = `query%d-line${i+1}`;", queryNum) + NEWLINE);
+        builder.append(String.format("id_line_j = `query%d-line${j+1}`;", queryNum) + NEWLINE);
         builder.append("}" + NEWLINE); // end of inner if
         // if this is true, we have found the matching paren
         builder.append("if (lines[j].replace(')', '(').substring(0, lines[i].length) === lines[i]) {" + NEWLINE); // start of inner if
-        builder.append("lines[j] = `<a style=\"text-decoration: none; color: #000000;\" href=#${id_line_i} id=${id_line_j} "
+        builder.append("lines[j] = `<a class=\"a-no-style\" href=#${id_line_i} id=${id_line_j} "
                         + "onmouseover=\"highlight(this); highlight(document.getElementById('${id_line_i}'));\" "
                         + "onmouseout=\"unhighlight(this); unhighlight(document.getElementById('${id_line_i}'));\">${lines[j]}</a>`;" + NEWLINE);
         builder.append("break;" + NEWLINE);
         builder.append("}" + NEWLINE); // end of inner if
         builder.append("}" + NEWLINE); // end of inner for
-        builder.append("lines[i] = `<a style=\"text-decoration: none; color: #000000;\" href=#${id_line_j} id=${id_line_i} "
+        builder.append("lines[i] = `<a class=\"a-no-style\" href=#${id_line_j} id=${id_line_i} "
                         + "onmouseover=\"highlight(this); highlight(document.getElementById('${id_line_j}'));\" "
                         + "onmouseout=\"unhighlight(this); unhighlight(document.getElementById('${id_line_j}'));\">${lines[i]}</a>`;" + NEWLINE);
         builder.append("}" + NEWLINE); // end of if
@@ -272,24 +272,24 @@ public class QueryMetricsDetailListResponse extends QueryMetricListResponse {
         builder.append("for (let m = k + 1; m < lineAsArr.length; m++) {" + NEWLINE); // start of inner inner for
         builder.append("var id_line_i_open_paren, id_line_i_close_paren;" + NEWLINE);
         builder.append("if (isQueryPlan) {" + NEWLINE); // start of inner if
-        builder.append("id_line_i_open_paren = `query-plan-line-${i+1}-open-paren-${numParens}`;" + NEWLINE);
-        builder.append("id_line_i_close_paren = `query-plan-line-${i+1}-close-paren-${numParens}`;" + NEWLINE);
+        builder.append(String.format("id_line_i_open_paren = `query-plan%d-line${i+1}-open-paren${numParens}`;", queryNum) + NEWLINE);
+        builder.append(String.format("id_line_i_close_paren = `query-plan%d-line${i+1}-close-paren${numParens}`;", queryNum) + NEWLINE);
         builder.append("} else {" + NEWLINE);
-        builder.append("id_line_i_open_paren = `query-line-${i+1}-open-paren-${numParens}`;" + NEWLINE);
-        builder.append("id_line_i_close_paren = `query-line-${i+1}-close-paren-${numParens}`;" + NEWLINE);
+        builder.append(String.format("id_line_i_open_paren = `query%d-line${i+1}-open-paren${numParens}`;", queryNum) + NEWLINE);
+        builder.append(String.format("id_line_i_close_paren = `query%d-line${i+1}-close-paren${numParens}`;", queryNum) + NEWLINE);
         builder.append("}" + NEWLINE); // end of inner if
         builder.append("if (lineAsArr[m] === ')') count--;" + NEWLINE);
         builder.append("else if (lineAsArr[m] === '(') count++;" + NEWLINE);
         // If count is 0, we have found the matching closing paren
         builder.append("if (count === 0) {" + NEWLINE);
-        builder.append("lineAsArr[m] = `<a style=\"text-decoration: none; color: #000000;\" href=#${id_line_i_open_paren} id=${id_line_i_close_paren} "
+        builder.append("lineAsArr[m] = `<a class=\"a-no-style\" href=#${id_line_i_open_paren} id=${id_line_i_close_paren} "
                         + "onmouseover=\"highlight(this); highlight(document.getElementById('${id_line_i_open_paren}'));\" "
                         + "onmouseout=\"unhighlight(this); unhighlight(document.getElementById('${id_line_i_open_paren}'))\">)</a>`;" + NEWLINE);
         builder.append("break;" + NEWLINE);
         builder.append("}" + NEWLINE);
         builder.append("}" + NEWLINE); // end of inner inner for
         // highlight paren and matching closing paren
-        builder.append("lineAsArr[k] = `<a style=\"text-decoration: none; color: #000000;\" href=#${id_line_i_close_paren} id=${id_line_i_open_paren} "
+        builder.append("lineAsArr[k] = `<a class=\"a-no-style\" href=#${id_line_i_close_paren} id=${id_line_i_open_paren} "
                         + "onmouseover=\"highlight(this); highlight(document.getElementById('${id_line_i_close_paren}'));\" "
                         + "onmouseout=\"unhighlight(this); unhighlight(document.getElementById('${id_line_i_close_paren}'))\">(</a>`;" + NEWLINE);
         builder.append("}" + NEWLINE); // end of if
@@ -303,8 +303,8 @@ public class QueryMetricsDetailListResponse extends QueryMetricListResponse {
         builder.append("document.getElementById('query').innerHTML = lines.join('\\n');" + NEWLINE);
         builder.append("}" + NEWLINE); // end of function interactiveParens
         
-        builder.append("interactiveParens(`" + StringEscapeUtils.escapeHtml4(metric.getQuery()) + "`, false);" + NEWLINE);
-        builder.append("interactiveParens(`" + StringEscapeUtils.escapeHtml4(metric.getPlan()) + "`, true);" + NEWLINE);
+        builder.append("interactiveParens(`" + metric.getQuery() + "`, false);" + NEWLINE);
+        builder.append("interactiveParens(`" + metric.getPlan() + "`, true);" + NEWLINE);
         
         builder.append("</script>");
     }
