@@ -28,6 +28,11 @@ public class QueryMetricsDetailListResponse extends QueryMetricListResponse {
     private static final String NEWLINE = System.getProperty("line.separator");
     
     @Override
+    public String getHeadContent() {
+        return super.getHeadContent() + "<link rel=\"stylesheet\" type=\"text/css\" href=\"/querymetric/css/theme.css\">";
+    }
+    
+    @Override
     public String getMainContent() {
         StringBuilder builder = new StringBuilder(), pageTimesBuilder = new StringBuilder();
         
