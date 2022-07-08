@@ -1,8 +1,8 @@
 package datawave.microservice.querymetric.factory;
 
 import datawave.accumulo.inmemory.InMemoryInstance;
+import datawave.core.common.connection.AccumuloConnectionPoolFactory;
 import datawave.microservice.config.accumulo.AccumuloProperties;
-import datawave.services.common.connection.AccumuloConnectionPoolFactory;
 import datawave.webservice.common.connection.WrappedConnector;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;

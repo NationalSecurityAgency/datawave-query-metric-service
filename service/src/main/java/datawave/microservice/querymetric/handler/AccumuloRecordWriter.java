@@ -1,6 +1,6 @@
 package datawave.microservice.querymetric.handler;
 
-import datawave.services.common.connection.AccumuloConnectionPool;
+import datawave.core.common.connection.AccumuloConnectionPool;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
