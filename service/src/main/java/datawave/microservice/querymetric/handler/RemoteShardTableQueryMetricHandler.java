@@ -1,5 +1,6 @@
 package datawave.microservice.querymetric.handler;
 
+import datawave.core.common.connection.AccumuloConnectionPool;
 import datawave.marking.MarkingFunctions;
 import datawave.microservice.authorization.user.ProxiedUserDetails;
 import datawave.microservice.query.DefaultQueryParameters;
@@ -12,7 +13,6 @@ import datawave.microservice.security.util.DnUtils;
 import datawave.query.language.parser.jexl.LuceneToJexlQueryParser;
 import datawave.security.authorization.DatawaveUser;
 import datawave.security.authorization.JWTTokenHandler;
-import datawave.services.common.connection.AccumuloConnectionPool;
 import datawave.webservice.query.Query;
 import datawave.webservice.result.BaseQueryResponse;
 import org.apache.commons.lang.StringUtils;

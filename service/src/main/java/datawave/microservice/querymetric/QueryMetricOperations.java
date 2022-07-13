@@ -21,7 +21,10 @@ import datawave.webservice.query.exception.DatawaveErrorCode;
 import datawave.webservice.query.exception.QueryException;
 import datawave.webservice.query.map.QueryGeometryResponse;
 import datawave.webservice.result.VoidResponse;
+import io.swagger.v3.oas.annotations.ExternalDocumentation;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.security.VisibilityEvaluator;
@@ -68,6 +71,9 @@ import static java.util.concurrent.TimeUnit.NANOSECONDS;
 /**
  * The type Query metric operations.
  */
+@Tag(name = "Query Metric Operations /v1",
+                externalDocs = @ExternalDocumentation(description = "Query Metric Service Documentation",
+                                url = "https://github.com/NationalSecurityAgency/datawave-query-metric-service"))
 @RestController
 @RequestMapping(path = "/v1")
 public class QueryMetricOperations {
@@ -156,6 +162,7 @@ public class QueryMetricOperations {
      */
     // Messages that arrive via http/https get placed on the message queue
     // to ensure a quick response and to maintain a single queue of work
+    @Operation(summary = "Submit a list of metrics updates.", description = "Metrics updates will be placed on a message queue to ensure a quick response.")
     @Secured({"Administrator", "JBossAdministrator"})
     @RequestMapping(path = "/updateMetrics", method = {RequestMethod.POST}, consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE},
                     produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
@@ -184,6 +191,7 @@ public class QueryMetricOperations {
      */
     // Messages that arrive via http/https get placed on the message queue
     // to ensure a quick response and to maintain a single queue of work
+    @Operation(summary = "Submit a single metric update.", description = "The metric update will be placed on a message queue to ensure a quick response.")
     @Secured({"Administrator", "JBossAdministrator"})
     @RequestMapping(path = "/updateMetric", method = {RequestMethod.POST}, consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE},
                     produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
@@ -299,10 +307,11 @@ public class QueryMetricOperations {
      *            the current user
      * @param queryId
      *            the query id
-     * @return datawave.webservice.result.QueryMetricListResponse base query metric list response
+     * @return the base query metric list response
      * @HTTP 200 success
      * @HTTP 500 internal server error
      */
+    @Operation(summary = "Get the metrics for a given query ID.")
     @PermitAll
     @RequestMapping(path = "/id/{queryId}", method = {RequestMethod.GET},
                     produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE, MediaType.TEXT_HTML_VALUE})
@@ -356,16 +365,17 @@ public class QueryMetricOperations {
     }
     
     /**
-     * Returns metrics for the current users queries that are identified by the id
+     * Get a map for the given query represented by the query ID, if applicable.
      *
      * @param currentUser
      *            the current user
      * @param queryId
      *            the query id
-     * @return datawave.webservice.result.QueryMetricListResponse query geometry response
+     * @return the query geometry response
      * @HTTP 200 success
      * @HTTP 500 internal server error
      */
+    @Operation(summary = "Get a map for the given query represented by the query ID, if applicable.")
     @PermitAll
     @RequestMapping(path = "/id/{queryId}/map", method = {RequestMethod.GET, RequestMethod.POST},
                     produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE, MediaType.TEXT_HTML_VALUE})
@@ -434,10 +444,11 @@ public class QueryMetricOperations {
      *            formatted date/time (yyyyMMdd | yyyyMMdd HHmmss | yyyyMMdd HHmmss.SSS)
      * @param end
      *            formatted date/time (yyyyMMdd | yyyyMMdd HHmmss | yyyyMMdd HHmmss.SSS)
-     * @return datawave.microservice.querymetric.QueryMetricsSummaryResponse query metrics summary
+     * @return the query metrics summary
      * @HTTP 200 success
      * @HTTP 500 internal server error
      */
+    @Operation(summary = "Get a summary of the query metrics.")
     @Secured({"Administrator", "JBossAdministrator", "MetricsAdministrator"})
     @RequestMapping(path = "/summary/all", method = {RequestMethod.GET},
                     produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE, MediaType.TEXT_HTML_VALUE})
@@ -462,10 +473,11 @@ public class QueryMetricOperations {
      *            formatted date/time (yyyyMMdd | yyyyMMdd HHmmss | yyyyMMdd HHmmss.SSS)
      * @param end
      *            formatted date/time (yyyyMMdd | yyyyMMdd HHmmss | yyyyMMdd HHmmss.SSS)
-     * @return datawave.microservice.querymetric.QueryMetricsSummaryResponse query metrics user summary
+     * @return the query metrics user summary
      * @HTTP 200 success
      * @HTTP 500 internal server error
      */
+    @Operation(summary = "Get a summary of the query metrics for the given user.")
     @PermitAll
     @RequestMapping(path = "/summary/user", method = {RequestMethod.GET},
                     produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE, MediaType.TEXT_HTML_VALUE})
@@ -570,10 +582,11 @@ public class QueryMetricOperations {
     /**
      * Returns cache stats for the local part of the distributed Hazelcast cache
      *
-     * @return datawave.microservice.querymetric.stats.CacheStats
+     * @return the cache stats
      * @HTTP 200 success
      * @HTTP 500 internal server error
      */
+    @Operation(summary = "Get the query metrics cache stats.")
     @Secured({"Administrator", "JBossAdministrator", "MetricsAdministrator"})
     @RequestMapping(path = "/cacheStats", method = {RequestMethod.GET}, produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
     public CacheStats getCacheStats() {

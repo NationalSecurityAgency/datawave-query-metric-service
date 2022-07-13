@@ -204,6 +204,7 @@ public class QueryMetricsDetailListResponse extends QueryMetricListResponse {
         final StringBuilder params = new StringBuilder();
         final String PARAMETER_SEPARATOR = ";";
         final String PARAMETER_NAME_VALUE_SEPARATOR = ":";
+        final String NEWLINE = System.getProperty("line.separator");
         
         if (null != parameters) {
             for (final Parameter param : parameters) {

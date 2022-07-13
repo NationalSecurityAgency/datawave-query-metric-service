@@ -2,6 +2,7 @@ package datawave.microservice.querymetric.handler;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
+import datawave.core.query.util.QueryUtil;
 import datawave.ingest.data.config.NormalizedContentInterface;
 import datawave.ingest.data.config.NormalizedFieldAndValue;
 import datawave.ingest.data.config.ingest.CSVIngestHelper;
@@ -9,7 +10,6 @@ import datawave.ingest.data.config.ingest.TermFrequencyIngestHelperInterface;
 import datawave.microservice.querymetric.BaseQueryMetric;
 import datawave.microservice.querymetric.BaseQueryMetric.PageMetric;
 import datawave.microservice.querymetric.BaseQueryMetric.Prediction;
-import datawave.services.query.util.QueryUtil;
 import datawave.webservice.query.QueryImpl;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;

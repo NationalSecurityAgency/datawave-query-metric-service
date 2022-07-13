@@ -1,5 +1,9 @@
 package datawave.microservice.querymetric.handler;
 
+import datawave.core.common.connection.AccumuloConnectionFactory.Priority;
+import datawave.core.common.connection.AccumuloConnectionPool;
+import datawave.core.query.logic.QueryLogic;
+import datawave.core.query.logic.QueryLogicTransformer;
 import datawave.marking.MarkingFunctions;
 import datawave.microservice.querymetric.BaseQueryMetric;
 import datawave.microservice.querymetric.QueryMetricFactory;
@@ -10,10 +14,6 @@ import datawave.query.language.parser.jexl.LuceneToJexlQueryParser;
 import datawave.security.authorization.DatawavePrincipal;
 import datawave.security.authorization.DatawaveUser;
 import datawave.security.authorization.SubjectIssuerDNPair;
-import datawave.services.common.connection.AccumuloConnectionFactory.Priority;
-import datawave.services.common.connection.AccumuloConnectionPool;
-import datawave.services.query.logic.QueryLogic;
-import datawave.services.query.logic.QueryLogicTransformer;
 import datawave.webservice.query.Query;
 import datawave.webservice.query.runner.RunningQuery;
 import datawave.webservice.result.BaseQueryResponse;
