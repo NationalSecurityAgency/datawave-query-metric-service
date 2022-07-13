@@ -90,7 +90,8 @@ public class QueryMetricsDetailListResponse extends QueryMetricListResponse {
             builder.append("<td style=\"min-width:125px !important;\">").append(beginDate).append("</td>");
             String endDate = metric.getEndDate() == null ? "" : sdf.format(metric.getEndDate());
             builder.append("<td style=\"min-width:125px !important;\">").append(endDate).append("</td>");
-            builder.append("<td>").append(parameters == null ? "" : toParametersString(parameters)).append("</td>");
+            builder.append("<td style=\"white-space: pre; word-wrap: break-word;\">").append(parameters == null ? "" : toFormattedParametersString(parameters))
+                            .append("</td>");
             String queryAuths = metric.getQueryAuthorizations() == null ? "" : metric.getQueryAuthorizations().replaceAll(",", " ");
             builder.append("<td style=\"word-wrap: break-word; min-width:300px !important;\">").append(queryAuths).append("</td>");
             
@@ -191,15 +192,16 @@ public class QueryMetricsDetailListResponse extends QueryMetricListResponse {
         return number < minValue ? "" : Long.toString(number);
     }
     
-    private static String toParametersString(final Set<Parameter> parameters) {
+    private static String toFormattedParametersString(final Set<Parameter> parameters) {
         final StringBuilder params = new StringBuilder();
         final String PARAMETER_SEPARATOR = ";";
         final String PARAMETER_NAME_VALUE_SEPARATOR = ":";
+        final String NEWLINE = System.getProperty("line.separator");
         
         if (null != parameters) {
             for (final Parameter param : parameters) {
                 if (params.length() > 0) {
-                    params.append(PARAMETER_SEPARATOR);
+                    params.append(PARAMETER_SEPARATOR + NEWLINE);
                 }
                 
                 params.append(param.getParameterName());
