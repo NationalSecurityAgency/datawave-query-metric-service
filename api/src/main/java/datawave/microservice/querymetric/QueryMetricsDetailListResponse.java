@@ -87,9 +87,10 @@ public class QueryMetricsDetailListResponse extends QueryMetricListResponse {
             builder.append("<td>").append(metric.getQueryId()).append("</td>");
             builder.append("<td>").append(metric.getQueryType()).append("</td>");
             builder.append("<td>").append(metric.getQueryLogic()).append("</td>");
-            builder.append(isJexlQuery(parameters) ? "<td id=\"query\" style=\"white-space: pre; word-wrap: break-word;\">"
-                            : "<td id=\"query\" style=\"word-wrap: break-word;\">").append("</td>");
-            builder.append("<td id=\"query-plan\" style=\"white-space: pre; word-wrap: break-word;\">").append("</td>");
+            // Note the query and query plan are added to the table later (see the javascript at the end of this for loop)
+            builder.append(isJexlQuery(parameters) ? "<td id='query" + x + "'" + " style=\"white-space: pre; word-wrap: break-word;\">"
+                            : "<td id='query" + x + "'" + " style=\"word-wrap: break-word;\">").append("</td>");
+            builder.append("<td id='query-plan" + x + "'" + " style=\"white-space: pre; word-wrap: break-word;\">").append("</td>");
             builder.append("<td>").append(metric.getQueryName()).append("</td>");
             
             String beginDate = metric.getBeginDate() == null ? "" : sdf.format(metric.getBeginDate());
@@ -181,7 +182,17 @@ public class QueryMetricsDetailListResponse extends QueryMetricListResponse {
                             .append("</td>");
             builder.append("\n</tr>\n");
             
-            queryInteractiveParens(builder, metric, x);
+            /*
+             * javascript to make the metric's query and the metric's query plan interactive (highlight matching parens on mouse over, clicking a paren brings
+             * you to its matching paren)
+             */
+            builder.append("<script>");
+            // To be used in the query-interactive-parens.js file
+            builder.append("function getQuery() { return `" + metric.getQuery() + "`; }" + NEWLINE);
+            builder.append("function getPlan() { return `" + metric.getPlan() + "`; }" + NEWLINE);
+            builder.append("function getMetricNum() { return " + x + "; }" + NEWLINE);
+            builder.append("</script>");
+            builder.append("<script src='/querymetric/js/query-interactive-parens.js'></script>");
         }
         
         builder.append("</table>\n<br/>\n");
@@ -219,99 +230,5 @@ public class QueryMetricsDetailListResponse extends QueryMetricListResponse {
         }
         
         return params.toString();
-    }
-    
-    /**
-     * Adds javascript to the builder to make the metric's query and the metric's query plan interactive (highlight matching parens on mouse over, clicking a
-     * paren brings you to its matching paren)
-     * 
-     * @param builder
-     *            the string builder which the javascript is added to
-     * @param metric
-     *            the metric that will be used to get the Query and Query Plan
-     */
-    private static void queryInteractiveParens(StringBuilder builder, QueryMetric metric, int queryNum) {
-        builder.append("<script>");
-        
-        builder.append("function highlight(line) {" + NEWLINE); // start of function highlight
-        builder.append("line.style.backgroundColor = \"yellow\"" + NEWLINE);
-        builder.append("}" + NEWLINE); // end of function highlight
-        
-        builder.append("function unhighlight(line) {" + NEWLINE); // start of function unhighlight
-        builder.append("line.style.backgroundColor = \"transparent\"" + NEWLINE);
-        builder.append("}" + NEWLINE); // end of function unhighlight
-        // Function to make the provided query or query plan's parenthesis interactive
-        builder.append("function interactiveParens(query = '', isQueryPlan = false) {" + NEWLINE); // start of function interactiveParens
-        builder.append("const lines = query.split(/\\r?\\n/);" + NEWLINE);
-        builder.append("for (let i = 0; i < lines.length; i++) {" + NEWLINE); // start of for
-        // If the line is 0 or more spaces followed by and ending with an open paren, find its matching closing paren (on a different line)
-        builder.append("if (/^\\s*\\($/.test(lines[i])) {" + NEWLINE); // start of if
-        builder.append("for (let j = i + 1; j < lines.length; j++) {" + NEWLINE); // start of inner for
-        builder.append("var id_line_i, id_line_j;" + NEWLINE);
-        builder.append("if (isQueryPlan) {" + NEWLINE); // start of inner if
-        builder.append(String.format("id_line_i = `query-plan%d-line${i+1}`;", queryNum) + NEWLINE);
-        builder.append(String.format("id_line_j = `query-plan%d-line${j+1}`;", queryNum) + NEWLINE);
-        builder.append("} else {" + NEWLINE);
-        builder.append(String.format("id_line_i = `query%d-line${i+1}`;", queryNum) + NEWLINE);
-        builder.append(String.format("id_line_j = `query%d-line${j+1}`;", queryNum) + NEWLINE);
-        builder.append("}" + NEWLINE); // end of inner if
-        // if this is true, we have found the matching paren
-        builder.append("if (lines[j].replace(')', '(').substring(0, lines[i].length) === lines[i]) {" + NEWLINE); // start of inner if
-        builder.append("lines[j] = `<a class=\"a-no-style\" href=#${id_line_i} id=${id_line_j} "
-                        + "onmouseover=\"highlight(this); highlight(document.getElementById('${id_line_i}'));\" "
-                        + "onmouseout=\"unhighlight(this); unhighlight(document.getElementById('${id_line_i}'));\">${lines[j]}</a>`;" + NEWLINE);
-        builder.append("break;" + NEWLINE);
-        builder.append("}" + NEWLINE); // end of inner if
-        builder.append("}" + NEWLINE); // end of inner for
-        builder.append("lines[i] = `<a class=\"a-no-style\" href=#${id_line_j} id=${id_line_i} "
-                        + "onmouseover=\"highlight(this); highlight(document.getElementById('${id_line_j}'));\" "
-                        + "onmouseout=\"unhighlight(this); unhighlight(document.getElementById('${id_line_j}'));\">${lines[i]}</a>`;" + NEWLINE);
-        builder.append("}" + NEWLINE); // end of if
-        // Otherwise, if the line just includes an open paren, match all parens on this line
-        builder.append("else if (lines[i].includes('(') && /^<a/.test(lines[i]) === false) {" + NEWLINE); // start of else if
-        builder.append("let lineAsArr = lines[i].split('');" + NEWLINE);
-        builder.append("let numParens = 0;" + NEWLINE);
-        builder.append("for (let k = 0; k < lineAsArr.length; k++) {" + NEWLINE); // start of inner for
-        builder.append("if (lineAsArr[k] === '(') {" + NEWLINE); // start of if
-        builder.append("numParens++;" + NEWLINE);
-        builder.append("let count = 1;" + NEWLINE);
-        builder.append("for (let m = k + 1; m < lineAsArr.length; m++) {" + NEWLINE); // start of inner inner for
-        builder.append("var id_line_i_open_paren, id_line_i_close_paren;" + NEWLINE);
-        builder.append("if (isQueryPlan) {" + NEWLINE); // start of inner if
-        builder.append(String.format("id_line_i_open_paren = `query-plan%d-line${i+1}-open-paren${numParens}`;", queryNum) + NEWLINE);
-        builder.append(String.format("id_line_i_close_paren = `query-plan%d-line${i+1}-close-paren${numParens}`;", queryNum) + NEWLINE);
-        builder.append("} else {" + NEWLINE);
-        builder.append(String.format("id_line_i_open_paren = `query%d-line${i+1}-open-paren${numParens}`;", queryNum) + NEWLINE);
-        builder.append(String.format("id_line_i_close_paren = `query%d-line${i+1}-close-paren${numParens}`;", queryNum) + NEWLINE);
-        builder.append("}" + NEWLINE); // end of inner if
-        builder.append("if (lineAsArr[m] === ')') count--;" + NEWLINE);
-        builder.append("else if (lineAsArr[m] === '(') count++;" + NEWLINE);
-        // If count is 0, we have found the matching closing paren
-        builder.append("if (count === 0) {" + NEWLINE);
-        builder.append("lineAsArr[m] = `<a class=\"a-no-style\" href=#${id_line_i_open_paren} id=${id_line_i_close_paren} "
-                        + "onmouseover=\"highlight(this); highlight(document.getElementById('${id_line_i_open_paren}'));\" "
-                        + "onmouseout=\"unhighlight(this); unhighlight(document.getElementById('${id_line_i_open_paren}'))\">)</a>`;" + NEWLINE);
-        builder.append("break;" + NEWLINE);
-        builder.append("}" + NEWLINE);
-        builder.append("}" + NEWLINE); // end of inner inner for
-        // highlight paren and matching closing paren
-        builder.append("lineAsArr[k] = `<a class=\"a-no-style\" href=#${id_line_i_close_paren} id=${id_line_i_open_paren} "
-                        + "onmouseover=\"highlight(this); highlight(document.getElementById('${id_line_i_close_paren}'));\" "
-                        + "onmouseout=\"unhighlight(this); unhighlight(document.getElementById('${id_line_i_close_paren}'))\">(</a>`;" + NEWLINE);
-        builder.append("}" + NEWLINE); // end of if
-        builder.append("}" + NEWLINE); // end of inner for
-        builder.append("lines[i] = lineAsArr.join('');" + NEWLINE);
-        builder.append("}" + NEWLINE); // end of else if
-        builder.append("}" + NEWLINE); // end of for
-        builder.append("if (isQueryPlan)" + NEWLINE);
-        builder.append("document.getElementById('query-plan').innerHTML = lines.join('\\n');" + NEWLINE);
-        builder.append("else" + NEWLINE);
-        builder.append("document.getElementById('query').innerHTML = lines.join('\\n');" + NEWLINE);
-        builder.append("}" + NEWLINE); // end of function interactiveParens
-        
-        builder.append("interactiveParens(`" + metric.getQuery() + "`, false);" + NEWLINE);
-        builder.append("interactiveParens(`" + metric.getPlan() + "`, true);" + NEWLINE);
-        
-        builder.append("</script>");
     }
 }
