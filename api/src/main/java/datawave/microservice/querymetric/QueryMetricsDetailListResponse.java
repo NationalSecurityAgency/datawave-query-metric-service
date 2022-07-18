@@ -29,7 +29,8 @@ public class QueryMetricsDetailListResponse extends QueryMetricListResponse {
     
     @Override
     public String getHeadContent() {
-        return super.getHeadContent() + "<link rel=\"stylesheet\" type=\"text/css\" href=\"/querymetric/css/theme.css\">";
+        return super.getHeadContent() + "<link rel=\"stylesheet\" type=\"text/css\" href=\"/querymetric/css/theme.css\">"; // styling for microservices query
+                                                                                                                           // metric page
     }
     
     @Override
@@ -192,7 +193,8 @@ public class QueryMetricsDetailListResponse extends QueryMetricListResponse {
             builder.append("function getPlan() { return `" + metric.getPlan() + "`; }" + NEWLINE);
             builder.append("function getMetricNum() { return " + x + "; }" + NEWLINE);
             builder.append("</script>");
-            builder.append("<script src='/querymetric/js/query-interactive-parens.js'></script>");
+            builder.append("<script src='/querymetric/js/query-interactive-parens.js'></script>"); // for microservices query metrics page
+            builder.append("<script src='/query-interactive-parens.js'></script>"); // for webservers query metric page
         }
         
         builder.append("</table>\n<br/>\n");
