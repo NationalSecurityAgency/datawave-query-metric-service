@@ -25,6 +25,13 @@ import java.util.TreeMap;
 public class QueryMetricsDetailListResponse extends QueryMetricListResponse {
     
     private static final long serialVersionUID = 1L;
+    private static final String NEWLINE = System.getProperty("line.separator");
+    
+    @Override
+    public String getHeadContent() {
+        return super.getHeadContent() + "<link rel=\"stylesheet\" type=\"text/css\" href=\"/querymetric/css/theme.css\">"; // styling for microservices query
+                                                                                                                           // metric page
+    }
     
     @Override
     public String getMainContent() {
@@ -81,9 +88,10 @@ public class QueryMetricsDetailListResponse extends QueryMetricListResponse {
             builder.append("<td>").append(metric.getQueryId()).append("</td>");
             builder.append("<td>").append(metric.getQueryType()).append("</td>");
             builder.append("<td>").append(metric.getQueryLogic()).append("</td>");
-            builder.append(isJexlQuery(parameters) ? "<td style=\"white-space: pre; word-wrap: break-word;\">" : "<td style=\"word-wrap: break-word;\">")
-                            .append(StringEscapeUtils.escapeHtml4(metric.getQuery())).append("</td>");
-            builder.append("<td style=\"white-space: pre; word-wrap: break-word;\">").append(StringEscapeUtils.escapeHtml4(metric.getPlan())).append("</td>");
+            // Note the query and query plan are added to the table later (see the javascript at the end of this for loop)
+            builder.append(isJexlQuery(parameters) ? "<td id='query" + x + "'" + " style=\"white-space: pre; word-wrap: break-word;\">"
+                            : "<td id='query" + x + "'" + " style=\"word-wrap: break-word;\">").append("</td>");
+            builder.append("<td id='query-plan" + x + "'" + " style=\"white-space: pre; word-wrap: break-word;\">").append("</td>");
             builder.append("<td>").append(metric.getQueryName()).append("</td>");
             
             String beginDate = metric.getBeginDate() == null ? "" : sdf.format(metric.getBeginDate());
@@ -174,6 +182,19 @@ public class QueryMetricsDetailListResponse extends QueryMetricListResponse {
             builder.append("<td style=\"word-wrap: break-word;\">").append((errorMessage == null) ? "" : StringEscapeUtils.escapeHtml4(errorMessage))
                             .append("</td>");
             builder.append("\n</tr>\n");
+            
+            /*
+             * javascript to make the metric's query and the metric's query plan interactive (highlight matching parens on mouse over, clicking a paren brings
+             * you to its matching paren)
+             */
+            builder.append("<script>");
+            // To be used in the query-interactive-parens.js file
+            builder.append("function getQuery() { return `" + metric.getQuery() + "`; }" + NEWLINE);
+            builder.append("function getPlan() { return `" + metric.getPlan() + "`; }" + NEWLINE);
+            builder.append("function getMetricNum() { return " + x + "; }" + NEWLINE);
+            builder.append("</script>");
+            builder.append("<script src='/querymetric/js/query-interactive-parens.js'></script>"); // for microservices query metrics page
+            builder.append("<script src='/query-interactive-parens.js'></script>"); // for webservers query metric page
         }
         
         builder.append("</table>\n<br/>\n");
