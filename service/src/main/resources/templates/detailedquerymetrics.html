@@ -1,0 +1,152 @@
+<html xmlns:th="http:/>/www.thymeleaf.org">
+<!--/*
+    The HTML page for QueryMetricsDetailListResponse
+*/-->
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <title>DATAWAVE - Query Metrics</title>
+    <link rel="stylesheet" type="text/css" href="/querymetric/css/screen.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="/querymetric/css/theme.css"> <!--/* styling for microservices query metric page */-->
+    <!--/* only needed if isGeoQuery */-->
+    <script type="text/javascript" th:src="${isGeoQuery} ? '/querymetric/webjars/jquery/jquery.min.js' : ''"></script>
+    <script type="text/javascript">
+        if ("[[${isGeoQuery}]]" === "true") {
+            $(document).ready(function() {
+                var currentUrl = window.location.href.replace(/\/+$/, '');
+                var queryHeader = document.getElementById("query-header").innerHTML;
+                queryHeader = queryHeader + '<br>(<a href="' + currentUrl + '/map">map</a>)';
+                document.getElementById("query-header").innerHTML = queryHeader;
+            });
+        }
+    </script>
+</head>
+<body>
+    <h1>Query Metrics</h1>
+    <table>
+        <tr>
+            <th>Visibility</th>
+            <th>Query Date</th>
+            <th>User</th>
+            <th>UserDN</th>
+            <th>Proxy Server(s)</th>
+            <th>Query ID</th>
+            <th>Query Type</th>
+            <th>Query Logic</th>
+            <th id="query-header">Query</th>
+            <th>Query Plan</th>
+            <th>Query Name</th>
+            <th>Begin Date</th>
+            <th>End Date</th>
+            <th>Parameters</th>
+            <th>Query Auths</th>
+            <th>Server</th>
+            <th>Predictions</th>
+            <th>Login Time (ms)</th>
+            <th>Query Setup Time (ms)</th>
+            <th>Query Setup Call Time (ms)</th>
+            <th>Number Pages</th>
+            <th>Number Results</th>
+            <th>Doc Ranges</th>
+            <th>FI Ranges</th>
+            <th>Sources</th>
+            <th>Next Calls</th>
+            <th>Seek Calls</th>
+            <th>Yield Count</th>
+            <th>Version</th>
+            <th>Total Page Time (ms)</th>
+            <th>Total Page Call Time (ms)</th>
+            <th>Total Page Serialization Time (ms)</th>
+            <th>Total Page Bytes Sent (uncompressed)</th>
+            <th>Lifecycle</th>
+            <th>Elapsed Time</th>
+            <th>Error Code</th>
+            <th>Error Message</th>
+        </tr>
+        <tr th:each="metricsData,iter : ${metricsTableContent}" th:class="(${iter.index} % 2 == 0) ? 'highlight' : ''">
+            <td th:text="${metricsData[0]}"></td> <!--/* Column Visibility */-->
+            <td style="min-width:125px !important;" th:text="${metricsData[1]}"></td> <!--/* Query Date */-->
+            <td th:text="${metricsData[2]}"></td> <!--/* User */-->
+            <td style="min-width:500px !important;" th:text="${metricsData[3]}"></td> <!--/* UserDN */-->
+            <td th:text="${metricsData[4]}"></td> <!--/* Proxy Servers */-->
+            <td th:text="${metricsData[5]}"></td> <!--/* Query ID */-->
+            <td th:text="${metricsData[6]}"></td> <!--/* Query Type */-->
+            <td th:text="${metricsData[7]}"></td> <!--/* Query Logic */-->
+            <!--/* Note the HTML for the Query and Query Plan are set later... See scripts at end of this tr element */-->
+            <td th:id="query + ${iter.index + 1}" th:style="${metricsData[8]}"></td> <!--/* Query */-->
+            <td th:id="query-plan + ${iter.index + 1}" style="white-space: pre; word-wrap: break-word;"></td> <!--/* Query Plan */-->
+            <td th:text="${metricsData[11]}"></td> <!--/* Query Name */-->
+            <td style="min-width:125px !important;" th:text="${metricsData[12]}"></td> <!--/* Begin Date */-->
+            <td style="min-width:125px !important;" th:text="${metricsData[13]}"></td> <!--/* End Date */-->
+            <td style="white-space: pre; word-wrap: break-word;" th:text="${metricsData[14]}"></td> <!--/* Parameters */-->
+            <td style="word-wrap: break-word; min-width:300px !important;" th:text="${metricsData[15]}"></td> <!--/* Query Auths */-->
+            <td th:text="${metricsData[16]}"></td> <!--/* Server */-->
+            <td th:text="${metricsData[17]}"></td> <!--/* Predictions */-->
+            <td th:text="${metricsData[18]}"></td> <!--/* Login Time */-->
+            <td th:text="${metricsData[19]}"></td> <!--/* Query Setup Time */-->
+            <td th:text="${metricsData[20]}"></td> <!--/* Query Setup Call Time */-->
+            <td th:text="${metricsData[21]}"></td> <!--/* Number Pages */-->
+            <td th:text="${metricsData[22]}"></td> <!--/* Number Results */-->
+            <td th:text="${metricsData[23]}"></td> <!--/* Doc Ranges */-->
+            <td th:text="${metricsData[24]}"></td> <!--/* FI Ranges */-->
+            <td th:text="${metricsData[25]}"></td> <!--/* Sources */-->
+            <td th:text="${metricsData[26]}"></td> <!--/* Next Calls */-->
+            <td th:text="${metricsData[27]}"></td> <!--/* Seek Calls */-->
+            <td th:text="${metricsData[28]}"></td> <!--/* Yield Count */-->
+            <td th:text="${metricsData[29]}"></td> <!--/* Version */-->
+            <td th:text="${metricsData[30]}"></td> <!--/* Total Page Time */-->
+            <td th:text="${metricsData[31]}"></td> <!--/* Total Page Call Time */-->
+            <td th:text="${metricsData[32]}"></td> <!--/* Total Page Serialization Time */-->
+            <td th:text="${metricsData[33]}"></td> <!--/* Total Page Bytes Sent */-->
+            <td th:text="${metricsData[34]}"></td> <!--/* Lifecycle */-->
+            <td th:text="${metricsData[35]}"></td> <!--/* Elapsed Time */-->
+            <td style="word-wrap: break-word;" th:text="${metricsData[36]}"></td> <!--/* Error Code */-->
+            <td style="word-wrap: break-word;" th:text="${metricsData[37]}"></td> <!--/* Error Message */-->
+
+            <!--/*
+                Makes the metric's query and the metric's query plan interactive (highlight matching parens on mouse over, clicking a paren brings
+                you to its matching paren)
+            */-->
+            <script type="text/javascript">
+                // Functions to be used in the query-interactive-parens.js file
+                function getQuery() {
+                    return `[[${metricsData[9]}]]`;
+                }
+                function getPlan() {
+                    return `[[${metricsData[10]}]]`;
+                }
+                function getMetricNum() {
+                    return "[[${iter.index + 1}]]";
+                }
+            </script>
+            <script src='/querymetric/js/query-interactive-parens.js'></script> <!--/* for microservices query metrics page */-->
+            <script src='/query-interactive-parens.js'></script> <!--/* for webservers query metric page */-->
+            
+        </tr>
+    </table>
+    <br>
+    <table>
+        <tr>
+            <th>Page number</th>
+            <th>Page requested</th>
+            <th>Page returned</th>
+            <th>Response time (ms)</th>
+            <th>Page size</th>
+            <th>Call time (ms)</th>
+            <th>Login time (ms)</th>
+            <th>Serialization time (ms)</th>
+            <th>Bytes written (uncompressed)</th>
+        </tr>
+        <tr th:each="pageTimesData,iter : ${pageTimesTableContent}" th:class="(${iter.index} % 2 == 0) ? 'highlight' : ''">
+            <td th:text="${pageTimesData[0]}"></td>
+            <td th:text="${pageTimesData[1]}"></td>
+            <td th:text="${pageTimesData[2]}"></td>
+            <td th:text="${pageTimesData[3]}"></td>
+            <td th:text="${pageTimesData[4]}"></td>
+            <td th:text="${pageTimesData[5]}"></td>
+            <td th:text="${pageTimesData[6]}"></td>
+            <td th:text="${pageTimesData[7]}"></td>
+            <td th:text="${pageTimesData[8]}"></td>
+        </tr>
+    </table>
+</body>
+</html>
