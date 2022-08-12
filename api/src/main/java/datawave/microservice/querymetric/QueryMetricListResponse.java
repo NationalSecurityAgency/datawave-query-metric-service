@@ -1,6 +1,5 @@
 package datawave.microservice.querymetric;
 
-import datawave.webservice.HtmlProvider;
 import datawave.webservice.query.exception.QueryExceptionType;
 import io.protostuff.Input;
 import io.protostuff.Message;
@@ -21,7 +20,7 @@ import java.util.List;
 @XmlRootElement(name = "QueryMetricListResponse")
 @XmlAccessorType(XmlAccessType.NONE)
 @XmlAccessorOrder(XmlAccessOrder.ALPHABETICAL)
-public class QueryMetricListResponse extends BaseQueryMetricListResponse<QueryMetric> implements Message<QueryMetricListResponse>, HtmlProvider {
+public class QueryMetricListResponse extends BaseQueryMetricListResponse<QueryMetric> implements Message<QueryMetricListResponse> {
     
     private static final long serialVersionUID = 1L;
     
