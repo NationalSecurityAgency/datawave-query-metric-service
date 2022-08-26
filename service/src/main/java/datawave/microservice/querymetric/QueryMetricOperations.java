@@ -163,7 +163,7 @@ public class QueryMetricOperations {
     // Messages that arrive via http/https get placed on the message queue
     // to ensure a quick response and to maintain a single queue of work
     @Operation(summary = "Submit a list of metrics updates.", description = "Metrics updates will be placed on a message queue to ensure a quick response.")
-    @Secured({"Administrator", "JBossAdministrator"})
+    @Secured({"Administrator", "JBossAdministrator", "MetricsAdministrator"})
     @RequestMapping(path = "/updateMetrics", method = {RequestMethod.POST}, consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE},
                     produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
     public VoidResponse updateMetrics(@RequestBody List<BaseQueryMetric> queryMetrics,
@@ -192,7 +192,7 @@ public class QueryMetricOperations {
     // Messages that arrive via http/https get placed on the message queue
     // to ensure a quick response and to maintain a single queue of work
     @Operation(summary = "Submit a single metric update.", description = "The metric update will be placed on a message queue to ensure a quick response.")
-    @Secured({"Administrator", "JBossAdministrator"})
+    @Secured({"Administrator", "JBossAdministrator", "MetricsAdministrator"})
     @RequestMapping(path = "/updateMetric", method = {RequestMethod.POST}, consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE},
                     produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
     public VoidResponse updateMetric(@RequestBody BaseQueryMetric queryMetric,
