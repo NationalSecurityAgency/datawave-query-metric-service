@@ -16,7 +16,6 @@ import org.slf4j.LoggerFactory;
 
 import java.text.SimpleDateFormat;
 import java.util.Collection;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -296,6 +295,15 @@ public class ContentQueryMetricsIngestHelper extends CSVIngestHelper implements 
             }
             if (isChanged(updated.getSourceCount(), stored == null ? -1 : stored.getSourceCount())) {
                 fields.put("SOURCE_COUNT", Long.toString(updated.getSourceCount()));
+            }
+            Map<String,String> updatedSubPlans = updated.getSubPlans();
+            if (updatedSubPlans != null && !updatedSubPlans.isEmpty()) {
+                Map<String,String> storedSubPlans = stored == null ? null : stored.getSubPlans();
+                for (Map.Entry<String,String> entry : updatedSubPlans.entrySet()) {
+                    if (storedSubPlans == null || !storedSubPlans.containsKey(entry.getKey())) {
+                        fields.put("SUBPLAN", entry.getKey() + " : " + entry.getValue());
+                    }
+                }
             }
             if (isFirstWrite(updated.getUser(), stored == null ? null : stored.getUser())) {
                 fields.put("USER", updated.getUser());

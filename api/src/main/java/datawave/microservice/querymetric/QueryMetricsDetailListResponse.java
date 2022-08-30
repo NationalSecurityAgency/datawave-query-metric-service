@@ -18,6 +18,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @XmlRootElement(name = "QueryMetricListResponse")
@@ -34,7 +35,7 @@ public class QueryMetricsDetailListResponse extends QueryMetricListResponse {
         builder.append("<table>\n");
         builder.append("<tr>");
         builder.append("<th>Visibility</th><th>Query Date</th><th>User</th><th>UserDN</th><th>Proxy Server(s)</th><th>Query ID</th><th>Query Type</th>");
-        builder.append("<th>Query Logic</th><th id=\"query-header\">Query</th><th>Query Plan</th><th>Query Name</th><th>Begin Date</th><th>End Date</th><th>Parameters</th><th>Query Auths</th>");
+        builder.append("<th>Query Logic</th><th id=\"query-header\">Query</th><th>Query Plan</th><th>Query Subplan(s)</th><th>Query Name</th><th>Begin Date</th><th>End Date</th><th>Parameters</th><th>Query Auths</th>");
         builder.append("<th>Server</th>");
         builder.append("<th>Predictions</th>");
         builder.append("<th>Login Time (ms)</th>");
@@ -85,6 +86,8 @@ public class QueryMetricsDetailListResponse extends QueryMetricListResponse {
             builder.append(isJexlQuery(parameters) ? "<td style=\"white-space: pre; word-wrap: break-word;\">" : "<td style=\"word-wrap: break-word;\">")
                             .append(StringEscapeUtils.escapeHtml4(metric.getQuery())).append("</td>");
             builder.append("<td style=\"white-space: pre; word-wrap: break-word;\">").append(StringEscapeUtils.escapeHtml4(metric.getPlan())).append("</td>");
+            builder.append("<td style=\"white-space: pre; word-wrap: break-word;\">").append("<a href=\"/DataWave/Query/Metrics/id/")
+                            .append(metric.getQueryId()).append("/subplans\">Subplan(s)</a>").append("</td>");
             builder.append("<td>").append(metric.getQueryName()).append("</td>");
             
             String beginDate = metric.getBeginDate() == null ? "" : sdf.format(metric.getBeginDate());

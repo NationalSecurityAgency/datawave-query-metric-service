@@ -28,6 +28,7 @@ import datawave.microservice.querymetric.QueryMetricType;
 import datawave.microservice.querymetric.QueryMetricsSummaryResponse;
 import datawave.microservice.querymetric.config.QueryMetricHandlerProperties;
 import datawave.microservice.querymetric.factory.QueryMetricQueryLogicFactory;
+import datawave.query.QueryParameters;
 import datawave.query.iterator.QueryOptions;
 import datawave.query.language.parser.jexl.LuceneToJexlQueryParser;
 import datawave.security.authorization.DatawavePrincipal;
@@ -371,7 +372,12 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
     }
     
     public T getQueryMetric(final String queryId) throws Exception {
-        List<T> queryMetrics = getQueryMetrics("QUERY_ID == '" + queryId + "'");
+        List<T> queryMetrics = getQueryMetrics("QUERY_ID == '" + queryId + "'", null);
+        return queryMetrics.isEmpty() ? null : queryMetrics.get(0);
+    }
+    
+    public T getQueryMetric(final String queryId, String blacklistedFields) throws Exception {
+        List<T> queryMetrics = getQueryMetrics("QUERY_ID == '" + queryId + "'", blacklistedFields);
         return queryMetrics.isEmpty() ? null : queryMetrics.get(0);
     }
     
@@ -379,7 +385,7 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
         return new QueryImpl();
     }
     
-    public List<T> getQueryMetrics(final String query) throws Exception {
+    public List<T> getQueryMetrics(final String query, String blacklistedFields) throws Exception {
         Date end = new Date();
         Date begin = DateUtils.setYears(end, 2000);
         Query queryImpl = createQuery();
@@ -394,6 +400,9 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
         queryImpl.setPagesize(1000);
         queryImpl.setId(UUID.randomUUID());
         queryImpl.setParameters(ImmutableMap.of(QueryOptions.INCLUDE_GROUPING_CONTEXT, "true"));
+        if (StringUtils.isNotBlank(blacklistedFields)) {
+            queryImpl.addParameter(QueryParameters.BLACKLISTED_FIELDS, blacklistedFields);
+        }
         return getQueryMetrics(queryImpl);
     }
     
@@ -500,6 +509,7 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
             List<FieldBase> field = event.getFields();
             m.setMarkings(event.getMarkings());
             TreeMap<Long,PageMetric> pageMetrics = Maps.newTreeMap();
+            Map<String,String> subplans = new HashMap<>();
             
             boolean createDateSet = false;
             for (FieldBase f : field) {
@@ -622,6 +632,13 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
                         }
                     } else if (fieldName.equals("PLAN")) {
                         m.setPlan(fieldValue);
+                    } else if (fieldName.equals("SUBPLAN")) {
+                        if (fieldValue != null) {
+                            String[] arr = fieldValue.split(" : ", 2);
+                            if (arr.length >= 2) {
+                                subplans.put(arr[0], arr[1]);
+                            }
+                        }
                     } else if (fieldName.equals("POSITIVE_SELECTORS")) {
                         List<String> positiveSelectors = m.getPositiveSelectors();
                         if (positiveSelectors == null) {
@@ -703,6 +720,7 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
                     
                 }
             }
+            m.setSubPlans(subplans);
             m.setPageTimes(new ArrayList<>(pageMetrics.values()));
             return m;
         } catch (RuntimeException e) {

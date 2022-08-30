@@ -8,6 +8,7 @@ import datawave.marking.MarkingFunctions;
 import datawave.microservice.authorization.user.ProxiedUserDetails;
 import datawave.microservice.querymetric.config.QueryMetricSinkConfiguration.QueryMetricSinkBinding;
 import datawave.microservice.querymetric.factory.BaseQueryMetricListResponseFactory;
+import datawave.microservice.querymetric.factory.BaseQueryMetricSubplanResponseFactory;
 import datawave.microservice.querymetric.handler.QueryGeometryHandler;
 import datawave.microservice.querymetric.handler.ShardTableQueryMetricHandler;
 import datawave.microservice.querymetric.handler.SimpleQueryGeometryHandler;
@@ -54,6 +55,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.TimeZone;
 
 import static datawave.microservice.querymetric.QueryMetricOperations.DEFAULT_DATETIME.BEGIN;
@@ -82,6 +84,7 @@ public class QueryMetricOperations {
     private Cache lastWrittenQueryMetricCache;
     private MarkingFunctions markingFunctions;
     private BaseQueryMetricListResponseFactory queryMetricListResponseFactory;
+    private BaseQueryMetricSubplanResponseFactory queryMetricSubplanResponseFactory;
     private MergeLockLifecycleListener mergeLock;
     private MetricUpdateEntryProcessorFactory entryProcessorFactory;
     private QueryMetricOperationsStats stats;
@@ -127,7 +130,8 @@ public class QueryMetricOperations {
     @Autowired
     public QueryMetricOperations(@Named("queryMetricCacheManager") CacheManager cacheManager, ShardTableQueryMetricHandler handler,
                     QueryGeometryHandler geometryHandler, MarkingFunctions markingFunctions, BaseQueryMetricListResponseFactory queryMetricListResponseFactory,
-                    MergeLockLifecycleListener mergeLock, MetricUpdateEntryProcessorFactory entryProcessorFactory, QueryMetricOperationsStats stats) {
+                    BaseQueryMetricSubplanResponseFactory queryMetricSubplanResponseFactory, MergeLockLifecycleListener mergeLock,
+                    MetricUpdateEntryProcessorFactory entryProcessorFactory, QueryMetricOperationsStats stats) {
         this.handler = handler;
         this.geometryHandler = geometryHandler;
         this.cacheManager = cacheManager;
@@ -135,6 +139,7 @@ public class QueryMetricOperations {
         this.lastWrittenQueryMetricCache = cacheManager.getCache(LAST_WRITTEN_METRICS);
         this.markingFunctions = markingFunctions;
         this.queryMetricListResponseFactory = queryMetricListResponseFactory;
+        this.queryMetricSubplanResponseFactory = queryMetricSubplanResponseFactory;
         this.mergeLock = mergeLock;
         this.entryProcessorFactory = entryProcessorFactory;
         this.stats = stats;
@@ -254,24 +259,7 @@ public class QueryMetricOperations {
         storeTimer.stop();
     }
     
-    /**
-     * Returns metrics for the current users queries that are identified by the id
-     *
-     * @param currentUser
-     *            the current user
-     * @param queryId
-     *            the query id
-     * @return datawave.webservice.result.QueryMetricListResponse base query metric list response
-     * @HTTP 200 success
-     * @HTTP 500 internal server error
-     */
-    @PermitAll
-    @RequestMapping(path = "/id/{queryId}", method = {RequestMethod.GET},
-                    produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE, MediaType.TEXT_HTML_VALUE})
-    public BaseQueryMetricListResponse query(@AuthenticationPrincipal ProxiedUserDetails currentUser,
-                    @ApiParam("queryId to return") @PathVariable("queryId") String queryId) {
-        
-        BaseQueryMetricListResponse response = this.queryMetricListResponseFactory.createDetailedResponse();
+    List<BaseQueryMetric> getMetricList(String queryId, ProxiedUserDetails currentUser, String blacklistedFields) {
         List<BaseQueryMetric> metricList = new ArrayList<>();
         try {
             BaseQueryMetric metric;
@@ -279,7 +267,7 @@ public class QueryMetricOperations {
             if (metricUpdate != null && metricUpdate.isNewMetric()) {
                 metric = metricUpdate.getMetric();
             } else {
-                metric = this.handler.getQueryMetric(queryId);
+                metric = this.handler.getQueryMetric(queryId, blacklistedFields);
             }
             if (metric != null) {
                 boolean allowAllMetrics = false;
@@ -309,8 +297,58 @@ public class QueryMetricOperations {
                 }
             }
         } catch (Exception e) {
-            response.addException(new QueryException(e.getMessage(), 500));
+            log.error(e.getMessage(), e);
         }
+        return metricList;
+    }
+    
+    /**
+     * Returns metrics for the current users queries that are identified by the id
+     *
+     * @param currentUser
+     *            the current user
+     * @param queryId
+     *            the query id
+     * @return datawave.webservice.result.QueryMetricListResponse base query metric list response
+     * @HTTP 200 success
+     * @HTTP 500 internal server error
+     */
+    @PermitAll
+    @RequestMapping(path = "/id/{queryId}", method = {RequestMethod.GET},
+                    produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE, MediaType.TEXT_HTML_VALUE})
+    public BaseQueryMetricListResponse query(@AuthenticationPrincipal ProxiedUserDetails currentUser,
+                    @ApiParam("queryId to return") @PathVariable("queryId") String queryId) {
+        
+        BaseQueryMetricListResponse response = this.queryMetricListResponseFactory.createDetailedResponse();
+        List<BaseQueryMetric> metricList = getMetricList(queryId, currentUser, "SUBPLAN");
+        response.setResult(metricList);
+        if (metricList.isEmpty()) {
+            response.setHasResults(false);
+        } else {
+            response.setGeoQuery(metricList.stream().anyMatch(SimpleQueryGeometryHandler::isGeoQuery));
+            response.setHasResults(true);
+        }
+        return response;
+    }
+    
+    /**
+     * Returns subplans for the current users queries that are identified by the id
+     *
+     * @param currentUser
+     *            the current user
+     * @param queryId
+     *            the query id
+     * @return datawave.webservice.result.QueryMetricListResponse base query metric list response
+     * @HTTP 200 success
+     * @HTTP 500 internal server errorsu
+     */
+    @PermitAll
+    @RequestMapping(path = "/id/{queryId}/subplans", method = {RequestMethod.GET},
+                    produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE, MediaType.TEXT_HTML_VALUE})
+    public BaseQueryMetricSubplanResponse subplans(@AuthenticationPrincipal ProxiedUserDetails currentUser,
+                    @ApiParam("queryId to return") @PathVariable("queryId") String queryId) {
+        BaseQueryMetricSubplanResponse response = this.queryMetricSubplanResponseFactory.createSubplanResponse();
+        List<BaseQueryMetric> metricList = getMetricList(queryId, currentUser, "PAGE_METRICS");
         response.setResult(metricList);
         if (metricList.isEmpty()) {
             response.setHasResults(false);

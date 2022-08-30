@@ -1,6 +1,7 @@
 package datawave.microservice.querymetric;
 
 import com.google.common.collect.Multimap;
+import datawave.data.hash.UID;
 import datawave.microservice.querymetric.handler.ContentQueryMetricsIngestHelper;
 import datawave.microservice.querymetric.persistence.AccumuloMapStore;
 import datawave.util.StringUtils;
@@ -9,6 +10,8 @@ import datawave.webservice.query.result.event.DefaultField;
 import datawave.webservice.query.result.event.EventBase;
 import datawave.webservice.query.result.event.FieldBase;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.PartialKey;
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.junit.After;
 import org.junit.Assert;
@@ -25,6 +28,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -79,6 +83,56 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
             assertEquals(m, returnedMetric);
         }
         assertNoDuplicateFields(queryId);
+    }
+    
+    public String getRangeKey(Range range) {
+        Key key = range.getStartKey();
+        StringBuilder builder = new StringBuilder();
+        builder.append(key.getRow());
+        String cf = key.getColumnFamily().toString();
+        if (cf.length() > 0) {
+            String[] parts = StringUtils.split(cf, '\0');
+            builder.append('/').append(parts[0]).append('/').append(parts[1]);
+        }
+        return builder.toString();
+    }
+    
+    @Test
+    public void SubPlanTest() throws Exception {
+        String queryId = createQueryId();
+        BaseQueryMetric m = createMetric(queryId);
+        
+        Date now = new Date();
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd");
+        String date = sdf.format(now);
+        int numShardSubplans = 10;
+        for (int i = 0; i < numShardSubplans; i++) {
+            String shard = date + "_" + i;
+            Key begin = new Key(shard);
+            Key end = begin.followingKey(PartialKey.ROW);
+            m.addSubPlan(getRangeKey(new Range(begin, end)), "shardSubplan_" + i);
+        }
+        int numDocSubplans = 10;
+        for (int i = 0; i < numDocSubplans; i++) {
+            String shard = date + "_" + i;
+            String uid = UID.builder().newId().toString();
+            Key begin = new Key(shard, "datatype\0" + uid);
+            Key end = begin.followingKey(PartialKey.ROW_COLFAM);
+            m.addSubPlan(getRangeKey(new Range(begin, end)), "documentSubplan_" + i);
+        }
+        int numSubplans = numShardSubplans + numDocSubplans;
+        
+        // @formatter:off
+        client.submit(new QueryMetricClient.Request.Builder()
+                .withMetric(m)
+                .withMetricType(QueryMetricType.COMPLETE)
+                .withUser(this.adminUser)
+                .build());
+        // @formatter:on
+        this.ensureDataWritten(incomingQueryMetricsCache, lastWrittenQueryMetricCache, queryId);
+        BaseQueryMetric storedMetric = shardTableQueryMetricHandler.getQueryMetric(queryId);
+        Assert.assertEquals(numSubplans, storedMetric.getSubPlans().size());
+        assertEquals(m, storedMetric);
     }
     
     @Test

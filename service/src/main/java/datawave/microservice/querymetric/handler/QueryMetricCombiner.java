@@ -188,7 +188,13 @@ public class QueryMetricCombiner<T extends BaseQueryMetric> implements Serializa
                 combinedMetric.setPlan(updatedQueryMetric.getPlan());
             }
             // only update once
-            if (combinedMetric.getPredictions() == null && updatedQueryMetric.getPredictions() != null) {
+            if ((combinedMetric.getSubPlans() == null || combinedMetric.getSubPlans().isEmpty()) && updatedQueryMetric.getSubPlans() != null
+                            && !updatedQueryMetric.getSubPlans().isEmpty()) {
+                combinedMetric.setSubPlans(updatedQueryMetric.getSubPlans());
+            }
+            // only update once
+            if ((combinedMetric.getPredictions() == null || combinedMetric.getPredictions().isEmpty()) && updatedQueryMetric.getPredictions() != null
+                            && !updatedQueryMetric.getPredictions().isEmpty()) {
                 combinedMetric.setPredictions(updatedQueryMetric.getPredictions());
             }
             // use the max numUpdates
