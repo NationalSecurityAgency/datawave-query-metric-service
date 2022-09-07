@@ -283,7 +283,7 @@ public class QueryMetricTestBase {
             Assert.assertTrue(message + "plan", assertObjectsEqual(m1.getPlan(), m2.getPlan()));
             Assert.assertEquals(message + "loginTime", m1.getLoginTime(), m2.getLoginTime());
             Assert.assertTrue(message + "predictions", assertObjectsEqual(m1.getPredictions(), m2.getPredictions()));
-            Assert.assertEquals(message + "version", m1.getVersion(), m2.getVersion());
+            Assert.assertEquals(message + "versionMap", m1.getVersionMap(), m2.getVersionMap());
         }
     }
     

@@ -1,6 +1,8 @@
 package datawave.microservice.querymetric.config;
 
 import datawave.marking.MarkingFunctions;
+import datawave.microservice.querymetric.BaseQueryMetric;
+import datawave.microservice.querymetric.QueryMetric;
 import datawave.microservice.querymetric.handler.QueryMetricCombiner;
 import datawave.microservice.querymetric.handler.ShardTableQueryMetricHandler;
 import datawave.microservice.querymetric.factory.QueryMetricQueryLogicFactory;
@@ -26,7 +28,21 @@ public class AlternateQueryMetricConfiguration {
     
     @Bean
     QueryMetricFactory metricFactory() {
-        return () -> new AlternateQueryMetric();
+        return new QueryMetricFactory() {
+            @Override
+            public BaseQueryMetric createMetric() {
+                return createMetric(true);
+            }
+            
+            @Override
+            public BaseQueryMetric createMetric(boolean populateVersionMap) {
+                BaseQueryMetric queryMetric = new AlternateQueryMetric();
+                if (populateVersionMap) {
+                    queryMetric.populateVersionMap();
+                }
+                return queryMetric;
+            }
+        };
     }
     
     @Bean

@@ -161,6 +161,7 @@ public class QueryMetricTest {
     @Test
     public void testVersionSerialization() throws Exception {
         QueryMetric qm = new QueryMetric();
+        qm.populateVersionMap();
         Date d = new Date();
         qm.setBeginDate(d);
         qm.setCreateCallTime(0);
@@ -190,7 +191,7 @@ public class QueryMetricTest {
         
         // The version is added to queryMetric objects by default through injection, so we can verify
         // the object on creation.
-        assertEquals(BaseQueryMetric.getVersionFromProperties(), qm.getVersion());
+        assertEquals(BaseQueryMetric.discoveredVersionMap, qm.getVersionMap());
         
         Schema<QueryMetric> schema = (Schema<QueryMetric>) qm.getSchemaInstance();
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
