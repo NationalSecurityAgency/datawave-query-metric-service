@@ -533,6 +533,12 @@ public class QueryMetric extends BaseQueryMetric implements Serializable, Messag
                         }
                         message.predictions.add(input.mergeObject(null, Prediction.getSchema()));
                         break;
+                    case 37:
+                        if (message.versionMap == null) {
+                            message.versionMap = new TreeMap<>();
+                        }
+                        message.versionMap.put(DATAWAVE, input.readString());
+                        break;
                     case 38:
                         if (message.versionMap == null) {
                             message.versionMap = new TreeMap<>();
@@ -625,6 +631,8 @@ public class QueryMetric extends BaseQueryMetric implements Serializable, Messag
                     return "loginTime";
                 case 36:
                     return "predictions";
+                case 37:
+                    return "version";
                 case 38:
                     return "versionMap";
                 default:
@@ -676,6 +684,7 @@ public class QueryMetric extends BaseQueryMetric implements Serializable, Messag
             fieldMap.put("plan", 34);
             fieldMap.put("loginTime", 35);
             fieldMap.put("predictions", 36);
+            fieldMap.put("version", 37);
             fieldMap.put("versionMap", 38);
         }
     };
