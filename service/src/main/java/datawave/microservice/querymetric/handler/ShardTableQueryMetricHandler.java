@@ -473,7 +473,7 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
         List<String> excludedFields = Arrays.asList("ELAPSED_TIME", "RECORD_ID", "NUM_PAGES", "NUM_RESULTS");
         
         try {
-            T m = (T) metricFactory.createMetric();
+            T m = (T) metricFactory.createMetric(false);
             List<FieldBase> field = event.getFields();
             m.setMarkings(event.getMarkings());
             TreeMap<Long,PageMetric> pageMetrics = Maps.newTreeMap();
@@ -612,7 +612,9 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
                     } else if (fieldName.equals("USER_DN")) {
                         m.setUserDN(fieldValue);
                     } else if (fieldName.equals("VERSION")) {
-                        m.setVersion(fieldValue);
+                        m.addVersion(BaseQueryMetric.DATAWAVE, fieldValue);
+                    } else if (fieldName.startsWith("VERSION.")) {
+                        m.addVersion(fieldName.substring(8), fieldValue);
                     } else if (fieldName.equals("YIELD_COUNT")) {
                         m.setYieldCount(Long.parseLong(fieldValue));
                     } else {

@@ -9,6 +9,7 @@ import io.protostuff.Input;
 import io.protostuff.Message;
 import io.protostuff.Output;
 import io.protostuff.Schema;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.commons.lang3.time.DateUtils;
@@ -20,10 +21,13 @@ import javax.xml.bind.annotation.XmlTransient;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
+import java.util.TreeMap;
 
 @XmlRootElement
 @XmlAccessorType(XmlAccessType.NONE)
@@ -92,7 +96,7 @@ public class QueryMetric extends BaseQueryMetric implements Serializable, Messag
         this.nextCount = other.nextCount;
         this.seekCount = other.seekCount;
         this.yieldCount = other.yieldCount;
-        this.version = other.version;
+        this.versionMap = other.versionMap;
         this.docRanges = other.docRanges;
         this.fiRanges = other.fiRanges;
         this.plan = other.plan;
@@ -135,7 +139,7 @@ public class QueryMetric extends BaseQueryMetric implements Serializable, Messag
                         .append(this.getErrorMessage()).append(this.getCreateCallTime()).append(this.getErrorCode()).append(this.getQueryName())
                         .append(this.getParameters()).append(this.getSourceCount()).append(this.getNextCount()).append(this.getSeekCount())
                         .append(this.getYieldCount()).append(this.getDocRanges()).append(this.getFiRanges()).append(this.getPlan()).append(this.getLoginTime())
-                        .append(this.getPredictions()).append(this.getMarkings()).append(this.getNumUpdates()).append(this.getVersion()).toHashCode();
+                        .append(this.getPredictions()).append(this.getMarkings()).append(this.getNumUpdates()).append(this.getVersionMap()).toHashCode();
     }
     
     @Override
@@ -164,7 +168,7 @@ public class QueryMetric extends BaseQueryMetric implements Serializable, Messag
                             .append(this.getFiRanges(), other.getFiRanges()).append(this.getPlan(), other.getPlan())
                             .append(this.getLoginTime(), other.getLoginTime()).append(this.getPredictions(), other.getPredictions())
                             .append(this.getMarkings(), other.getMarkings()).append(this.getNumUpdates(), other.getNumUpdates())
-                            .append(this.getVersion(), other.getVersion()).isEquals();
+                            .append(this.getVersionMap(), other.getVersionMap()).isEquals();
         } else {
             return false;
         }
@@ -208,7 +212,7 @@ public class QueryMetric extends BaseQueryMetric implements Serializable, Messag
         buf.append(" Predictions: ").append(this.getPredictions());
         buf.append(" Markings: ").append(this.getMarkings());
         buf.append(" NumUpdates: ").append(this.getNumUpdates());
-        buf.append(" Version: ").append(this.getVersion());
+        buf.append(" VersionMap: ").append(this.getVersionMap());
         buf.append("\n");
         return buf.toString();
     }
@@ -392,8 +396,10 @@ public class QueryMetric extends BaseQueryMetric implements Serializable, Messag
                 }
             }
             
-            if (message.version != null) {
-                output.writeString(37, message.version, false);
+            if (message.versionMap != null) {
+                for (Map.Entry<String,String> entry : message.versionMap.entrySet()) {
+                    output.writeString(38, StringUtils.join(Arrays.asList(entry.getKey(), entry.getValue()), "\0"), true);
+                }
             }
         }
         
@@ -528,7 +534,20 @@ public class QueryMetric extends BaseQueryMetric implements Serializable, Messag
                         message.predictions.add(input.mergeObject(null, Prediction.getSchema()));
                         break;
                     case 37:
-                        message.version = input.readString();
+                        if (message.versionMap == null) {
+                            message.versionMap = new TreeMap<>();
+                        }
+                        message.versionMap.put(DATAWAVE, input.readString());
+                        break;
+                    case 38:
+                        if (message.versionMap == null) {
+                            message.versionMap = new TreeMap<>();
+                        }
+                        String encoded = input.readString();
+                        String[] split = StringUtils.split(encoded, "\0");
+                        if (split.length == 2) {
+                            message.versionMap.put(split[0], split[1]);
+                        }
                         break;
                     default:
                         input.handleUnknownField(number, this);
@@ -614,6 +633,8 @@ public class QueryMetric extends BaseQueryMetric implements Serializable, Messag
                     return "predictions";
                 case 37:
                     return "version";
+                case 38:
+                    return "versionMap";
                 default:
                     return null;
             }
@@ -664,6 +685,7 @@ public class QueryMetric extends BaseQueryMetric implements Serializable, Messag
             fieldMap.put("loginTime", 35);
             fieldMap.put("predictions", 36);
             fieldMap.put("version", 37);
+            fieldMap.put("versionMap", 38);
         }
     };
     
