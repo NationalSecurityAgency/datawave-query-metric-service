@@ -28,8 +28,8 @@
         <version.microservice.accumulo-api>1.2</version.microservice.accumulo-api>
         <version.microservice.hazelcast>1.6</version.microservice.hazelcast>
         <version.microservice.metadata-utils>1.9</version.microservice.metadata-utils>
-        <version.microservice.starter-datawave-query-metric>1.5.4</version.microservice.starter-datawave-query-metric>
         <version.microservice.starter>1.6.7</version.microservice.starter>
+        <version.microservice.starter-datawave-query-metric>1.5.4</version.microservice.starter-datawave-query-metric>
         <version.spring.cloud.stream>2.1.4.RELEASE</version.spring.cloud.stream>
         <version.validation-api>2.0.2</version.validation-api>
         <version.zookeeper>3.4.14</version.zookeeper>
