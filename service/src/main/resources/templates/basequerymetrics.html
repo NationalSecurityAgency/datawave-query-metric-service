@@ -1,0 +1,81 @@
+<html xmlns:th="http:/>/www.thymeleaf.org">
+<!--/*
+    The HTML page for BaseQueryMetricListResponse
+*/-->
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <title>DATAWAVE - Query Metrics</title>
+    <link rel="stylesheet" type="text/css" href="/querymetric/css/screen.css" media="screen">
+    <!--/* only needed if isGeoQuery */-->
+    <script type="text/javascript" th:src="${isGeoQuery} ? '/querymetric/webjars/jquery/jquery.min.js' : ''"></script>
+    <script type="text/javascript">
+        if ("[[${isGeoQuery}]]" === "true") {
+            $(document).ready(function() {
+                var currentUrl = window.location.href.replace(/\/+$/, '');
+                var queryHeader = document.getElementById("query-header").innerHTML;
+                queryHeader = queryHeader + '<br>(<a href="' + currentUrl + '/map">map</a>)';
+                document.getElementById("query-header").innerHTML = queryHeader;
+            });
+        }
+    </script>
+</head>
+<body>
+    <h1>Query Metrics</h1>
+    <table>
+        <tr>
+            <th>Visibility</th>
+            <th>Query Date</th>
+            <th>User</th>
+            <th>UserDN</th>
+            <th>Proxy Server(s)</th>
+            <th>Query ID</th>
+            <th>Query Type</th>
+            <th>Query Logic</th>
+            <th id="query-header">Query</th>
+            <th>Begin Date</th>
+            <th>End Date</th>
+            <th>Query Auths</th>
+            <th>Server</th>
+            <th>Query Setup Time (ms)</th>
+            <th>Query Setup Call Time (ms)</th>
+            <th>Number Pages</th>
+            <th>Number Results</th>
+            <th>Total Page Time (ms)</th>
+            <th>Total Page Call Time (ms)</th>
+            <th>Total Page Serialization Time (ms)</th>
+            <th>Total Page Bytes Sent (uncompressed)</th>
+            <th>Lifecycle</th>
+            <th>Elapsed Time</th>
+            <th>Error Code</th>
+            <th>Error Message</th>
+        </tr>
+        <tr th:each="metricsData,iter : ${metricsTableContent}" style="vertical-align:top;" th:class="(${iter.index} % 2 == 0) ? 'highlight' : ''">
+            <td th:text="${metricsData[0]}"></td> <!--/* Visibility */-->
+            <td style="min-width:125px !important;" th:text="${metricsData[1]}"></td> <!--/* Query Date */-->
+            <td th:text="${metricsData[2]}"></td> <!--/* User */-->
+            <td style="min-width:500px !important;" th:text="${metricsData[3]}"></td> <!--/* UserDN */-->
+            <td th:text="${metricsData[4]}"></td> <!--/* Proxy Server(s) */-->
+            <td><a th:href="${metricsData[5]}" th:text="${metricsData[6]}"></a></td> <!--/* Query ID */-->
+            <td th:text="${metricsData[7]}"></td> <!--/* Query Type */-->
+            <td th:text="${metricsData[8]}"></td> <!--/* Query Logic */-->
+            <td style="word-wrap: break-word;" th:text="${metricsData[9]}"></td> <!--/* Query */-->
+            <td style="min-width:125px !important;" th:text="${metricsData[10]}"></td> <!--/* Begin Date */-->
+            <td style="min-width:125px !important;" th:text="${metricsData[11]}"></td> <!--/* End Date */-->
+            <td style="word-wrap: break-word; min-width:300px !important;" th:text="${metricsData[12]}"></td> <!--/* Query Auths */-->
+            <td th:text="${metricsData[13]}"></td> <!--/* Server */-->
+            <td th:text="${metricsData[14]}"></td> <!--/* Query Setup Time */-->
+            <td th:text="${metricsData[15]}"></td> <!--/* Query Setup Call Time */-->
+            <td th:text="${metricsData[16]}"></td> <!--/* Number Pages */-->
+            <td th:text="${metricsData[17]}"></td> <!--/* Number Results */-->
+            <td th:text="${metricsData[18]}"></td> <!--/* Total Page Time */-->
+            <td th:text="${metricsData[19]}"></td> <!--/* Total Page Call Time */-->
+            <td th:text="${metricsData[20]}"></td> <!--/* Total Page Serialization Time */-->
+            <td th:text="${metricsData[21]}"></td> <!--/* Total Page Bytes Sent */-->
+            <td th:text="${metricsData[22]}"></td> <!--/* Lifecycle */-->
+            <td th:text="${metricsData[23]}"></td> <!--/* Elapsed Time */-->
+            <td style="word-wrap: break-word;" th:text="${metricsData[24]}"></td> <!--/* Error Code */-->
+            <td style="word-wrap: break-word;" th:text="${metricsData[25]}"></td> <!--/* Error Message */-->
+        </tr>
+    </table>
+</body>
+</html>

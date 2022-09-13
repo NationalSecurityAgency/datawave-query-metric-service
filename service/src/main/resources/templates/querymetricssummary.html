@@ -1,0 +1,45 @@
+<html xmlns:th="http:/>/www.thymeleaf.org">
+<!--/*
+    The HTML page for QueryMetricsSummaryResponse
+*/-->
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <title>DATAWAVE - Query Metrics Summary</title>
+    <link rel="stylesheet" type="text/css" href="/querymetric/css/screen.css" media="screen">
+</head>
+<body>
+    <h1>Query Metrics Summary</h1>
+    <table>
+        <tr>
+            <th>Interval</th>
+            <th>Queries Submitted</th>
+            <th>Pages Returned</th>
+            <th>Total Results</th>
+            <th>Min Page Size</th>
+            <th>Max Page Size</th>
+            <th>Avg Page Size</th>
+            <th>Total Page Response Time (ms)</th>
+            <th>Min Page Response Time (ms)</th>
+            <th>Max Page Response Time (ms)</th>
+            <th>Avg Page Response Time (ms)</th>
+            <th>Avg Results Per Second</th>
+            <th>Avg Pages Per Second</th>
+        </tr>
+        <tr th:each="summaryData,iter : ${summaryTableContent}" th:class="(${iter.index} % 2 != 0) ? 'highlight' : ''">
+            <td th:text="${summaryData[0]}"></td> <!--/* Interval */-->
+            <td th:text="${summaryData[1]}"></td> <!--/* Queries Submitted */-->
+            <td th:text="${summaryData[2]}"></td> <!--/* Pages Returned */-->
+            <td th:text="${summaryData[3]}"></td> <!--/* Total Results */-->
+            <td th:text="${summaryData[4]}"></td> <!--/* Min Page Size */-->
+            <td th:text="${summaryData[5]}"></td> <!--/* Max Page Size */-->
+            <td th:text="${summaryData[6]}"></td> <!--/* Avg Page Size */-->
+            <td th:text="${summaryData[7]}"></td> <!--/* Total Page Response Time */-->
+            <td th:text="${summaryData[8]}"></td> <!--/* Min Page Response Time */-->
+            <td th:text="${summaryData[9]}"></td> <!--/* Max Page Response Time */-->
+            <td th:text="${summaryData[10]}"></td> <!--/* Avg Page Response Time */-->
+            <td th:text="${summaryData[11]}"></td> <!--/* Avg Results Per Second */-->
+            <td th:text="${summaryData[12]}"></td> <!--/* Avg Pages Per Second */-->
+        </tr>
+    </table>
+</body>
+</html>

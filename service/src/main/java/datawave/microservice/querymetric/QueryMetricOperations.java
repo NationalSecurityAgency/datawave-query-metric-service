@@ -6,6 +6,8 @@ import com.hazelcast.spring.cache.HazelcastCacheManager;
 import datawave.marking.MarkingFunctions;
 import datawave.microservice.authorization.user.ProxiedUserDetails;
 import datawave.microservice.querymetric.BaseQueryMetric.Lifecycle;
+import datawave.microservice.querymetric.BaseQueryMetric.PageMetric;
+import datawave.microservice.querymetric.BaseQueryMetric.Prediction;
 import datawave.microservice.querymetric.config.TimelyProperties;
 import datawave.microservice.querymetric.factory.BaseQueryMetricListResponseFactory;
 import datawave.microservice.querymetric.function.QueryMetricSupplier;
@@ -29,6 +31,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.security.VisibilityEvaluator;
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.text.StringEscapeUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,6 +47,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.ModelAndView;
 
 import javax.annotation.security.PermitAll;
 import javax.inject.Named;
@@ -58,7 +62,9 @@ import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TimeZone;
+import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -313,8 +319,7 @@ public class QueryMetricOperations {
      */
     @Operation(summary = "Get the metrics for a given query ID.")
     @PermitAll
-    @RequestMapping(path = "/id/{queryId}", method = {RequestMethod.GET},
-                    produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE, MediaType.TEXT_HTML_VALUE})
+    @RequestMapping(path = "/id/{queryId}", method = {RequestMethod.GET}, produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
     public BaseQueryMetricListResponse query(@AuthenticationPrincipal ProxiedUserDetails currentUser,
                     @Parameter(description = "queryId to return") @PathVariable("queryId") String queryId) {
         
@@ -362,6 +367,28 @@ public class QueryMetricOperations {
             response.setHasResults(true);
         }
         return response;
+    }
+    
+    /**
+     * Returns metrics for the current users queries that are identified by the id
+     *
+     * @param currentUser
+     *            the current user
+     * @param queryId
+     *            the query id
+     * @return the ModelAndView for the webpage
+     * @HTTP 200 success
+     * @HTTP 500 internal server error
+     */
+    @Operation(summary = "Get the metrics for a given query ID.")
+    @PermitAll
+    @RequestMapping(path = "/id/{queryId}", method = {RequestMethod.GET}, produces = {MediaType.TEXT_HTML_VALUE})
+    public ModelAndView queryWebpage(@AuthenticationPrincipal ProxiedUserDetails currentUser,
+                    @Parameter(description = "queryId to return") @PathVariable("queryId") String queryId) {
+        
+        BaseQueryMetricListResponse response = query(currentUser, queryId);
+        
+        return response.createModelAndView();
     }
     
     /**
@@ -450,13 +477,63 @@ public class QueryMetricOperations {
      */
     @Operation(summary = "Get a summary of the query metrics.")
     @Secured({"Administrator", "JBossAdministrator", "MetricsAdministrator"})
-    @RequestMapping(path = "/summary/all", method = {RequestMethod.GET},
-                    produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE, MediaType.TEXT_HTML_VALUE})
+    @RequestMapping(path = "/summary/all", method = {RequestMethod.GET}, produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
     public QueryMetricsSummaryResponse getQueryMetricsSummary(@AuthenticationPrincipal ProxiedUserDetails currentUser,
                     @RequestParam(required = false) String begin, @RequestParam(required = false) String end) {
         
         try {
             return queryMetricsSummary(parseDate(begin, BEGIN), parseDate(end, END), currentUser, false);
+        } catch (Exception e) {
+            QueryMetricsSummaryResponse response = new QueryMetricsSummaryResponse();
+            response.addException(e);
+            return response;
+        }
+    }
+    
+    /**
+     * Returns a summary of the query metrics
+     *
+     * @param currentUser
+     *            the current user
+     * @param begin
+     *            formatted date/time (yyyyMMdd | yyyyMMdd HHmmss | yyyyMMdd HHmmss.SSS)
+     * @param end
+     *            formatted date/time (yyyyMMdd | yyyyMMdd HHmmss | yyyyMMdd HHmmss.SSS)
+     * @return the query metrics summary
+     * @HTTP 200 success
+     * @HTTP 500 internal server error
+     */
+    @Operation(summary = "Get a summary of the query metrics.")
+    @Secured({"Administrator", "JBossAdministrator", "MetricsAdministrator"})
+    @RequestMapping(path = "/summary/all", method = {RequestMethod.GET}, produces = {MediaType.TEXT_HTML_VALUE})
+    public ModelAndView getQueryMetricsSummaryWebpage(@AuthenticationPrincipal ProxiedUserDetails currentUser, @RequestParam(required = false) String begin,
+                    @RequestParam(required = false) String end) {
+        
+        QueryMetricsSummaryResponse response = getQueryMetricsSummary(currentUser, begin, end);
+        
+        return response.createModelAndView();
+    }
+    
+    /**
+     * Returns a summary of the requesting user's query metrics
+     *
+     * @param currentUser
+     *            the current user
+     * @param begin
+     *            formatted date/time (yyyyMMdd | yyyyMMdd HHmmss | yyyyMMdd HHmmss.SSS)
+     * @param end
+     *            formatted date/time (yyyyMMdd | yyyyMMdd HHmmss | yyyyMMdd HHmmss.SSS)
+     * @return the query metrics user summary
+     * @HTTP 200 success
+     * @HTTP 500 internal server error
+     */
+    @Operation(summary = "Get a summary of the query metrics for the given user.")
+    @PermitAll
+    @RequestMapping(path = "/summary/user", method = {RequestMethod.GET}, produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
+    public QueryMetricsSummaryResponse getQueryMetricsUserSummary(@AuthenticationPrincipal ProxiedUserDetails currentUser,
+                    @RequestParam(required = false) String begin, @RequestParam(required = false) String end) {
+        try {
+            return queryMetricsSummary(parseDate(begin, BEGIN), parseDate(end, END), currentUser, true);
         } catch (Exception e) {
             QueryMetricsSummaryResponse response = new QueryMetricsSummaryResponse();
             response.addException(e);
@@ -479,17 +556,13 @@ public class QueryMetricOperations {
      */
     @Operation(summary = "Get a summary of the query metrics for the given user.")
     @PermitAll
-    @RequestMapping(path = "/summary/user", method = {RequestMethod.GET},
-                    produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE, MediaType.TEXT_HTML_VALUE})
-    public QueryMetricsSummaryResponse getQueryMetricsUserSummary(@AuthenticationPrincipal ProxiedUserDetails currentUser,
-                    @RequestParam(required = false) String begin, @RequestParam(required = false) String end) {
-        try {
-            return queryMetricsSummary(parseDate(begin, BEGIN), parseDate(end, END), currentUser, true);
-        } catch (Exception e) {
-            QueryMetricsSummaryResponse response = new QueryMetricsSummaryResponse();
-            response.addException(e);
-            return response;
-        }
+    @RequestMapping(path = "/summary/user", method = {RequestMethod.GET}, produces = {MediaType.TEXT_HTML_VALUE})
+    public ModelAndView getQueryMetricsUserSummaryWebpage(@AuthenticationPrincipal ProxiedUserDetails currentUser, @RequestParam(required = false) String begin,
+                    @RequestParam(required = false) String end) {
+        
+        QueryMetricsSummaryResponse response = getQueryMetricsUserSummary(currentUser, begin, end);
+        
+        return response.createModelAndView();
     }
     
     private UdpClient createUdpClient() {

@@ -31,6 +31,7 @@
         <version.microservice.starter-metadata>1.0-SNAPSHOT</version.microservice.starter-metadata>
         <version.spring.cloud.stream>2.1.4.RELEASE</version.spring.cloud.stream>
         <version.validation-api>2.0.2</version.validation-api>
+        <version.webjars.jquery>3.6.0</version.webjars.jquery>
         <version.zookeeper>3.4.14</version.zookeeper>
     </properties>
     <dependencyManagement>
@@ -245,6 +246,11 @@
                 <version>${version.spring.cloud.stream}</version>
             </dependency>
             <dependency>
+                <groupId>org.webjars</groupId>
+                <artifactId>jquery</artifactId>
+                <version>${version.webjars.jquery}</version>
+            </dependency>
+            <dependency>
                 <groupId>gov.nsa.datawave.microservice</groupId>
                 <artifactId>spring-boot-starter-datawave</artifactId>
                 <version>${version.microservice.starter}</version>
@@ -309,6 +315,14 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-cache</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-thymeleaf</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.webjars</groupId>
+            <artifactId>jquery</artifactId>
         </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>

@@ -3,14 +3,17 @@ package datawave.microservice.querymetric;
 import datawave.microservice.querymetric.BaseQueryMetric.PageMetric;
 import datawave.microservice.querymetric.BaseQueryMetric.Prediction;
 import datawave.webservice.query.QueryImpl.Parameter;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.text.StringEscapeUtils;
 
 import javax.xml.bind.annotation.XmlAccessOrder;
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorOrder;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlRootElement;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.text.StringEscapeUtils;
+import org.springframework.web.servlet.ModelAndView;
+
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -25,38 +28,17 @@ import java.util.TreeMap;
 public class QueryMetricsDetailListResponse extends QueryMetricListResponse {
     
     private static final long serialVersionUID = 1L;
-    private static final String NEWLINE = System.getProperty("line.separator");
     
+    /**
+     * Creates the ModelAndView for the detailed query metrics page (detailedquerymetrics.html)
+     * 
+     * @return the ModelAndView for detailedquerymetrics.html
+     */
     @Override
-    public String getHeadContent() {
-        return super.getHeadContent() + "<link rel=\"stylesheet\" type=\"text/css\" href=\"/querymetric/css/theme.css\">"; // styling for microservices query
-                                                                                                                           // metric page
-    }
-    
-    @Override
-    public String getMainContent() {
-        StringBuilder builder = new StringBuilder(), pageTimesBuilder = new StringBuilder();
+    public ModelAndView createModelAndView() {
+        ModelAndView mav = new ModelAndView();
         
-        builder.append("<table>\n");
-        builder.append("<tr>");
-        builder.append("<th>Visibility</th><th>Query Date</th><th>User</th><th>UserDN</th><th>Proxy Server(s)</th><th>Query ID</th><th>Query Type</th>");
-        builder.append("<th>Query Logic</th><th id=\"query-header\">Query</th><th>Query Plan</th><th>Query Name</th><th>Begin Date</th><th>End Date</th><th>Parameters</th><th>Query Auths</th>");
-        builder.append("<th>Server</th>");
-        builder.append("<th>Predictions</th>");
-        builder.append("<th>Login Time (ms)</th>");
-        builder.append("<th>Query Setup Time (ms)</th><th>Query Setup Call Time (ms)</th><th>Number Pages</th><th>Number Results</th>");
-        
-        builder.append("<th>Doc Ranges</th><th>FI Ranges</th>");
-        builder.append("<th>Sources</th><th>Next Calls</th><th>Seek Calls</th><th>Yield Count</th><th>Version</th>");
-        
-        builder.append("<th>Total Page Time (ms)</th><th>Total Page Call Time (ms)</th><th>Total Page Serialization Time (ms)</th>");
-        builder.append("<th>Total Page Bytes Sent (uncompressed)</th><th>Lifecycle</th><th>Elapsed Time</th><th>Error Code</th><th>Error Message</th>");
-        builder.append("</tr>\n");
-        
-        pageTimesBuilder.append("<table>\n");
-        pageTimesBuilder.append("<tr><th>Page number</th><th>Page requested</th><th>Page returned</th><th>Response time (ms)</th>");
-        pageTimesBuilder.append("<th>Page size</th><th>Call time (ms)</th><th>Login time (ms)</th><th>Serialization time (ms)</th>");
-        pageTimesBuilder.append("<th>Bytes written (uncompressed)</th></tr>");
+        mav.setViewName("detailedquerymetrics");
         
         TreeMap<Date,QueryMetric> metricMap = new TreeMap<Date,QueryMetric>(Collections.reverseOrder());
         
@@ -66,87 +48,74 @@ public class QueryMetricsDetailListResponse extends QueryMetricListResponse {
         
         SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd HHmmss");
         
-        int x = 0;
+        List<List<String>> metricsTableContent = new ArrayList<List<String>>();
+        List<List<String>> pageTimesTableContent = new ArrayList<List<String>>();
         for (QueryMetric metric : metricMap.values()) {
-            Set<Parameter> parameters = metric.getParameters();
+            List<String> metricsData = new ArrayList<String>();
+            Set<datawave.webservice.query.QueryImpl.Parameter> parameters = metric.getParameters();
             
-            // highlight alternating rows
-            if (x % 2 == 0) {
-                builder.append("<tr class=\"highlight\">\n");
-            } else {
-                builder.append("<tr>\n");
-            }
-            x++;
-            
-            builder.append("<td>").append(metric.getColumnVisibility()).append("</td>");
-            builder.append("<td style=\"min-width:125px !important;\">").append(sdf.format(metric.getCreateDate())).append("</td>");
-            builder.append("<td>").append(metric.getUser()).append("</td>");
+            metricsData.add(metric.getColumnVisibility());
+            metricsData.add(sdf.format(metric.getCreateDate()));
+            metricsData.add(metric.getUser());
             String userDN = metric.getUserDN();
-            builder.append("<td style=\"min-width:500px !important;\">").append(userDN == null ? "" : userDN).append("</td>");
+            metricsData.add(userDN == null ? "" : userDN);
             String proxyServers = metric.getProxyServers() == null ? "" : StringUtils.join(metric.getProxyServers(), "<BR/>");
-            builder.append("<td>").append(proxyServers).append("</td>");
-            builder.append("<td>").append(metric.getQueryId()).append("</td>");
-            builder.append("<td>").append(metric.getQueryType()).append("</td>");
-            builder.append("<td>").append(metric.getQueryLogic()).append("</td>");
-            // Note the query and query plan are added to the table later (see the javascript at the end of this for loop)
-            builder.append(isJexlQuery(parameters) ? "<td id='query" + x + "'" + " style=\"white-space: pre; word-wrap: break-word;\">"
-                            : "<td id='query" + x + "'" + " style=\"word-wrap: break-word;\">").append("</td>");
-            builder.append("<td id='query-plan" + x + "'" + " style=\"white-space: pre; word-wrap: break-word;\">").append("</td>");
-            builder.append("<td>").append(metric.getQueryName()).append("</td>");
-            
+            metricsData.add(proxyServers);
+            metricsData.add(metric.getQueryId());
+            metricsData.add(metric.getQueryType());
+            metricsData.add(metric.getQueryLogic());
+            String queryStyle = isJexlQuery(parameters) ? "white-space: pre; word-wrap: break-word;" : "word-wrap: break-word;";
+            metricsData.add(queryStyle);
+            metricsData.add(metric.getQuery());
+            metricsData.add(metric.getPlan());
+            metricsData.add(metric.getQueryName());
             String beginDate = metric.getBeginDate() == null ? "" : sdf.format(metric.getBeginDate());
-            builder.append("<td style=\"min-width:125px !important;\">").append(beginDate).append("</td>");
+            metricsData.add(beginDate);
             String endDate = metric.getEndDate() == null ? "" : sdf.format(metric.getEndDate());
-            builder.append("<td style=\"min-width:125px !important;\">").append(endDate).append("</td>");
-            builder.append("<td style=\"white-space: pre; word-wrap: break-word;\">").append(parameters == null ? "" : toFormattedParametersString(parameters))
-                            .append("</td>");
+            metricsData.add(endDate);
+            metricsData.add(parameters == null ? "" : toFormattedParametersString(parameters));
             String queryAuths = metric.getQueryAuthorizations() == null ? "" : metric.getQueryAuthorizations().replaceAll(",", " ");
-            builder.append("<td style=\"word-wrap: break-word; min-width:300px !important;\">").append(queryAuths).append("</td>");
+            metricsData.add(queryAuths);
+            metricsData.add(metric.getHost());
             
-            builder.append("<td>").append(metric.getHost()).append("</td>");
+            StringBuilder sbPredictions = new StringBuilder();
             if (metric.getPredictions() != null && !metric.getPredictions().isEmpty()) {
-                builder.append("<td>");
                 String delimiter = "";
                 List<Prediction> predictions = new ArrayList<Prediction>(metric.getPredictions());
                 Collections.sort(predictions);
                 for (Prediction prediction : predictions) {
-                    builder.append(delimiter).append(prediction.getName()).append(" = ").append(prediction.getPrediction());
+                    sbPredictions.append(delimiter).append(prediction.getName()).append(" = ").append(prediction.getPrediction());
                     delimiter = "<br>";
                 }
             } else {
-                builder.append("<td/>");
+                sbPredictions.append("");
             }
-            builder.append("<td>").append(numToString(metric.getLoginTime(), 0)).append("</td>");
-            builder.append("<td>").append(metric.getSetupTime()).append("</td>");
-            builder.append("<td>").append(numToString(metric.getCreateCallTime(), 0)).append("</td>\n");
-            builder.append("<td>").append(metric.getNumPages()).append("</td>");
-            builder.append("<td>").append(metric.getNumResults()).append("</td>");
+            metricsData.add(sbPredictions.toString());
             
-            builder.append("<td>").append(metric.getDocRanges()).append("</td>");
-            builder.append("<td>").append(metric.getFiRanges()).append("</td>");
-            
-            builder.append("<td>").append(metric.getSourceCount()).append("</td>");
-            builder.append("<td>").append(metric.getNextCount()).append("</td>");
-            builder.append("<td>").append(metric.getSeekCount()).append("</td>");
-            builder.append("<td>").append(metric.getYieldCount()).append("</td>");
-            builder.append("<td>").append(metric.getVersion()).append("</td>");
+            metricsData.add(numToString(metric.getLoginTime(), 0));
+            metricsData.add(String.valueOf(metric.getSetupTime()));
+            metricsData.add(numToString(metric.getCreateCallTime(), 0));
+            metricsData.add(String.valueOf(metric.getNumPages()));
+            metricsData.add(String.valueOf(metric.getNumResults()));
+            metricsData.add(String.valueOf(metric.getDocRanges()));
+            metricsData.add(String.valueOf(metric.getFiRanges()));
+            metricsData.add(String.valueOf(metric.getSourceCount()));
+            metricsData.add(String.valueOf(metric.getNextCount()));
+            metricsData.add(String.valueOf(metric.getSeekCount()));
+            metricsData.add(String.valueOf(metric.getYieldCount()));
+            metricsData.add(metric.getVersion());
             
             long count = 0l;
             long callTime = 0l;
             long serializationTime = 0l;
             long bytesSent = 0l;
-            int y = 0;
             for (PageMetric p : metric.getPageTimes()) {
+                List<String> pageTimesData = new ArrayList<String>();
+                
                 count += p.getReturnTime();
                 callTime += (p.getCallTime()) == -1 ? 0 : p.getCallTime();
                 serializationTime += (p.getSerializationTime()) == -1 ? 0 : p.getSerializationTime();
                 bytesSent += (p.getBytesWritten()) == -1 ? 0 : p.getBytesWritten();
-                if (y % 2 == 0) {
-                    pageTimesBuilder.append("<tr class=\"highlight\">");
-                } else {
-                    pageTimesBuilder.append("<tr>");
-                }
-                y++;
                 
                 String pageRequestedStr = "";
                 long pageRequested = p.getPageRequested();
@@ -160,49 +129,38 @@ public class QueryMetricsDetailListResponse extends QueryMetricListResponse {
                     pageReturnedStr = sdf.format(new Date(pageReturned));
                 }
                 
-                pageTimesBuilder.append("<td>").append(numToString(p.getPageNumber(), 1)).append("</td>");
-                pageTimesBuilder.append("<td>").append(pageRequestedStr).append("</td>");
-                pageTimesBuilder.append("<td>").append(pageReturnedStr).append("</td>");
-                pageTimesBuilder.append("<td>").append(p.getReturnTime()).append("</td>");
-                pageTimesBuilder.append("<td>").append(p.getPagesize()).append("</td>");
-                pageTimesBuilder.append("<td>").append(numToString(p.getCallTime(), 0)).append("</td>");
-                pageTimesBuilder.append("<td>").append(numToString(p.getLoginTime(), 0)).append("</td>");
-                pageTimesBuilder.append("<td>").append(numToString(p.getSerializationTime(), 0)).append("</td>");
-                pageTimesBuilder.append("<td>").append(numToString(p.getBytesWritten(), 0)).append("</td></tr>");
+                pageTimesData.add(numToString(p.getPageNumber(), 1));
+                pageTimesData.add(pageRequestedStr);
+                pageTimesData.add(pageReturnedStr);
+                pageTimesData.add(String.valueOf(p.getReturnTime()));
+                pageTimesData.add(String.valueOf(p.getPagesize()));
+                pageTimesData.add(numToString(p.getCallTime(), 0));
+                pageTimesData.add(numToString(p.getLoginTime(), 0));
+                pageTimesData.add(numToString(p.getSerializationTime(), 0));
+                pageTimesData.add(numToString(p.getBytesWritten(), 0));
+                
+                pageTimesTableContent.add(pageTimesData);
             }
-            builder.append("<td>").append(count).append("</td>\n");
-            builder.append("<td>").append(numToString(callTime, 0)).append("</td>\n");
-            builder.append("<td>").append(numToString(serializationTime, 0)).append("</td>\n");
-            builder.append("<td>").append(numToString(bytesSent, 0)).append("</td>\n");
-            builder.append("<td>").append(metric.getLifecycle()).append("</td>");
-            builder.append("<td>").append(metric.getElapsedTime()).append("</td>");
-            String errorCode = metric.getErrorCode();
-            builder.append("<td style=\"word-wrap: break-word;\">").append((errorCode == null) ? "" : StringEscapeUtils.escapeHtml4(errorCode)).append("</td>");
-            String errorMessage = metric.getErrorMessage();
-            builder.append("<td style=\"word-wrap: break-word;\">").append((errorMessage == null) ? "" : StringEscapeUtils.escapeHtml4(errorMessage))
-                            .append("</td>");
-            builder.append("\n</tr>\n");
             
-            /*
-             * javascript to make the metric's query and the metric's query plan interactive (highlight matching parens on mouse over, clicking a paren brings
-             * you to its matching paren)
-             */
-            builder.append("<script>");
-            // To be used in the query-interactive-parens.js file
-            builder.append("function getQuery() { return `" + metric.getQuery() + "`; }" + NEWLINE);
-            builder.append("function getPlan() { return `" + metric.getPlan() + "`; }" + NEWLINE);
-            builder.append("function getMetricNum() { return " + x + "; }" + NEWLINE);
-            builder.append("</script>");
-            builder.append("<script src='/querymetric/js/query-interactive-parens.js'></script>"); // for microservices query metrics page
-            builder.append("<script src='/query-interactive-parens.js'></script>"); // for webservers query metric page
+            metricsData.add(String.valueOf(count));
+            metricsData.add(numToString(callTime, 0));
+            metricsData.add(numToString(serializationTime, 0));
+            metricsData.add(numToString(bytesSent, 0));
+            metricsData.add(String.valueOf(metric.getLifecycle()));
+            metricsData.add(String.valueOf(metric.getElapsedTime()));
+            String errorCode = metric.getErrorCode();
+            metricsData.add((errorCode == null) ? "" : StringEscapeUtils.escapeHtml4(errorCode));
+            String errorMessage = metric.getErrorMessage();
+            metricsData.add((errorMessage == null) ? "" : StringEscapeUtils.escapeHtml4(errorMessage));
+            
+            metricsTableContent.add(metricsData);
         }
         
-        builder.append("</table>\n<br/>\n");
-        pageTimesBuilder.append("</table>\n");
+        mav.addObject("isGeoQuery", this.isGeoQuery());
+        mav.addObject("metricsTableContent", metricsTableContent);
+        mav.addObject("pageTimesTableContent", pageTimesTableContent);
         
-        builder.append(pageTimesBuilder);
-        
-        return builder.toString();
+        return mav;
     }
     
     private static boolean isJexlQuery(Set<Parameter> params) {
