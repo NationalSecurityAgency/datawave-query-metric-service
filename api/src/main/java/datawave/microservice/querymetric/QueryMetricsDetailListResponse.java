@@ -122,7 +122,7 @@ public class QueryMetricsDetailListResponse extends QueryMetricListResponse {
             builder.append("<td>").append(metric.getSeekCount()).append("</td>");
             builder.append("<td>").append(metric.getYieldCount()).append("</td>");
             String versions = metric.getVersionMap().entrySet().stream().map(e -> e.getKey() + "=" + e.getValue()).collect(Collectors.joining("<br/>"));
-            builder.append("<td style=\"min-width:200px !important;\">").append(versions).append("</td>");
+            builder.append("<td style=\"min-width:250px !important;\">").append(versions).append("</td>");
             
             long count = 0l;
             long callTime = 0l;
