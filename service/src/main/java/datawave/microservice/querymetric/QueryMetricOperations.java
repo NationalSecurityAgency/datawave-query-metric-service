@@ -12,7 +12,6 @@ import datawave.microservice.querymetric.factory.BaseQueryMetricListResponseFact
 import datawave.microservice.querymetric.handler.QueryGeometryHandler;
 import datawave.microservice.querymetric.handler.ShardTableQueryMetricHandler;
 import datawave.microservice.querymetric.handler.SimpleQueryGeometryHandler;
-import datawave.microservice.querymetric.stats.CacheStats;
 import datawave.security.authorization.DatawaveUser;
 import datawave.security.util.DnUtils;
 import datawave.util.timely.UdpClient;
@@ -580,7 +579,7 @@ public class QueryMetricOperations {
     /**
      * Returns cache stats for the local part of the distributed Hazelcast cache
      *
-     * @return datawave.microservice.querymetric.stats.CacheStats
+     * @return datawave.microservice.querymetric.CacheStats
      * @HTTP 200 success
      * @HTTP 500 internal server error
      */

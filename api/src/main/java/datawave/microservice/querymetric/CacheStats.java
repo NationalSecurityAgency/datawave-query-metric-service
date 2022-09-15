@@ -1,4 +1,4 @@
-package datawave.microservice.querymetric.stats;
+package datawave.microservice.querymetric;
 
 import javax.xml.bind.annotation.XmlAccessOrder;
 import javax.xml.bind.annotation.XmlAccessType;
