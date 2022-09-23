@@ -26,7 +26,7 @@ hazelcast:
           <max-size policy="USED_HEAP_SIZE">2048</max-size>
           <!-- Evict the least recently used entries first if we run out of space -->
           <eviction-policy>LRU</eviction-policy>
-          <map-store enabled="true" initial-mode="LAZY">
+          <map-store enabled="true" initial-mode="EAGER">
             <factory-class-name>datawave.microservice.querymetric.persistence.AccumuloMapStore$Factory</factory-class-name>
             <write-delay-seconds>1</write-delay-seconds>
             <write-batch-size>1000</write-batch-size>
@@ -45,7 +45,7 @@ hazelcast:
           <max-size policy="USED_HEAP_SIZE">2048</max-size>
           <!-- Evict the least recently used entries first if we run out of space -->
           <eviction-policy>LRU</eviction-policy>
-          <map-store enabled="true" initial-mode="LAZY">
+          <map-store enabled="true" initial-mode="EAGER">
             <factory-class-name>datawave.microservice.querymetric.persistence.AccumuloMapLoader$Factory</factory-class-name>
           </map-store>
         </map>
