@@ -231,6 +231,7 @@ public class QueryMetricOperations {
         VoidResponse response = new VoidResponse();
         try {
             Long lastPageNum = null;
+            BaseQueryMetric updatedMetric;
             String queryId = queryMetric.getQueryId();
             if (this.isHazelCast) {
                 // use a native cache set vs Cache.put to prevent the fetching and return of accumulo value
@@ -240,7 +241,7 @@ public class QueryMetricOperations {
                 this.mergeLock.lock();
                 incomingQueryMetricsCacheHz.lock(queryId, 120, TimeUnit.SECONDS);
                 try {
-                    BaseQueryMetric updatedMetric = queryMetric;
+                    updatedMetric = queryMetric;
                     QueryMetricUpdate lastQueryMetricUpdate = (QueryMetricUpdate) incomingQueryMetricsCacheHz.get(queryId);
                     if (lastQueryMetricUpdate == null) {
                         updatedMetric.setNumUpdates(1);
@@ -252,7 +253,6 @@ public class QueryMetricOperations {
                     }
                     handler.populateMetricSelectors(updatedMetric);
                     incomingQueryMetricsCacheHz.set(queryId, new QueryMetricUpdate(updatedMetric, metricType));
-                    sendMetricsToTimely(updatedMetric, lastPageNum);
                 } finally {
                     try {
                         incomingQueryMetricsCacheHz.unlock(queryId);
@@ -266,7 +266,7 @@ public class QueryMetricOperations {
                 caffeineLock.lock();
                 try {
                     QueryMetricUpdate lastQueryMetricUpdate = incomingQueryMetricsCache.get(queryId, QueryMetricUpdate.class);
-                    BaseQueryMetric updatedMetric = queryMetric;
+                    updatedMetric = queryMetric;
                     if (lastQueryMetricUpdate == null) {
                         updatedMetric.setNumUpdates(1);
                     } else {
@@ -279,11 +279,11 @@ public class QueryMetricOperations {
                     handler.populateMetricSelectors(updatedMetric);
                     handler.writeMetric(updatedMetric, Collections.singletonList(updatedMetric), updatedMetric.getLastUpdated(), false);
                     this.incomingQueryMetricsCache.put(queryId, new QueryMetricUpdate(updatedMetric, metricType));
-                    sendMetricsToTimely(updatedMetric, lastPageNum);
                 } finally {
                     caffeineLock.unlock();
                 }
             }
+            sendMetricsToTimely(updatedMetric, lastPageNum);
         } catch (Exception e) {
             log.error(e.getMessage(), e);
             response.addException(new QueryException(DatawaveErrorCode.UNKNOWN_SERVER_ERROR, e));
@@ -500,9 +500,9 @@ public class QueryMetricOperations {
     private void sendMetricsToTimely(BaseQueryMetric queryMetric, Long lastPageNum) {
         
         if (this.timelyProperties.getEnabled()) {
-            UdpClient timelyClient = createUdpClient();
-            if (queryMetric.getQueryType().equalsIgnoreCase("RunningQuery")) {
-                try {
+            try {
+                UdpClient timelyClient = createUdpClient();
+                if (queryMetric.getQueryType().equalsIgnoreCase("RunningQuery")) {
                     Lifecycle lifecycle = queryMetric.getLifecycle();
                     Map<String,String> metricValues = handler.getEventFields(queryMetric);
                     long createDate = queryMetric.getCreateDate().getTime();
@@ -568,10 +568,9 @@ public class QueryMetricOperations {
                         // write a COUNT value of 1 so that we can count total queries
                         timelyClient.write("put dw.query.metrics.COUNT " + createDate + " 1 " + tagSb);
                     }
-                    
-                } catch (Exception e) {
-                    log.error(e.getMessage(), e);
                 }
+            } catch (Exception e) {
+                log.error(e.getMessage(), e);
             }
         }
     }
