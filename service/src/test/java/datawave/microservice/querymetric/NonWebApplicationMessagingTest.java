@@ -34,6 +34,9 @@ public class NonWebApplicationMessagingTest {
     private QueryMetricFactory queryMetricFactory;
     
     @Autowired
+    private MergeLockLifecycleListener mergeLockLifecycleListener;
+    
+    @Autowired
     @Named("queryMetricCacheManager")
     protected CacheManager cacheManager;
     
@@ -45,6 +48,7 @@ public class NonWebApplicationMessagingTest {
         this.metricMarkings = new HashMap<>();
         this.metricMarkings.put(MarkingFunctions.Default.COLUMN_VISIBILITY, "A&C");
         this.incomingQueryMetricsCache = cacheManager.getCache(INCOMING_METRICS);
+        this.mergeLockLifecycleListener.setStartupComplete(true);
     }
     
     /*

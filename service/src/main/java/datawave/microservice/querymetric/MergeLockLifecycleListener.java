@@ -23,6 +23,7 @@ public class MergeLockLifecycleListener implements LifecycleListener, HazelcastI
     private Future writeLockRunnableFuture;
     private HazelcastInstance instance;
     private String localMemberUuid;
+    private boolean startupComplete = false;
     
     public MergeLockLifecycleListener() {
         this.clusterLock = new ReentrantReadWriteLock(true);
@@ -38,6 +39,10 @@ public class MergeLockLifecycleListener implements LifecycleListener, HazelcastI
         } catch (Exception e) {
             this.writeLockRunnableFuture.cancel(true);
         }
+    }
+    
+    public void setStartupComplete(boolean startupComplete) {
+        this.startupComplete = startupComplete;
     }
     
     @Override
@@ -91,6 +96,13 @@ public class MergeLockLifecycleListener implements LifecycleListener, HazelcastI
     }
     
     public void lock() {
+        while (!this.startupComplete) {
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException e) {
+                
+            }
+        }
         if (log.isTraceEnabled()) {
             log.trace("locking for read");
         }
@@ -186,6 +198,9 @@ public class MergeLockLifecycleListener implements LifecycleListener, HazelcastI
                 }
             }
             log.info("unlocked for write [" + state + "]");
+            if (state.equals(LifecycleEvent.LifecycleState.STARTED)) {
+                setStartupComplete(true);
+            }
         }
         
         public void shutdown() {
