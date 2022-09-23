@@ -20,7 +20,8 @@ import datawave.microservice.querymetric.MergeLockLifecycleListener;
 import datawave.microservice.querymetric.persistence.AccumuloMapLoader;
 import datawave.microservice.querymetric.persistence.AccumuloMapStore;
 import datawave.microservice.querymetric.persistence.MetricMapListener;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -42,7 +43,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 @EnableConfigurationProperties({HazelcastMetricCacheProperties.class})
 public class HazelcastMetricCacheConfiguration {
     
-    private Logger log = Logger.getLogger(HazelcastMetricCacheConfiguration.class);
+    private Logger log = LoggerFactory.getLogger(HazelcastMetricCacheConfiguration.class);
     public static final String LAST_WRITTEN_METRICS = "lastWrittenQueryMetrics";
     public static final String INCOMING_METRICS = "incomingQueryMetrics";
     
@@ -160,33 +161,33 @@ public class HazelcastMetricCacheConfiguration {
         return generateDefaultConfig(serverProperties, lifecycleListener);
     }
     
-    private Config generateDefaultConfig(HazelcastMetricCacheProperties serverProperties, MergeLockLifecycleListener lifecycleListener) {
+    private Config generateDefaultConfig(HazelcastMetricCacheProperties cacheProperties, MergeLockLifecycleListener lifecycleListener) {
         Config config;
         
-        if (serverProperties.getXmlConfig() == null) {
+        if (cacheProperties.getXmlConfig() == null) {
             config = new Config();
         } else {
-            XmlConfigBuilder configBuilder = new XmlConfigBuilder(new ByteArrayInputStream(serverProperties.getXmlConfig().getBytes(UTF_8)));
+            XmlConfigBuilder configBuilder = new XmlConfigBuilder(new ByteArrayInputStream(cacheProperties.getXmlConfig().getBytes(UTF_8)));
             config = configBuilder.build();
         }
         
         // Set up some default configuration. Do this after we read the XML configuration (which is really intended just to be cache configurations).
-        if (!serverProperties.isSkipDefaultConfiguration()) {
+        if (!cacheProperties.isSkipDefaultConfiguration()) {
             config.getGroupConfig().setName(clusterName); // Set the cluster name
             config.setProperty("hazelcast.logging.type", "slf4j"); // Override the default log handler
             config.setProperty("hazelcast.rest.enabled", Boolean.TRUE.toString()); // Enable the REST endpoints so we can test/debug on them
             config.setProperty("hazelcast.phone.home.enabled", Boolean.FALSE.toString()); // Don't try to send stats back to Hazelcast
-            config.setProperty("hazelcast.merge.first.run.delay.seconds", Integer.toString(serverProperties.getMergeDelaySeconds()));
-            config.setProperty("hazelcast.merge.next.run.delay.seconds", Integer.toString(serverProperties.getMergeIntervalSeconds()));
+            config.setProperty("hazelcast.merge.first.run.delay.seconds", Integer.toString(cacheProperties.getMergeDelaySeconds()));
+            config.setProperty("hazelcast.merge.next.run.delay.seconds", Integer.toString(cacheProperties.getMergeIntervalSeconds()));
             config.getNetworkConfig().setReuseAddress(true); // Reuse addresses (so we can try to keep our port on a restart)
-            ListenerConfig lifecycleListenerConfig = new ListenerConfig();
-            lifecycleListenerConfig.setImplementation(lifecycleListener);
-            config.addListenerConfig(lifecycleListenerConfig);
-            
-            ListenerConfig membershipListenerConfig = new ListenerConfig();
-            membershipListenerConfig.setImplementation(new ClusterMembershipListener());
-            config.addListenerConfig(membershipListenerConfig);
         }
+        ListenerConfig lifecycleListenerConfig = new ListenerConfig();
+        lifecycleListenerConfig.setImplementation(lifecycleListener);
+        config.addListenerConfig(lifecycleListenerConfig);
+        
+        ListenerConfig membershipListenerConfig = new ListenerConfig();
+        membershipListenerConfig.setImplementation(new ClusterMembershipListener());
+        config.addListenerConfig(membershipListenerConfig);
         return config;
     }
 }
