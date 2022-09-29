@@ -48,7 +48,7 @@ public class NonWebApplicationMessagingTest {
         this.metricMarkings = new HashMap<>();
         this.metricMarkings.put(MarkingFunctions.Default.COLUMN_VISIBILITY, "A&C");
         this.incomingQueryMetricsCache = cacheManager.getCache(INCOMING_METRICS);
-        this.mergeLockLifecycleListener.setStartupComplete(true);
+        this.mergeLockLifecycleListener.setAllowReadLock(true);
     }
     
     /*

@@ -160,6 +160,9 @@ public class QueryMetricOperations {
                     produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
     public VoidResponse updateMetrics(@RequestBody List<BaseQueryMetric> queryMetrics,
                     @RequestParam(value = "metricType", defaultValue = "DISTRIBUTED") QueryMetricType metricType) {
+        if (!this.mergeLock.isAllowedReadLock()) {
+            throw new IllegalStateException("service unavailable");
+        }
         VoidResponse response = new VoidResponse();
         for (BaseQueryMetric m : queryMetrics) {
             if (log.isTraceEnabled()) {
@@ -188,6 +191,9 @@ public class QueryMetricOperations {
                     produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
     public VoidResponse updateMetric(@RequestBody BaseQueryMetric queryMetric,
                     @RequestParam(value = "metricType", defaultValue = "DISTRIBUTED") QueryMetricType metricType) {
+        if (!this.mergeLock.isAllowedReadLock()) {
+            throw new IllegalStateException("service unavailable");
+        }
         if (log.isTraceEnabled()) {
             log.trace("received metric update via REST: " + queryMetric.toString());
         } else {
