@@ -18,6 +18,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.cache.Cache;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.PreDestroy;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
@@ -57,6 +58,17 @@ public class AccumuloMapStore<T extends BaseQueryMetric> extends AccumuloMapLoad
         this.queryMetricHandlerProperties = queryMetricHandlerProperties;
         this.failures = CacheBuilder.newBuilder().expireAfterWrite(10, TimeUnit.MINUTES).build();
         AccumuloMapStore.instance = this;
+    }
+    
+    @PreDestroy
+    public void shutdown() {
+        // ensure that queued updates written to the handler's
+        // MultiTabletBatchWriter are flushed to Accumulo on shutdown
+        try {
+            this.handler.shutdown();
+        } catch (Exception e) {
+            log.error(e.getMessage(), e);
+        }
     }
     
     public void setLastWrittenQueryMetricCache(Cache lastWrittenQueryMetricCache) {

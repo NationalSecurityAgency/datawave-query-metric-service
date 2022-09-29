@@ -160,10 +160,10 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
         this.datawavePrincipal = new DatawavePrincipal(Collections.singletonList(datawaveUser));
     }
     
-    @Override
-    protected void finalize() throws Throwable {
-        super.finalize();
+    public void shutdown() throws Exception {
+        log.info("Begin closing AccumuloRecordWriter and flushing updates to Accumulo");
         this.recordWriter.close(null);
+        log.info("Completed closing AccumuloRecordWriter and flushing updates to Accumulo");
     }
     
     @Override
