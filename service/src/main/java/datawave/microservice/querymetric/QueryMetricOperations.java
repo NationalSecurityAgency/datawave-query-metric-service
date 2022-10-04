@@ -319,7 +319,7 @@ public class QueryMetricOperations {
                     @Parameter(description = "queryId to return") @PathVariable("queryId") String queryId) {
         
         BaseQueryMetricListResponse response = this.queryMetricListResponseFactory.createDetailedResponse();
-        List<QueryMetric> metricList = new ArrayList<>();
+        List<BaseQueryMetric> metricList = new ArrayList<>();
         try {
             QueryMetricUpdate metricUpdate = incomingQueryMetricsCache.get(queryId, QueryMetricUpdate.class);
             if (metricUpdate != null) {
