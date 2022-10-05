@@ -1,5 +1,4 @@
 hazelcast:
-  clusterName: '${spring.application.name}'
   server:
     enabled: true
     # How long to wait (in seconds) before performing the first split-brain merge. When a number

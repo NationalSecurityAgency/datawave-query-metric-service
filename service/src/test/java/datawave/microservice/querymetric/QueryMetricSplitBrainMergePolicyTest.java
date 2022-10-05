@@ -8,20 +8,12 @@ import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.LifecycleEvent;
 import com.hazelcast.core.LifecycleListener;
-import com.hazelcast.instance.impl.HazelcastInstanceFactory;
 import com.hazelcast.map.IMap;
 import com.hazelcast.spi.properties.ClusterProperty;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import java.util.Calendar;
 import java.util.Date;
@@ -31,33 +23,18 @@ import java.util.concurrent.TimeUnit;
 
 import static com.hazelcast.internal.util.ExceptionUtil.rethrow;
 
-@ExtendWith(SpringExtension.class)
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ActiveProfiles({"QueryMetricSplitBrainMergePolicyTest", "QueryMetricTest", "hazelcast-writethrough"})
-public class QueryMetricSplitBrainMergePolicyTest extends QueryMetricTestBase {
+public class QueryMetricSplitBrainMergePolicyTest {
     
     private Logger log = LoggerFactory.getLogger(TestMemberShipListener.class);
     
-    @Autowired
-    private Config config;
-    
-    @BeforeEach
-    @AfterEach
-    public void killAllHazelcastInstances() {
-        HazelcastInstanceFactory.terminateAll();
-    }
-    
-    // override cleanup method in QueryMetricTestBase since we terminated that Hazelcast instance
-    @AfterEach
-    public void cleanup() {
-        deleteAccumuloEntries(connector, tables, this.auths);
-    }
+    private final static QueryMetricFactory queryMetricFactory = new QueryMetricFactoryImpl();
     
     @Test
     public void testAllPagesMerged() {
         String mapName = HazelcastUtils.randomMapName();
-        HazelcastInstance h1 = Hazelcast.newHazelcastInstance(newConfig(QueryMetricSplitBrainMergePolicy.class.getName(), mapName));
-        HazelcastInstance h2 = Hazelcast.newHazelcastInstance(newConfig(QueryMetricSplitBrainMergePolicy.class.getName(), mapName));
+        Config config = newConfig(QueryMetricSplitBrainMergePolicy.class.getName(), mapName);
+        HazelcastInstance h1 = Hazelcast.newHazelcastInstance(config);
+        HazelcastInstance h2 = Hazelcast.newHazelcastInstance(config);
         
         HazelcastUtils.warmUpPartition(h1);
         HazelcastUtils.warmUpPartition(h2);
@@ -69,6 +46,11 @@ public class QueryMetricSplitBrainMergePolicyTest extends QueryMetricTestBase {
         CountDownLatch mergeBlockingLatch = new CountDownLatch(1);
         TestLifeCycleListener lifeCycleListener = new TestLifeCycleListener(1, mergeBlockingLatch);
         h2.getLifecycleService().addLifecycleListener(lifeCycleListener);
+        
+        HazelcastUtils.assertClusterSizeEventually(2, h1, h2);
+        
+        Assertions.assertEquals(2, h1.getCluster().getMembers().size());
+        Assertions.assertEquals(2, h2.getCluster().getMembers().size());
         
         HazelcastUtils.closeConnectionBetween(h1, h2);
         
@@ -110,6 +92,9 @@ public class QueryMetricSplitBrainMergePolicyTest extends QueryMetricTestBase {
         IMap<Object,Object> mapTest = h1.getMap(mapName);
         Assertions.assertEquals(2, ((QueryMetricUpdate) mapTest.get("key1")).getMetric().getNumPages());
         Assertions.assertEquals(3, ((QueryMetricUpdate) mapTest.get("key2")).getMetric().getNumPages());
+        
+        h1.shutdown();
+        h2.shutdown();
     }
     
     @Test
@@ -129,6 +114,11 @@ public class QueryMetricSplitBrainMergePolicyTest extends QueryMetricTestBase {
         CountDownLatch mergeBlockingLatch = new CountDownLatch(1);
         TestLifeCycleListener lifeCycleListener = new TestLifeCycleListener(1, mergeBlockingLatch);
         h2.getLifecycleService().addLifecycleListener(lifeCycleListener);
+        
+        HazelcastUtils.assertClusterSizeEventually(2, h1, h2);
+        
+        Assertions.assertEquals(2, h1.getCluster().getMembers().size());
+        Assertions.assertEquals(2, h2.getCluster().getMembers().size());
         
         HazelcastUtils.closeConnectionBetween(h1, h2);
         
@@ -165,6 +155,13 @@ public class QueryMetricSplitBrainMergePolicyTest extends QueryMetricTestBase {
         
         Assertions.assertEquals(BaseQueryMetric.Lifecycle.CLOSED, mergedMetric.getLifecycle());
         Assertions.assertEquals(time2, mergedMetric.getLastUpdated().getTime());
+        
+        h1.shutdown();
+        h2.shutdown();
+    }
+    
+    private BaseQueryMetric createMetric() {
+        return QueryMetricTestBase.createMetric(queryMetricFactory);
     }
     
     private BaseQueryMetric.PageMetric newPageMetric() {
@@ -173,7 +170,7 @@ public class QueryMetricSplitBrainMergePolicyTest extends QueryMetricTestBase {
     }
     
     private Config newConfig(String mergePolicy, String mapName) {
-        Config config = getConfig().setProperty(ClusterProperty.MERGE_FIRST_RUN_DELAY_SECONDS.getName(), "5")
+        Config config = new Config().setProperty(ClusterProperty.MERGE_FIRST_RUN_DELAY_SECONDS.getName(), "5")
                         .setProperty(ClusterProperty.MERGE_NEXT_RUN_DELAY_SECONDS.getName(), "3");
         
         config.setClusterName(HazelcastUtils.generateRandomString(10));
@@ -224,9 +221,5 @@ public class QueryMetricSplitBrainMergePolicyTest extends QueryMetricTestBase {
         public void memberRemoved(MembershipEvent membershipEvent) {
             memberRemovedLatch.countDown();
         }
-    }
-    
-    private Config getConfig() {
-        return this.config;
     }
 }

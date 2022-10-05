@@ -23,7 +23,6 @@ import datawave.microservice.querymetric.persistence.MetricMapListener;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.cloud.consul.discovery.ConsulDiscoveryProperties;
@@ -46,7 +45,7 @@ public class HazelcastMetricCacheConfiguration {
     public static final String LAST_WRITTEN_METRICS = "lastWrittenQueryMetrics";
     public static final String INCOMING_METRICS = "incomingQueryMetrics";
     
-    @Value("${spring.application.name}")
+    @Value("${hazelcast.cluster.name:${spring.application.name}}")
     private String clusterName;
     
     @Bean(name = "queryMetricCacheManager")
@@ -155,12 +154,6 @@ public class HazelcastMetricCacheConfiguration {
             }
         }
         return config;
-    }
-    
-    @Bean
-    @ConditionalOnMissingBean(Config.class)
-    public Config defaultConfig(HazelcastMetricCacheProperties serverProperties, MergeLockLifecycleListener lifecycleListener) {
-        return generateDefaultConfig(serverProperties, lifecycleListener);
     }
     
     private Config generateDefaultConfig(HazelcastMetricCacheProperties serverProperties, MergeLockLifecycleListener lifecycleListener) {

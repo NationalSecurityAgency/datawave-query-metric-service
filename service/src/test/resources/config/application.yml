@@ -108,3 +108,4 @@ datawave:
 
 hazelcast.client.enabled: false
 hazelcast.server.enabled: false
+hazelcast.cluster.name: "${random.uuid}"

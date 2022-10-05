@@ -5,13 +5,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.hazelcast.config.Config;
 import com.hazelcast.config.MapStoreConfig;
-import com.hazelcast.config.XmlConfigBuilder;
 import com.hazelcast.map.IMap;
 import com.hazelcast.spring.cache.HazelcastCacheManager;
 import datawave.marking.MarkingFunctions;
 import datawave.microservice.authorization.preauth.ProxiedEntityX509Filter;
 import datawave.microservice.authorization.user.ProxiedUserDetails;
-import datawave.microservice.querymetric.config.HazelcastMetricCacheProperties;
 import datawave.microservice.querymetric.config.QueryMetricClientProperties;
 import datawave.microservice.querymetric.config.QueryMetricHandlerProperties;
 import datawave.microservice.querymetric.function.QueryMetricSupplier;
@@ -42,7 +40,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.cache.Cache;
@@ -60,7 +57,6 @@ import org.springframework.messaging.Message;
 import org.springframework.web.client.RestTemplate;
 
 import javax.inject.Named;
-import java.io.ByteArrayInputStream;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -72,12 +68,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 
 import static datawave.microservice.querymetric.config.HazelcastMetricCacheConfiguration.INCOMING_METRICS;
 import static datawave.microservice.querymetric.config.HazelcastMetricCacheConfiguration.LAST_WRITTEN_METRICS;
 import static datawave.security.authorization.DatawaveUser.UserType.USER;
-import static java.nio.charset.StandardCharsets.UTF_8;
 
 public class QueryMetricTestBase {
     
@@ -136,9 +130,14 @@ public class QueryMetricTestBase {
     protected ProxiedUserDetails nonAdminUser;
     protected static boolean isHazelCast;
     protected static CacheManager staticCacheManager;
-    protected Map<String,String> metricMarkings;
+    protected static Map<String,String> metricMarkings;
     protected List<String> tables;
     protected Collection<String> auths;
+    
+    static {
+        metricMarkings = new HashMap<>();
+        metricMarkings.put(MarkingFunctions.Default.COLUMN_VISIBILITY, "A&C");
+    }
     
     @AfterAll
     public static void afterClass() {
@@ -152,8 +151,7 @@ public class QueryMetricTestBase {
         this.queryMetricClientProperties.setPort(webServicePort);
         this.restTemplate = restTemplateBuilder.build(RestTemplate.class);
         this.auths = Arrays.asList("PUBLIC", "A", "B", "C");
-        this.metricMarkings = new HashMap<>();
-        this.metricMarkings.put(MarkingFunctions.Default.COLUMN_VISIBILITY, "A&C");
+        
         Collection<String> roles = Arrays.asList("Administrator");
         DatawaveUser adminDWUser = new DatawaveUser(ALLOWED_CALLER, USER, null, auths, roles, null, System.currentTimeMillis());
         DatawaveUser nonAdminDWUser = new DatawaveUser(ALLOWED_CALLER, USER, null, auths, null, null, System.currentTimeMillis());
@@ -282,17 +280,25 @@ public class QueryMetricTestBase {
         return createMetric(createQueryId());
     }
     
+    protected static BaseQueryMetric createMetric(QueryMetricFactory queryMetricFactory) {
+        return createMetric(createQueryId(), queryMetricFactory);
+    }
+    
     protected BaseQueryMetric createMetric(String queryId) {
+        return createMetric(queryId, this.queryMetricFactory);
+    }
+    
+    protected static BaseQueryMetric createMetric(String queryId, QueryMetricFactory queryMetricFactory) {
         BaseQueryMetric m = queryMetricFactory.createMetric();
         populateMetric(m, queryId);
         return m;
     }
     
-    protected void populateMetric(BaseQueryMetric m, String queryId) {
+    protected static void populateMetric(BaseQueryMetric m, String queryId) {
         long now = System.currentTimeMillis();
         Date nowDate = new Date(now);
         m.setQueryId(queryId);
-        m.setMarkings(this.metricMarkings);
+        m.setMarkings(metricMarkings);
         m.setEndDate(nowDate);
         m.setBeginDate(DateUtils.addDays(nowDate, -1));
         m.setLastUpdated(nowDate);
@@ -307,12 +313,12 @@ public class QueryMetricTestBase {
         m.setDocRanges(300);
         m.setNextCount(300);
         m.setSeekCount(300);
-        m.setUser(dnUtils.getShortName(ALLOWED_CALLER.subjectDN()));
+        m.setUser(DnUtils.getShortName(ALLOWED_CALLER.subjectDN()));
         m.setUserDN(ALLOWED_CALLER.subjectDN());
         m.addPrediction(new BaseQueryMetric.Prediction("PredictionTest", 200.0));
     }
     
-    protected String createQueryId() {
+    protected static String createQueryId() {
         StringBuilder sb = new StringBuilder();
         sb.append(RandomStringUtils.randomNumeric(4));
         sb.append("-");
@@ -514,24 +520,6 @@ public class QueryMetricTestBase {
                     return true;
                 }
             };
-        }
-        
-        @Primary
-        @Bean
-        @ConditionalOnProperty(name = "hazelcast.server.enabled", havingValue = "true")
-        public Config testConfig(HazelcastMetricCacheProperties serverProperties) {
-            Config config;
-            
-            if (serverProperties.getXmlConfig() == null) {
-                config = new Config();
-            } else {
-                XmlConfigBuilder configBuilder = new XmlConfigBuilder(new ByteArrayInputStream(serverProperties.getXmlConfig().getBytes(UTF_8)));
-                config = configBuilder.build();
-            }
-            
-            config.setClusterName(UUID.randomUUID().toString());
-            
-            return config;
         }
     }
 }
