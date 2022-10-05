@@ -45,7 +45,7 @@ public class HazelcastMetricCacheConfiguration {
     public static final String LAST_WRITTEN_METRICS = "lastWrittenQueryMetrics";
     public static final String INCOMING_METRICS = "incomingQueryMetrics";
     
-    @Value("${hazelcast.cluster.name:${spring.application.name}}")
+    @Value("${hazelcast.clusterName:${spring.application.name}}")
     private String clusterName;
     
     @Bean(name = "queryMetricCacheManager")
