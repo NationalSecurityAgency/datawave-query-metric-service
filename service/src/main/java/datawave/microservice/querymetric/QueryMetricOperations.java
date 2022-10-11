@@ -323,7 +323,7 @@ public class QueryMetricOperations {
         try {
             QueryMetricUpdate metricUpdate = incomingQueryMetricsCache.get(queryId, QueryMetricUpdate.class);
             if (metricUpdate != null) {
-                QueryMetric metric = (QueryMetric) metricUpdate.getMetric();
+                BaseQueryMetric metric = metricUpdate.getMetric();
                 boolean allowAllMetrics = false;
                 boolean sameUser = false;
                 if (currentUser != null) {
