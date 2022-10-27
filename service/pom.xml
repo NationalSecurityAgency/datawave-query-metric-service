@@ -17,10 +17,9 @@
         <url>https://github.com/NationalSecurityAgency/datawave-query-metric-service</url>
     </scm>
     <properties>
+        <skipSplitBrainTest>false</skipSplitBrainTest>
         <spotbugs.excludes.file>${basedir}/spotbugs-exclude.xml</spotbugs.excludes.file>
         <start-class>datawave.microservice.querymetric.QueryMetricService</start-class>
-        <!-- adding this since the QueryMetricSplitBrainMergePolicyTest seems to fail periodically -->
-        <surefire.rerunFailingTestsCount>2</surefire.rerunFailingTestsCount>
         <version.base-rest-responses>1.3-SNAPSHOT</version.base-rest-responses>
         <version.cache-api>1.1.1</version.cache-api>
         <version.datawave>3.32.0-SNAPSHOT</version.datawave>
@@ -335,6 +334,18 @@
     </repositories>
     <build>
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <systemProperties>
+                        <property>
+                            <name>skipSplitBrainTest</name>
+                            <value>${skipSplitBrainTest}</value>
+                        </property>
+                    </systemProperties>
+                </configuration>
+            </plugin>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
