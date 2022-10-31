@@ -112,7 +112,6 @@ public class QueryMetricTestBase {
     protected RestTemplate restTemplate;
     protected ProxiedUserDetails adminUser;
     protected ProxiedUserDetails nonAdminUser;
-    protected static boolean isHazelCast;
     protected static CacheManager staticCacheManager;
     protected Map<String,String> metricMarkings;
     protected List<String> tables;
@@ -120,9 +119,7 @@ public class QueryMetricTestBase {
     
     @AfterClass
     public static void afterClass() {
-        if (isHazelCast) {
-            ((HazelcastCacheManager) staticCacheManager).getHazelcastInstance().shutdown();
-        }
+        ((HazelcastCacheManager) staticCacheManager).getHazelcastInstance().shutdown();
     }
     
     @Before
@@ -137,7 +134,6 @@ public class QueryMetricTestBase {
         DatawaveUser nonAdminDWUser = new DatawaveUser(ALLOWED_CALLER, USER, null, auths, null, null, System.currentTimeMillis());
         this.adminUser = new ProxiedUserDetails(Collections.singleton(adminDWUser), adminDWUser.getCreationTime());
         this.nonAdminUser = new ProxiedUserDetails(Collections.singleton(nonAdminDWUser), nonAdminDWUser.getCreationTime());
-        QueryMetricTestBase.isHazelCast = cacheManager instanceof HazelcastCacheManager;
         QueryMetricTestBase.staticCacheManager = cacheManager;
         this.incomingQueryMetricsCache = cacheManager.getCache(INCOMING_METRICS);
         this.lastWrittenQueryMetricCache = cacheManager.getCache(LAST_WRITTEN_METRICS);
@@ -203,7 +199,7 @@ public class QueryMetricTestBase {
         m.addPrediction(new BaseQueryMetric.Prediction("PredictionTest", 200.0));
     }
     
-    protected String createQueryId() {
+    public static String createQueryId() {
         StringBuilder sb = new StringBuilder();
         sb.append(RandomStringUtils.randomNumeric(4));
         sb.append("-");

@@ -52,14 +52,12 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Collections;
 import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.ReentrantLock;
 
 import static datawave.microservice.querymetric.QueryMetricOperations.DEFAULT_DATETIME.BEGIN;
 import static datawave.microservice.querymetric.QueryMetricOperations.DEFAULT_DATETIME.END;
@@ -83,11 +81,9 @@ public class QueryMetricOperations {
     private CacheManager cacheManager;
     private Cache incomingQueryMetricsCache;
     private Cache lastWrittenQueryMetricCache;
-    private boolean isHazelCast;
     private MarkingFunctions markingFunctions;
     private TimelyProperties timelyProperties;
     private BaseQueryMetricListResponseFactory queryMetricListResponseFactory;
-    private ReentrantLock caffeineLock = new ReentrantLock();
     private MergeLockLifecycleListener mergeLock;
     
     /**
@@ -130,11 +126,6 @@ public class QueryMetricOperations {
                     TimelyProperties timelyProperties, MergeLockLifecycleListener mergeLock) {
         this.handler = handler;
         this.geometryHandler = geometryHandler;
-        if (cacheManager instanceof HazelcastCacheManager) {
-            this.isHazelCast = true;
-        } else {
-            this.isHazelCast = false;
-        }
         this.cacheManager = cacheManager;
         this.incomingQueryMetricsCache = cacheManager.getCache(INCOMING_METRICS);
         this.lastWrittenQueryMetricCache = cacheManager.getCache(LAST_WRITTEN_METRICS);
@@ -237,56 +228,34 @@ public class QueryMetricOperations {
         VoidResponse response = new VoidResponse();
         try {
             Long lastPageNum = null;
-            BaseQueryMetric updatedMetric;
             String queryId = queryMetric.getQueryId();
-            if (this.isHazelCast) {
-                // use a native cache set vs Cache.put to prevent the fetching and return of accumulo value
-                IMap<Object,Object> incomingQueryMetricsCacheHz = ((IMap<Object,Object>) incomingQueryMetricsCache.getNativeCache());
-                
-                // don't lock on the Hazelcast cluster when a merge is in progress
-                this.mergeLock.lock();
-                incomingQueryMetricsCacheHz.lock(queryId, 120, TimeUnit.SECONDS);
-                try {
-                    updatedMetric = queryMetric;
-                    QueryMetricUpdate lastQueryMetricUpdate = (QueryMetricUpdate) incomingQueryMetricsCacheHz.get(queryId);
-                    if (lastQueryMetricUpdate == null) {
-                        updatedMetric.setNumUpdates(1);
-                    } else {
-                        BaseQueryMetric lastQueryMetric = lastQueryMetricUpdate.getMetric();
-                        updatedMetric.setNumUpdates(lastQueryMetric.getNumUpdates() + 1);
-                        updatedMetric = handler.combineMetrics(updatedMetric, lastQueryMetric, metricType);
-                        lastPageNum = getLastPageNumber(lastQueryMetric);
-                    }
-                    handler.populateMetricSelectors(updatedMetric);
-                    incomingQueryMetricsCacheHz.set(queryId, new QueryMetricUpdate(updatedMetric, metricType));
-                } finally {
-                    try {
-                        incomingQueryMetricsCacheHz.unlock(queryId);
-                    } catch (Exception e) {
-                        incomingQueryMetricsCacheHz.forceUnlock(queryId);
-                    } finally {
-                        this.mergeLock.unlock();
-                    }
+            BaseQueryMetric updatedMetric = queryMetric;
+            // use a native cache set vs Cache.put to prevent the fetching and return of accumulo value
+            IMap<Object,Object> incomingQueryMetricsCacheHz = ((IMap<Object,Object>) incomingQueryMetricsCache.getNativeCache());
+            
+            // don't lock on the Hazelcast cluster when a merge is in progress
+            this.mergeLock.lock();
+            incomingQueryMetricsCacheHz.lock(queryId, 120, TimeUnit.SECONDS);
+            try {
+                QueryMetricUpdate lastQueryMetricUpdate = (QueryMetricUpdate) incomingQueryMetricsCacheHz.get(queryId);
+                if (lastQueryMetricUpdate == null) {
+                    updatedMetric.setNumUpdates(1);
+                } else {
+                    BaseQueryMetric lastQueryMetric = lastQueryMetricUpdate.getMetric();
+                    updatedMetric.setNumUpdates(lastQueryMetric.getNumUpdates() + 1);
+                    updatedMetric = handler.combineMetrics(updatedMetric, lastQueryMetric, metricType);
+                    lastPageNum = getLastPageNumber(lastQueryMetric);
                 }
-            } else {
-                caffeineLock.lock();
+                handler.populateMetricSelectors(updatedMetric);
+                incomingQueryMetricsCacheHz.set(queryId, new QueryMetricUpdate(updatedMetric, metricType));
+                sendMetricsToTimely(updatedMetric, lastPageNum);
+            } finally {
                 try {
-                    QueryMetricUpdate lastQueryMetricUpdate = incomingQueryMetricsCache.get(queryId, QueryMetricUpdate.class);
-                    updatedMetric = queryMetric;
-                    if (lastQueryMetricUpdate == null) {
-                        updatedMetric.setNumUpdates(1);
-                    } else {
-                        BaseQueryMetric lastQueryMetric = lastQueryMetricUpdate.getMetric();
-                        updatedMetric.setNumUpdates(lastQueryMetric.getNumUpdates() + 1);
-                        updatedMetric = handler.combineMetrics(updatedMetric, lastQueryMetric, metricType);
-                        handler.writeMetric(updatedMetric, Collections.singletonList(lastQueryMetric), lastQueryMetric.getLastUpdated(), true);
-                        lastPageNum = getLastPageNumber(lastQueryMetric);
-                    }
-                    handler.populateMetricSelectors(updatedMetric);
-                    handler.writeMetric(updatedMetric, Collections.singletonList(updatedMetric), updatedMetric.getLastUpdated(), false);
-                    this.incomingQueryMetricsCache.put(queryId, new QueryMetricUpdate(updatedMetric, metricType));
+                    incomingQueryMetricsCacheHz.unlock(queryId);
+                } catch (Exception e) {
+                    incomingQueryMetricsCacheHz.forceUnlock(queryId);
                 } finally {
-                    caffeineLock.unlock();
+                    this.mergeLock.unlock();
                 }
             }
             sendMetricsToTimely(updatedMetric, lastPageNum);
@@ -592,17 +561,15 @@ public class QueryMetricOperations {
     @RequestMapping(path = "/cacheStats", method = {RequestMethod.GET}, produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
     public CacheStats getCacheStats() {
         CacheStats cacheStats = new CacheStats();
-        if (this.isHazelCast) {
-            IMap<Object,Object> incomingCacheHz = ((IMap<Object,Object>) incomingQueryMetricsCache.getNativeCache());
-            cacheStats.setIncomingQueryMetrics(getStats(incomingCacheHz.getLocalMapStats()));
-            IMap<Object,Object> lastWrittenCacheHz = ((IMap<Object,Object>) lastWrittenQueryMetricCache.getNativeCache());
-            cacheStats.setLastWrittenQueryMetrics(getStats(lastWrittenCacheHz.getLocalMapStats()));
-            cacheStats.setMemberUuid(getClusterLocalMemberUuid());
-            try {
-                cacheStats.setHost(InetAddress.getLocalHost().getCanonicalHostName());
-            } catch (Exception e) {
-                
-            }
+        IMap<Object,Object> incomingCacheHz = ((IMap<Object,Object>) incomingQueryMetricsCache.getNativeCache());
+        cacheStats.setIncomingQueryMetrics(getStats(incomingCacheHz.getLocalMapStats()));
+        IMap<Object,Object> lastWrittenCacheHz = ((IMap<Object,Object>) lastWrittenQueryMetricCache.getNativeCache());
+        cacheStats.setLastWrittenQueryMetrics(getStats(lastWrittenCacheHz.getLocalMapStats()));
+        cacheStats.setMemberUuid(getClusterLocalMemberUuid());
+        try {
+            cacheStats.setHost(InetAddress.getLocalHost().getCanonicalHostName());
+        } catch (Exception e) {
+            
         }
         return cacheStats;
     }

@@ -1,18 +1,27 @@
 package datawave.microservice.querymetric;
 
 import datawave.marking.MarkingFunctions;
+import datawave.microservice.querymetric.config.QueryMetricHandlerProperties;
+import datawave.microservice.querymetric.handler.ShardTableQueryMetricHandler;
+import org.apache.accumulo.core.client.Connector;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import javax.inject.Named;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static datawave.microservice.querymetric.config.HazelcastMetricCacheConfiguration.INCOMING_METRICS;
@@ -24,7 +33,8 @@ import static datawave.microservice.querymetric.config.HazelcastMetricCacheConfi
  */
 @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
-@ActiveProfiles({"NonWebApplicationMessagingTest", "QueryMetricTest"})
+@DirtiesContext
+@ActiveProfiles({"NonWebApplicationMessagingTest", "QueryMetricTest", "hazelcast-writethrough"})
 public class NonWebApplicationMessagingTest {
     
     @Autowired
@@ -35,6 +45,15 @@ public class NonWebApplicationMessagingTest {
     
     @Autowired
     private MergeLockLifecycleListener mergeLockLifecycleListener;
+    
+    @Autowired
+    protected QueryMetricHandlerProperties queryMetricHandlerProperties;
+    
+    @Autowired
+    private ShardTableQueryMetricHandler shardTableQueryMetricHandler;
+    
+    @Autowired
+    protected @Qualifier("warehouse") Connector connector;
     
     @Autowired
     @Named("queryMetricCacheManager")
@@ -49,6 +68,23 @@ public class NonWebApplicationMessagingTest {
         this.metricMarkings.put(MarkingFunctions.Default.COLUMN_VISIBILITY, "A&C");
         this.incomingQueryMetricsCache = cacheManager.getCache(INCOMING_METRICS);
         this.mergeLockLifecycleListener.setAllowReadLock(true);
+        
+        BaseQueryMetric m = queryMetricFactory.createMetric();
+        m.setQueryId(QueryMetricTestBase.createQueryId());
+        // this is to ensure that the QueryMetrics_m table
+        // is populated so that queries work properly
+        try {
+            this.shardTableQueryMetricHandler.writeMetric(m, Collections.singletonList(m), m.getLastUpdated(), false);
+            this.shardTableQueryMetricHandler.flush();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        List<String> auths = Arrays.asList("PUBLIC", "A", "B", "C");
+        List<String> tables = new ArrayList<>();
+        tables.add(queryMetricHandlerProperties.getIndexTableName());
+        tables.add(queryMetricHandlerProperties.getReverseIndexTableName());
+        tables.add(queryMetricHandlerProperties.getShardTableName());
+        QueryMetricTestBase.deleteAccumuloEntries(connector, tables, auths);
     }
     
     /*
