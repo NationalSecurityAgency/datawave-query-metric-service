@@ -46,6 +46,7 @@ import org.springframework.http.MediaType;
 import org.springframework.web.client.RestTemplate;
 
 import javax.inject.Named;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -293,12 +294,20 @@ public class QueryMetricTestBase {
         } else if (o1.getClass() != o2.getClass()) {
             return false;
         } else if (o1 instanceof Date) {
-            long t1 = ((((Date) o1).getTime()) / 1000) * 1000;
-            long t2 = ((((Date) o2).getTime()) / 1000) * 1000;
-            return t1 == t2;
+            return datesEqual((Date) o1, (Date) o2);
         } else {
             return o1.equals(o2);
         }
+    }
+    
+    public static boolean datesEqual(Date d1, Date d2) {
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd HHmmss");
+        return sdf.format(d1).equals(sdf.format(d2));
+    }
+    
+    public static String formatDate(Date d) {
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd HHmmss");
+        return sdf.format(d);
     }
     
     protected Collection<String> getAllAccumuloEntries() {
@@ -367,22 +376,34 @@ public class QueryMetricTestBase {
         }
     }
     
-    protected void waitForWriteBehind(Cache incomingCache, Cache lastWrittenCache, String queryId) {
+    protected void ensureDataStored(Cache incomingCache, String queryId) {
+        long now = System.currentTimeMillis();
+        int writeDelaySeconds = 1000;
+        boolean found = false;
+        IMap<Object,Object> hzCache = ((IMap<Object,Object>) incomingCache.getNativeCache());
+        while (!found && System.currentTimeMillis() < (now + (1000 * (writeDelaySeconds + 1)))) {
+            found = hzCache.containsKey(queryId);
+            if (!found) {
+                try {
+                    Thread.sleep(250);
+                } catch (InterruptedException e) {}
+            }
+        }
+    }
+    
+    protected void ensureDataWritten(Cache incomingCache, Cache lastWrittenCache, String queryId) {
         long now = System.currentTimeMillis();
         Config config = ((HazelcastCacheManager) cacheManager).getHazelcastInstance().getConfig();
         MapStoreConfig mapStoreConfig = config.getMapConfig(incomingCache.getName()).getMapStoreConfig();
-        int writeDelaySeconds = mapStoreConfig.getWriteDelaySeconds();
-        // only wait on value if this is a write-behind cache
-        if (writeDelaySeconds > 0) {
-            boolean found = false;
-            IMap<Object,Object> hzCache = ((IMap<Object,Object>) lastWrittenCache.getNativeCache());
-            while (!found && System.currentTimeMillis() < (now + (1000 * (writeDelaySeconds + 1)))) {
-                found = hzCache.containsKey(queryId);
-                if (!found) {
-                    try {
-                        Thread.sleep(200);
-                    } catch (InterruptedException e) {}
-                }
+        int writeDelaySeconds = Math.min(mapStoreConfig.getWriteDelaySeconds(), 1000);
+        boolean found = false;
+        IMap<Object,Object> hzCache = ((IMap<Object,Object>) lastWrittenCache.getNativeCache());
+        while (!found && System.currentTimeMillis() < (now + (1000 * (writeDelaySeconds + 1)))) {
+            found = hzCache.containsKey(queryId);
+            if (!found) {
+                try {
+                    Thread.sleep(250);
+                } catch (InterruptedException e) {}
             }
         }
     }

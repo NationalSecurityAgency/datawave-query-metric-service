@@ -24,8 +24,6 @@ import java.util.concurrent.TimeUnit;
 import com.hazelcast.config.Config;
 import org.junit.After;
 import org.junit.Before;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
@@ -37,8 +35,6 @@ import static com.hazelcast.util.ExceptionUtil.rethrow;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles({"QueryMetricSplitBrainMergePolicyTest", "QueryMetricTest", "hazelcast-writethrough"})
 public class QueryMetricSplitBrainMergePolicyTest extends QueryMetricTestBase {
-    
-    private Logger log = LoggerFactory.getLogger(TestMemberShipListener.class);
     
     @Autowired
     private Config config;
@@ -88,20 +84,20 @@ public class QueryMetricSplitBrainMergePolicyTest extends QueryMetricTestBase {
         BaseQueryMetric.PageMetric pm4 = newPageMetric();
         BaseQueryMetric.PageMetric pm5 = newPageMetric();
         
-        map1.put("key1", new QueryMetricUpdate(metric1, QueryMetricType.COMPLETE));
+        map1.put("key1", new QueryMetricUpdateHolder(metric1, QueryMetricType.COMPLETE));
         // prevent updating at the same time
         HazelcastUtils.sleepAtLeastMillis(1000);
         metric1.addPageMetric(pm1);
         metric1.addPageMetric(pm2);
-        map2.put("key1", new QueryMetricUpdate(metric1, QueryMetricType.COMPLETE));
+        map2.put("key1", new QueryMetricUpdateHolder(metric1, QueryMetricType.COMPLETE));
         BaseQueryMetric metric2 = createMetric();
         metric2.addPageMetric(pm3);
         metric2.addPageMetric(pm4);
-        map2.put("key2", new QueryMetricUpdate(metric2, QueryMetricType.COMPLETE));
+        map2.put("key2", new QueryMetricUpdateHolder(metric2, QueryMetricType.COMPLETE));
         // prevent updating at the same time
         HazelcastUtils.sleepAtLeastMillis(1000);
         metric2.addPageMetric(pm5);
-        map1.put("key2", new QueryMetricUpdate(metric2, QueryMetricType.COMPLETE));
+        map1.put("key2", new QueryMetricUpdateHolder(metric2, QueryMetricType.COMPLETE));
         
         // allow merge process to continue
         mergeBlockingLatch.countDown();
@@ -110,8 +106,8 @@ public class QueryMetricSplitBrainMergePolicyTest extends QueryMetricTestBase {
         HazelcastUtils.assertClusterSizeEventually(2, h1, h2);
         
         IMap<Object,Object> mapTest = h1.getMap(mapName);
-        Assert.assertEquals(2, ((QueryMetricUpdate) mapTest.get("key1")).getMetric().getNumPages());
-        Assert.assertEquals(3, ((QueryMetricUpdate) mapTest.get("key2")).getMetric().getNumPages());
+        Assert.assertEquals(2, ((QueryMetricUpdateHolder) mapTest.get("key1")).getMetric().getNumPages());
+        Assert.assertEquals(3, ((QueryMetricUpdateHolder) mapTest.get("key2")).getMetric().getNumPages());
     }
     
     @Test
@@ -148,12 +144,12 @@ public class QueryMetricSplitBrainMergePolicyTest extends QueryMetricTestBase {
         BaseQueryMetric metric1 = createMetric();
         metric1.setLifecycle(BaseQueryMetric.Lifecycle.DEFINED);
         metric1.setLastUpdated(new Date(time1));
-        map1.put(key, new QueryMetricUpdate(metric1, QueryMetricType.COMPLETE));
+        map1.put(key, new QueryMetricUpdateHolder(metric1, QueryMetricType.COMPLETE));
         
         IMap<Object,Object> map2 = h2.getMap(mapName);
         metric1.setLifecycle(BaseQueryMetric.Lifecycle.CLOSED);
         metric1.setLastUpdated(new Date(time2));
-        map2.put(key, new QueryMetricUpdate(metric1, QueryMetricType.COMPLETE));
+        map2.put(key, new QueryMetricUpdateHolder(metric1, QueryMetricType.COMPLETE));
         
         // allow merge process to continue
         mergeBlockingLatch.countDown();
@@ -163,7 +159,7 @@ public class QueryMetricSplitBrainMergePolicyTest extends QueryMetricTestBase {
         
         IMap<Object,Object> mapTest = h2.getMap(mapName);
         Assert.assertNotNull(mapTest.get(key));
-        BaseQueryMetric mergedMetric = ((QueryMetricUpdate) mapTest.get(key)).getMetric();
+        BaseQueryMetric mergedMetric = ((QueryMetricUpdateHolder) mapTest.get(key)).getMetric();
         
         Assert.assertEquals(BaseQueryMetric.Lifecycle.CLOSED, mergedMetric.getLifecycle());
         Assert.assertEquals(time2, mergedMetric.getLastUpdated().getTime());

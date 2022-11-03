@@ -57,7 +57,7 @@ logging:
       query: error
       ingest: error
       security: error
-      microservice.querymetric: error
+      microservice.querymetric: info
 
 datawave:
   query:
@@ -67,6 +67,8 @@ datawave:
         instanceName: ${warehouse-cluster.accumulo.instanceName}
         username: ${warehouse-cluster.accumulo.username}
         password: ${warehouse-cluster.accumulo.password}
+        accumuloConnectionPoolSize: 16
+        mapStoreWriteThreads: 1
         numShards: 10
         fieldLengthThreshold: 4049
         shardTableName: QueryMetrics_e
@@ -77,7 +79,7 @@ datawave:
         metadataDefaultAuths: PUBLIC
         recordWriterMaxMemory: 100000
         recordWriterMaxLatency: 10
-        recordWriterNumThreads: 4
+        recordWriterNumThreads: 16
         enableBloomFilter: false
         queryVisibility: PUBLIC
         defaultMetricVisibility: (PUBLIC)

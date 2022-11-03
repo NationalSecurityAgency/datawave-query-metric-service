@@ -1,20 +1,18 @@
 package datawave.microservice.querymetric;
 
+import com.codahale.metrics.Timer;
+import com.hazelcast.core.HazelcastInstanceNotActiveException;
 import com.hazelcast.core.IMap;
-import com.hazelcast.monitor.LocalMapStats;
 import com.hazelcast.spring.cache.HazelcastCacheManager;
 import datawave.marking.MarkingFunctions;
 import datawave.microservice.authorization.user.ProxiedUserDetails;
-import datawave.microservice.querymetric.BaseQueryMetric.Lifecycle;
 import datawave.microservice.querymetric.config.QueryMetricSinkConfiguration.QueryMetricSinkBinding;
-import datawave.microservice.querymetric.config.TimelyProperties;
 import datawave.microservice.querymetric.factory.BaseQueryMetricListResponseFactory;
 import datawave.microservice.querymetric.handler.QueryGeometryHandler;
 import datawave.microservice.querymetric.handler.ShardTableQueryMetricHandler;
 import datawave.microservice.querymetric.handler.SimpleQueryGeometryHandler;
 import datawave.security.authorization.DatawaveUser;
 import datawave.security.util.DnUtils;
-import datawave.util.timely.UdpClient;
 import datawave.webservice.query.exception.DatawaveErrorCode;
 import datawave.webservice.query.exception.QueryException;
 import datawave.webservice.query.map.QueryGeometryResponse;
@@ -35,6 +33,8 @@ import org.springframework.cloud.stream.annotation.StreamListener;
 import org.springframework.http.MediaType;
 import org.springframework.integration.support.MessageBuilder;
 import org.springframework.messaging.MessageChannel;
+import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -43,33 +43,32 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import javax.annotation.PreDestroy;
 import javax.annotation.security.PermitAll;
 import javax.annotation.security.RolesAllowed;
 import javax.inject.Named;
 import java.net.InetAddress;
-import java.text.DecimalFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.TimeZone;
-import java.util.concurrent.TimeUnit;
 
 import static datawave.microservice.querymetric.QueryMetricOperations.DEFAULT_DATETIME.BEGIN;
 import static datawave.microservice.querymetric.QueryMetricOperations.DEFAULT_DATETIME.END;
 import static datawave.microservice.querymetric.config.HazelcastMetricCacheConfiguration.INCOMING_METRICS;
 import static datawave.microservice.querymetric.config.HazelcastMetricCacheConfiguration.LAST_WRITTEN_METRICS;
 import static datawave.microservice.querymetric.config.QueryMetricSourceConfiguration.QueryMetricSourceBinding.SOURCE_NAME;
-import static java.util.concurrent.TimeUnit.NANOSECONDS;
+import static datawave.microservice.querymetric.QueryMetricOperationsStats.METERS;
+import static datawave.microservice.querymetric.QueryMetricOperationsStats.TIMERS;
 
 /**
  * The type Query metric operations.
  */
 @EnableBinding(QueryMetricSinkBinding.class)
+@EnableScheduling
 @RestController
 @RequestMapping(path = "/v1")
 public class QueryMetricOperations {
@@ -82,9 +81,10 @@ public class QueryMetricOperations {
     private Cache incomingQueryMetricsCache;
     private Cache lastWrittenQueryMetricCache;
     private MarkingFunctions markingFunctions;
-    private TimelyProperties timelyProperties;
     private BaseQueryMetricListResponseFactory queryMetricListResponseFactory;
     private MergeLockLifecycleListener mergeLock;
+    private MetricUpdateEntryProcessorFactory entryProcessorFactory;
+    private QueryMetricOperationsStats stats;
     
     /**
      * The enum Default datetime.
@@ -117,13 +117,17 @@ public class QueryMetricOperations {
      *            the MarkingFunctions
      * @param queryMetricListResponseFactory
      *            the QueryMetricListResponseFactory
-     * @param timelyProperties
-     *            the TimelyProperties
+     * @param mergeLock
+     *            the merge lock
+     * @param entryProcessorFactory
+     *            the entry processor factory
+     * @param stats
+     *            the stats
      */
     @Autowired
     public QueryMetricOperations(@Named("queryMetricCacheManager") CacheManager cacheManager, ShardTableQueryMetricHandler handler,
                     QueryGeometryHandler geometryHandler, MarkingFunctions markingFunctions, BaseQueryMetricListResponseFactory queryMetricListResponseFactory,
-                    TimelyProperties timelyProperties, MergeLockLifecycleListener mergeLock) {
+                    MergeLockLifecycleListener mergeLock, MetricUpdateEntryProcessorFactory entryProcessorFactory, QueryMetricOperationsStats stats) {
         this.handler = handler;
         this.geometryHandler = geometryHandler;
         this.cacheManager = cacheManager;
@@ -131,8 +135,14 @@ public class QueryMetricOperations {
         this.lastWrittenQueryMetricCache = cacheManager.getCache(LAST_WRITTEN_METRICS);
         this.markingFunctions = markingFunctions;
         this.queryMetricListResponseFactory = queryMetricListResponseFactory;
-        this.timelyProperties = timelyProperties;
         this.mergeLock = mergeLock;
+        this.entryProcessorFactory = entryProcessorFactory;
+        this.stats = stats;
+    }
+    
+    @PreDestroy
+    public void shutdown() {
+        stats.queueAggregatedMetricsForTimely();
     }
     
     /**
@@ -154,6 +164,7 @@ public class QueryMetricOperations {
         if (!this.mergeLock.isAllowedReadLock()) {
             throw new IllegalStateException("service unavailable");
         }
+        stats.getMeter(METERS.REST).mark(queryMetrics.size());
         VoidResponse response = new VoidResponse();
         for (BaseQueryMetric m : queryMetrics) {
             if (log.isTraceEnabled()) {
@@ -185,6 +196,7 @@ public class QueryMetricOperations {
         if (!this.mergeLock.isAllowedReadLock()) {
             throw new IllegalStateException("service unavailable");
         }
+        stats.getMeter(METERS.REST).mark();
         if (log.isTraceEnabled()) {
             log.trace("received metric update via REST: " + queryMetric.toString());
         } else {
@@ -202,79 +214,43 @@ public class QueryMetricOperations {
      */
     @StreamListener(QueryMetricSinkBinding.SINK_NAME)
     public void handleEvent(QueryMetricUpdate update) {
-        storeMetric(update.getMetric(), update.getMetricType());
+        stats.getMeter(METERS.MESSAGE).mark();
+        String queryId = update.getMetric().getQueryId();
+        this.stats.queueTimelyMetrics(update);
+        log.debug("storing update for {}", queryId);
+        if (update.getMetric().getPositiveSelectors() == null) {
+            this.handler.populateMetricSelectors(update.getMetric());
+        }
+        storeMetricUpdate(new QueryMetricUpdateHolder(update));
     }
     
     private String getClusterLocalMemberUuid() {
         return ((HazelcastCacheManager) this.cacheManager).getHazelcastInstance().getCluster().getLocalMember().getUuid();
     }
     
-    /**
-     * Store metric void response.
-     *
-     * @param queryMetric
-     *            the query metric update
-     * @param metricType
-     *            the metric type
-     * @return the void response
-     */
-    public VoidResponse storeMetric(BaseQueryMetric queryMetric, QueryMetricType metricType) {
-        
-        if (log.isTraceEnabled()) {
-            log.trace("storing metric update: " + queryMetric.toString());
-        } else {
-            log.debug("storing metric update: " + queryMetric.getQueryId());
-        }
-        VoidResponse response = new VoidResponse();
+    private void storeMetricUpdate(QueryMetricUpdateHolder metricUpdate) {
+        Timer.Context storeTimer = this.stats.getTimer(TIMERS.STORE).time();
+        String queryId = metricUpdate.getMetric().getQueryId();
         try {
-            Long lastPageNum = null;
-            String queryId = queryMetric.getQueryId();
-            BaseQueryMetric updatedMetric = queryMetric;
-            // use a native cache set vs Cache.put to prevent the fetching and return of accumulo value
             IMap<Object,Object> incomingQueryMetricsCacheHz = ((IMap<Object,Object>) incomingQueryMetricsCache.getNativeCache());
-            
-            // don't lock on the Hazelcast cluster when a merge is in progress
             this.mergeLock.lock();
-            incomingQueryMetricsCacheHz.lock(queryId, 120, TimeUnit.SECONDS);
             try {
-                QueryMetricUpdate lastQueryMetricUpdate = (QueryMetricUpdate) incomingQueryMetricsCacheHz.get(queryId);
-                if (lastQueryMetricUpdate == null) {
-                    updatedMetric.setNumUpdates(1);
-                } else {
-                    BaseQueryMetric lastQueryMetric = lastQueryMetricUpdate.getMetric();
-                    updatedMetric.setNumUpdates(lastQueryMetric.getNumUpdates() + 1);
-                    updatedMetric = handler.combineMetrics(updatedMetric, lastQueryMetric, metricType);
-                    lastPageNum = getLastPageNumber(lastQueryMetric);
-                }
-                handler.populateMetricSelectors(updatedMetric);
-                incomingQueryMetricsCacheHz.set(queryId, new QueryMetricUpdate(updatedMetric, metricType));
-                sendMetricsToTimely(updatedMetric, lastPageNum);
+                incomingQueryMetricsCacheHz.executeOnKey(queryId, this.entryProcessorFactory.createEntryProcessor(metricUpdate));
             } finally {
-                try {
-                    incomingQueryMetricsCacheHz.unlock(queryId);
-                } catch (Exception e) {
-                    incomingQueryMetricsCacheHz.forceUnlock(queryId);
-                } finally {
-                    this.mergeLock.unlock();
+                this.mergeLock.unlock();
+            }
+        } catch (Exception e) {
+            if (!this.mergeLock.isShuttingDown()) {
+                if (e instanceof HazelcastInstanceNotActiveException) {
+                    log.error("HazelcastInstanceNotActiveException - OK if shutting down");
+                } else {
+                    log.error(e.getMessage(), e);
                 }
             }
-            sendMetricsToTimely(updatedMetric, lastPageNum);
-        } catch (Exception e) {
-            log.error(e.getMessage(), e);
-            response.addException(new QueryException(DatawaveErrorCode.UNKNOWN_SERVER_ERROR, e));
+            // fail the handling of the message
+            throw new RuntimeException(e.getMessage());
         }
-        return response;
-    }
-    
-    private Long getLastPageNumber(BaseQueryMetric m) {
-        Long lastPage = null;
-        List<BaseQueryMetric.PageMetric> pageMetrics = m.getPageTimes();
-        for (BaseQueryMetric.PageMetric pm : pageMetrics) {
-            if (lastPage == null || pm.getPageNumber() > lastPage) {
-                lastPage = pm.getPageNumber();
-            }
-        }
-        return lastPage;
+        storeTimer.stop();
     }
     
     /**
@@ -297,9 +273,14 @@ public class QueryMetricOperations {
         BaseQueryMetricListResponse response = this.queryMetricListResponseFactory.createDetailedResponse();
         List<BaseQueryMetric> metricList = new ArrayList<>();
         try {
-            QueryMetricUpdate metricUpdate = incomingQueryMetricsCache.get(queryId, QueryMetricUpdate.class);
-            if (metricUpdate != null) {
-                BaseQueryMetric metric = metricUpdate.getMetric();
+            BaseQueryMetric metric;
+            QueryMetricUpdateHolder metricUpdate = incomingQueryMetricsCache.get(queryId, QueryMetricUpdateHolder.class);
+            if (metricUpdate != null && metricUpdate.isNewMetric()) {
+                metric = metricUpdate.getMetric();
+            } else {
+                metric = this.handler.getQueryMetric(queryId);
+            }
+            if (metric != null) {
                 boolean allowAllMetrics = false;
                 boolean sameUser = false;
                 if (currentUser != null) {
@@ -464,92 +445,6 @@ public class QueryMetricOperations {
         }
     }
     
-    private UdpClient createUdpClient() {
-        if (timelyProperties != null && StringUtils.isNotBlank(timelyProperties.getHost())) {
-            return new UdpClient(timelyProperties.getHost(), timelyProperties.getPort());
-        } else {
-            return null;
-        }
-    }
-    
-    private void sendMetricsToTimely(BaseQueryMetric queryMetric, Long lastPageNum) {
-        
-        if (this.timelyProperties.getEnabled()) {
-            try {
-                UdpClient timelyClient = createUdpClient();
-                if (queryMetric.getQueryType().equalsIgnoreCase("RunningQuery")) {
-                    Lifecycle lifecycle = queryMetric.getLifecycle();
-                    Map<String,String> metricValues = handler.getEventFields(queryMetric);
-                    long createDate = queryMetric.getCreateDate().getTime();
-                    
-                    StringBuilder tagSb = new StringBuilder();
-                    List<String> configuredMetricTags = timelyProperties.getTags();
-                    for (String fieldName : configuredMetricTags) {
-                        String fieldValue = metricValues.get(fieldName);
-                        if (!StringUtils.isBlank(fieldValue)) {
-                            // ensure that there are no spaces in tag values
-                            fieldValue = fieldValue.replaceAll(" ", "_");
-                            tagSb.append(fieldName).append("=").append(fieldValue).append(" ");
-                        }
-                    }
-                    int tagSbLength = tagSb.length();
-                    if (tagSbLength > 0) {
-                        if (tagSb.charAt(tagSbLength - 1) == ' ') {
-                            tagSb.deleteCharAt(tagSbLength - 1);
-                        }
-                    }
-                    tagSb.append("\n");
-                    
-                    timelyClient.open();
-                    
-                    if (lifecycle.equals(Lifecycle.RESULTS) || lifecycle.equals(Lifecycle.NEXTTIMEOUT) || lifecycle.equals(Lifecycle.MAXRESULTS)) {
-                        List<BaseQueryMetric.PageMetric> pageTimes = queryMetric.getPageTimes();
-                        // there should only be a maximum of one page metric as all but the last are removed by the QueryMetricsBean
-                        for (BaseQueryMetric.PageMetric pm : pageTimes) {
-                            // prevent duplicate reporting
-                            if (lastPageNum == null || pm.getPageNumber() > lastPageNum) {
-                                long requestTime = pm.getPageRequested();
-                                long callTime = pm.getCallTime();
-                                if (callTime == -1) {
-                                    callTime = pm.getReturnTime();
-                                }
-                                if (pm.getPagesize() > 0) {
-                                    timelyClient.write("put dw.query.metrics.PAGE_METRIC.calltime " + requestTime + " " + callTime + " " + tagSb);
-                                    DecimalFormat df = new DecimalFormat("0.00");
-                                    String callTimePerRecord = df.format((double) callTime / pm.getPagesize());
-                                    timelyClient.write("put dw.query.metrics.PAGE_METRIC.calltimeperrecord " + requestTime + " " + callTimePerRecord + " "
-                                                    + tagSb);
-                                }
-                            }
-                        }
-                    }
-                    
-                    if (lifecycle.equals(Lifecycle.CLOSED) || lifecycle.equals(Lifecycle.CANCELLED)) {
-                        // write ELAPSED_TIME
-                        timelyClient.write("put dw.query.metrics.ELAPSED_TIME " + createDate + " " + queryMetric.getElapsedTime() + " " + tagSb);
-                        
-                        // write NUM_RESULTS
-                        timelyClient.write("put dw.query.metrics.NUM_RESULTS " + createDate + " " + queryMetric.getNumResults() + " " + tagSb);
-                    }
-                    
-                    if (lifecycle.equals(Lifecycle.INITIALIZED)) {
-                        // write CREATE_TIME
-                        long createTime = queryMetric.getCreateCallTime();
-                        if (createTime == -1) {
-                            createTime = queryMetric.getSetupTime();
-                        }
-                        timelyClient.write("put dw.query.metrics.CREATE_TIME " + createDate + " " + createTime + " " + tagSb);
-                        
-                        // write a COUNT value of 1 so that we can count total queries
-                        timelyClient.write("put dw.query.metrics.COUNT " + createDate + " 1 " + tagSb);
-                    }
-                }
-            } catch (Exception e) {
-                log.error(e.getMessage(), e);
-            }
-        }
-    }
-    
     /**
      * Returns cache stats for the local part of the distributed Hazelcast cache
      *
@@ -558,13 +453,14 @@ public class QueryMetricOperations {
      * @HTTP 500 internal server error
      */
     @RolesAllowed({"Administrator", "JBossAdministrator", "MetricsAdministrator"})
-    @RequestMapping(path = "/cacheStats", method = {RequestMethod.GET}, produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
+    @RequestMapping(path = "/stats", method = {RequestMethod.GET}, produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
     public CacheStats getCacheStats() {
         CacheStats cacheStats = new CacheStats();
         IMap<Object,Object> incomingCacheHz = ((IMap<Object,Object>) incomingQueryMetricsCache.getNativeCache());
-        cacheStats.setIncomingQueryMetrics(getStats(incomingCacheHz.getLocalMapStats()));
+        cacheStats.setIncomingQueryMetrics(this.stats.getLocalMapStats(incomingCacheHz.getLocalMapStats()));
         IMap<Object,Object> lastWrittenCacheHz = ((IMap<Object,Object>) lastWrittenQueryMetricCache.getNativeCache());
-        cacheStats.setLastWrittenQueryMetrics(getStats(lastWrittenCacheHz.getLocalMapStats()));
+        cacheStats.setLastWrittenQueryMetrics(this.stats.getLocalMapStats(lastWrittenCacheHz.getLocalMapStats()));
+        cacheStats.setServiceStats(this.stats.formatStats(this.stats.getServiceStats(), true));
         cacheStats.setMemberUuid(getClusterLocalMemberUuid());
         try {
             cacheStats.setHost(InetAddress.getLocalHost().getCanonicalHostName());
@@ -574,38 +470,15 @@ public class QueryMetricOperations {
         return cacheStats;
     }
     
-    private Map<String,Long> getStats(LocalMapStats localMapStats) {
-        Map<String,Long> stats = new LinkedHashMap<>();
-        stats.put("getCount", localMapStats.getGetOperationCount());
-        stats.put("putCount", localMapStats.getPutOperationCount());
-        stats.put("removeCount", localMapStats.getRemoveOperationCount());
-        stats.put("numberOfOtherOperations", localMapStats.getOtherOperationCount());
-        stats.put("numberOfEvents", localMapStats.getEventOperationCount());
-        stats.put("lastAccessTime", localMapStats.getLastAccessTime());
-        stats.put("lastUpdateTime", localMapStats.getLastUpdateTime());
-        stats.put("hits", localMapStats.getHits());
-        stats.put("ownedEntryCount", localMapStats.getOwnedEntryCount());
-        stats.put("backupEntryCount", localMapStats.getBackupEntryCount());
-        stats.put("backupCount", Long.valueOf(localMapStats.getBackupCount()));
-        stats.put("ownedEntryMemoryCost", localMapStats.getOwnedEntryMemoryCost());
-        stats.put("backupEntryMemoryCost", localMapStats.getBackupEntryMemoryCost());
-        stats.put("creationTime", localMapStats.getCreationTime());
-        stats.put("lockedEntryCount", localMapStats.getLockedEntryCount());
-        stats.put("dirtyEntryCount", localMapStats.getDirtyEntryCount());
-        
-        // keep the contract as milliseconds for latencies sent using Json
-        stats.put("totalGetLatencies", NANOSECONDS.toMillis(localMapStats.getTotalGetLatency()));
-        stats.put("totalPutLatencies", NANOSECONDS.toMillis(localMapStats.getTotalPutLatency()));
-        stats.put("totalRemoveLatencies", NANOSECONDS.toMillis(localMapStats.getTotalRemoveLatency()));
-        stats.put("maxGetLatency", NANOSECONDS.toMillis(localMapStats.getMaxGetLatency()));
-        stats.put("maxPutLatency", NANOSECONDS.toMillis(localMapStats.getMaxPutLatency()));
-        stats.put("maxRemoveLatency", NANOSECONDS.toMillis(localMapStats.getMaxRemoveLatency()));
-        
-        stats.put("heapCost", localMapStats.getHeapCost());
-        stats.put("merkleTreesCost", localMapStats.getMerkleTreesCost());
-        stats.put("queryCount", localMapStats.getQueryCount());
-        stats.put("indexedQueryCount", localMapStats.getIndexedQueryCount());
-        
-        return stats;
+    @Scheduled(fixedRate = 60000)
+    public void logStats() {
+        this.stats.logServiceStats();
+    }
+    
+    @Scheduled(fixedRate = 60000)
+    public void publishStats() {
+        this.stats.queueServiceStatsForTimely();
+        this.stats.queueAggregatedMetricsForTimely();
+        this.stats.writeTimelyData();
     }
 }

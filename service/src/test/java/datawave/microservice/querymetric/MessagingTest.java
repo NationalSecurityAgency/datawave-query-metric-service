@@ -39,6 +39,8 @@ public class MessagingTest extends QueryMetricTestBase {
                 .withMetric(m)
                 .withMetricType(QueryMetricType.COMPLETE)
                 .build());
+
+        ensureDataWritten(incomingQueryMetricsCache, lastWrittenQueryMetricCache, queryId);
         // @formatter:on
         UriComponents metricUri = UriComponentsBuilder.newInstance().scheme("https").host("localhost").port(port).path(String.format(getMetricsUrl, queryId))
                         .build();

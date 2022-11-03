@@ -34,7 +34,7 @@ public abstract class QueryMetricOperationsTest extends QueryMetricTestBase {
                 .withUser(adminUser)
                 .build());
         // @formatter:on
-        waitForWriteBehind(incomingQueryMetricsCache, lastWrittenQueryMetricCache, queryId);
+        ensureDataWritten(incomingQueryMetricsCache, lastWrittenQueryMetricCache, queryId);
         assertEquals("lastWrittenQueryMetricCache metric wrong", m, lastWrittenQueryMetricCache.get(queryId, QueryMetricUpdate.class).getMetric());
         assertEquals("incomingQueryMetricsCache metric wrong", m, incomingQueryMetricsCache.get(queryId, QueryMetricUpdate.class).getMetric());
         assertEquals("accumulo metric wrong", m, shardTableQueryMetricHandler.getQueryMetric(queryId));
@@ -58,7 +58,7 @@ public abstract class QueryMetricOperationsTest extends QueryMetricTestBase {
         }
         metrics.forEach((m) -> {
             String queryId = m.getQueryId();
-            waitForWriteBehind(incomingQueryMetricsCache, lastWrittenQueryMetricCache, queryId);
+            ensureDataWritten(incomingQueryMetricsCache, lastWrittenQueryMetricCache, queryId);
             assertEquals("lastWrittenQueryMetricCache metric wrong", m, lastWrittenQueryMetricCache.get(queryId, QueryMetricUpdate.class).getMetric());
             try {
                 assertEquals("accumulo metric wrong", m, shardTableQueryMetricHandler.getQueryMetric(queryId));
@@ -88,7 +88,7 @@ public abstract class QueryMetricOperationsTest extends QueryMetricTestBase {
         // @formatter:on
         metrics.forEach((m) -> {
             String queryId = m.getQueryId();
-            waitForWriteBehind(incomingQueryMetricsCache, lastWrittenQueryMetricCache, queryId);
+            ensureDataWritten(incomingQueryMetricsCache, lastWrittenQueryMetricCache, queryId);
             assertEquals("lastWrittenQueryMetricCache metric wrong", m, lastWrittenQueryMetricCache.get(queryId, QueryMetricUpdate.class).getMetric());
             assertEquals("incomingQueryMetricsCache metric wrong", m, incomingQueryMetricsCache.get(queryId, QueryMetricUpdate.class).getMetric());
             try {

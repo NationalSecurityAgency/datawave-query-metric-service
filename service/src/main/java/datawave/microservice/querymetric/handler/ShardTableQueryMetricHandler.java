@@ -3,6 +3,7 @@ package datawave.microservice.querymetric.handler;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import datawave.data.hash.UID;
 import datawave.data.hash.UIDBuilder;
 import datawave.ingest.config.RawRecordContainerImpl;
@@ -15,7 +16,6 @@ import datawave.ingest.data.config.ingest.AbstractContentIngestHelper;
 import datawave.ingest.mapreduce.handler.shard.AbstractColumnBasedHandler;
 import datawave.ingest.mapreduce.handler.tokenize.ContentIndexingColumnBasedHandler;
 import datawave.ingest.mapreduce.job.BulkIngestKey;
-import datawave.ingest.mapreduce.job.writer.LiveContextWriter;
 import datawave.ingest.table.config.TableConfigHelper;
 import datawave.marking.MarkingFunctions;
 import datawave.microservice.authorization.user.ProxiedUserDetails;
@@ -51,13 +51,13 @@ import datawave.webservice.result.EventQueryResponseBase;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.time.DateUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -92,6 +92,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import static datawave.security.authorization.DatawaveUser.UserType.USER;
 
@@ -118,6 +119,9 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
     protected DatawavePrincipal datawavePrincipal;
     protected MarkingFunctions markingFunctions;
     protected QueryMetricCombiner queryMetricCombiner;
+    protected ExecutorService executorService;
+    // this lock is necessary for when there is an error condition and the accumuloRecordWriter needs to be replaced
+    protected ReentrantReadWriteLock accumuloRecordWriterLock = new ReentrantReadWriteLock();
     
     public ShardTableQueryMetricHandler(QueryMetricHandlerProperties queryMetricHandlerProperties,
                     @Qualifier("warehouse") AccumuloConnectionPool connectionPool, QueryMetricQueryLogicFactory logicFactory, QueryMetricFactory metricFactory,
@@ -129,6 +133,8 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
         this.markingFunctions = markingFunctions;
         this.connectionPool = connectionPool;
         this.queryMetricCombiner = queryMetricCombiner;
+        this.executorService = Executors.newCachedThreadPool(new ThreadFactoryBuilder().setNameFormat("metric-handler-query-thread-%d").build());
+        
         queryMetricHandlerProperties.getProperties().entrySet().forEach(e -> conf.set(e.getKey(), e.getValue()));
         
         Connector connector = null;
@@ -161,14 +167,27 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
     }
     
     public void shutdown() throws Exception {
-        log.info("Begin closing AccumuloRecordWriter and flushing updates to Accumulo");
-        this.recordWriter.close(null);
-        log.info("Completed closing AccumuloRecordWriter and flushing updates to Accumulo");
+        if (this.recordWriter != null) {
+            this.accumuloRecordWriterLock.writeLock().lock();
+            try {
+                this.recordWriter.close(null);
+                this.recordWriter = null;
+            } finally {
+                this.accumuloRecordWriterLock.writeLock().unlock();
+            }
+        }
     }
     
     @Override
     public void flush() throws Exception {
-        this.recordWriter.flush();
+        if (this.recordWriter != null) {
+            this.accumuloRecordWriterLock.readLock().lock();
+            try {
+                this.recordWriter.flush();
+            } finally {
+                this.accumuloRecordWriterLock.readLock().unlock();
+            }
+        }
     }
     
     public void verifyTables() {
@@ -193,56 +212,56 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
     }
     
     public void writeMetric(T updatedQueryMetric, List<T> storedQueryMetrics, Date lastUpdated, boolean delete) throws Exception {
-        LiveContextWriter contextWriter = null;
-        MapContext<Text,RawRecordContainer,Text,Mutation> context = null;
-        
         try {
-            contextWriter = new LiveContextWriter();
-            contextWriter.setup(conf, false);
-            
             TaskAttemptID taskId = new TaskAttemptID(new TaskID(new JobID(JOB_ID, 1), TaskType.MAP, 1), 1);
-            context = new MapContextImpl<>(conf, taskId, null, recordWriter, null, reporter, null);
             
-            for (T storedQueryMetric : storedQueryMetrics) {
-                ContentIndexingColumnBasedHandler handler = new ContentIndexingColumnBasedHandler() {
-                    @Override
-                    public AbstractContentIngestHelper getContentIndexingDataTypeHelper() {
-                        return getQueryMetricsIngestHelper(delete);
-                    }
-                };
-                handler.setup(context);
-                
-                Multimap<BulkIngestKey,Value> r = getEntries(handler, updatedQueryMetric, storedQueryMetric, lastUpdated);
-                
-                try {
+            this.accumuloRecordWriterLock.readLock().lock();
+            try {
+                MapContext<Text,RawRecordContainer,Text,Mutation> context = new MapContextImpl<>(conf, taskId, null, this.recordWriter, null, reporter, null);
+                for (T storedQueryMetric : storedQueryMetrics) {
+                    ContentIndexingColumnBasedHandler handler = new ContentIndexingColumnBasedHandler() {
+                        @Override
+                        public AbstractContentIngestHelper getContentIndexingDataTypeHelper() {
+                            return getQueryMetricsIngestHelper(delete);
+                        }
+                    };
+                    handler.setup(context);
+                    Multimap<BulkIngestKey,Value> r = getEntries(handler, updatedQueryMetric, storedQueryMetric, lastUpdated);
                     if (r != null) {
-                        contextWriter.write(r, context);
+                        for (Entry<BulkIngestKey,Value> e : r.entries()) {
+                            recordWriter.write(e.getKey().getTableName(), getMutation(e.getKey().getKey(), e.getValue()));
+                        }
                     }
-                    
                     if (!delete && handler.getMetadata() != null) {
-                        contextWriter.write(handler.getMetadata().getBulkMetadata(), context);
+                        for (Entry<BulkIngestKey,Value> e : handler.getMetadata().getBulkMetadata().entries()) {
+                            recordWriter.write(e.getKey().getTableName(), getMutation(e.getKey().getKey(), e.getValue()));
+                        }
                     }
-                } finally {
-                    contextWriter.commit(context);
                 }
+            } finally {
+                this.accumuloRecordWriterLock.readLock().unlock();
             }
         } catch (Exception e) {
+            log.error(e.getMessage(), e);
             // assume that an error happened with the AccumuloRecordWriter
-            contextWriter = null;
+            // mark recordWriter as unhealthy -- the first thread to get the writeLock in
+            // reload will create a new one that will be marked healthy
+            this.recordWriter.setHealthy(false);
             reload();
             // we have no way of knowing if the rejected mutation is this one or a previously
-            // buffered one, but will stop the Exception propagation here just in case.
-            // Otherwise, Hazelcast will keep trying to write the metric
-            if (e.getCause() instanceof MutationsRejectedException) {
-                log.error(e.getMessage(), e);
-            } else {
-                throw e;
-            }
-        } finally {
-            if (contextWriter != null && context != null) {
-                contextWriter.cleanup(context);
-            }
+            // written one throw the exception so that the metric will be re-written
+            throw e;
         }
+    }
+    
+    private Mutation getMutation(Key key, Value value) {
+        Mutation m = new Mutation(key.getRow());
+        if (key.isDeleted()) {
+            m.putDelete(key.getColumnFamily(), key.getColumnQualifier(), new ColumnVisibility(key.getColumnVisibility()), key.getTimestamp());
+        } else {
+            m.put(key.getColumnFamily(), key.getColumnQualifier(), new ColumnVisibility(key.getColumnVisibility()), key.getTimestamp(), value);
+        }
+        return m;
     }
     
     public Map<String,String> getEventFields(BaseQueryMetric queryMetric) {
@@ -386,8 +405,7 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
             connector = connectionPool.borrowObject(trackingMap);
             final Connector finalConnector = connector;
             // create RunningQuery inside an Executor/Future so that we can handle a non-responsive Accumulo and timeout
-            ExecutorService executor = Executors.newSingleThreadExecutor();
-            Future<Object> future1 = executor.submit(() -> {
+            Future<Object> future1 = this.executorService.submit(() -> {
                 try {
                     return new RunningQuery(null, finalConnector, Priority.ADMIN, queryLogic, query, query.getQueryAuthorizations(), datawavePrincipal,
                                     this.metricFactory);
@@ -410,7 +428,7 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
             
             if (runningQuery != null) {
                 // Call RunningQuery.next inside an Executor/Future so that we can handle a non-responsive Accumulo and timeout
-                Future<Object> future2 = executor.submit(() -> {
+                Future<Object> future2 = this.executorService.submit(() -> {
                     try {
                         boolean done = false;
                         List<Object> objectList = new ArrayList<>();
@@ -617,8 +635,6 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
                         m.addVersion(fieldName.substring(8), fieldValue);
                     } else if (fieldName.equals("YIELD_COUNT")) {
                         m.setYieldCount(Long.parseLong(fieldValue));
-                    } else {
-                        log.debug("encountered unanticipated field name: " + fieldName);
                     }
                 }
             }
@@ -692,16 +708,24 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
     
     @Override
     public void reload() {
+        this.accumuloRecordWriterLock.writeLock().lock();
         try {
-            if (this.recordWriter != null) {
-                // don't try to flush the mtbw (close). If recordWriter != null then this method is being called
-                // because of an Exception and the metrics have been saved off to be added to the new recordWriter.
-                this.recordWriter.returnConnector();
+            if (this.recordWriter == null || !this.recordWriter.isHealthy()) {
+                log.info("creating new AccumuloRecordWriter");
+                try {
+                    if (this.recordWriter != null) {
+                        // don't try to flush the mtbw (close). If recordWriter != null then this method is being called
+                        // because of an Exception and the writing of the metrics should be re-tried with the new recordWriter.
+                        this.recordWriter.returnConnector();
+                    }
+                    this.recordWriter = new AccumuloRecordWriter(connectionPool, conf);
+                } catch (Exception e) {
+                    log.error(e.getMessage(), e);
+                    throw new RuntimeException(e.getMessage(), e);
+                }
             }
-            recordWriter = new AccumuloRecordWriter(connectionPool, conf);
-        } catch (Exception e) {
-            log.error(e.getMessage(), e);
-            throw new RuntimeException(e.getMessage(), e);
+        } finally {
+            this.accumuloRecordWriterLock.writeLock().unlock();
         }
     }
     

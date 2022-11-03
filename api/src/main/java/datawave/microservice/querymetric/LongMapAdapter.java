@@ -35,7 +35,7 @@ public class LongMapAdapter extends XmlAdapter<LongMapAdapter.LongMap,Map<String
     
     public static class LongMap {
         @XmlElement(name = "entry")
-        private List<LongMapAdapter.LongMapEntry> entries = new ArrayList<LongMapAdapter.LongMapEntry>();
+        private List<LongMapAdapter.LongMapEntry> entries = new ArrayList<>();
     }
     
     public static class LongMapEntry {

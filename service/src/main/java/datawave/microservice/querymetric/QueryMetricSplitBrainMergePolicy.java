@@ -8,7 +8,7 @@ import datawave.microservice.querymetric.handler.QueryMetricCombiner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class QueryMetricSplitBrainMergePolicy<V extends QueryMetricUpdate,T extends MergingLastUpdateTime<V>> implements SplitBrainMergePolicy<V,T> {
+public class QueryMetricSplitBrainMergePolicy<V extends QueryMetricUpdateHolder,T extends MergingLastUpdateTime<V>> implements SplitBrainMergePolicy<V,T> {
     
     private final Logger log = LoggerFactory.getLogger(getClass());
     protected QueryMetricCombiner queryMetricCombiner;
@@ -23,7 +23,7 @@ public class QueryMetricSplitBrainMergePolicy<V extends QueryMetricUpdate,T exte
     
     @Override
     public V merge(T mergingValue, T existingValue) {
-        QueryMetricUpdate mergedValue;
+        QueryMetricUpdateHolder mergedValue;
         if (existingValue == null) {
             mergedValue = mergingValue.getDeserializedValue();
             if (log.isTraceEnabled()) {
@@ -33,12 +33,12 @@ public class QueryMetricSplitBrainMergePolicy<V extends QueryMetricUpdate,T exte
             }
         } else {
             
-            QueryMetricUpdate merging = mergingValue.getDeserializedValue();
-            QueryMetricUpdate existing = existingValue.getDeserializedValue();
+            QueryMetricUpdateHolder merging = mergingValue.getDeserializedValue();
+            QueryMetricUpdateHolder existing = existingValue.getDeserializedValue();
             
             try {
                 BaseQueryMetric metric = this.queryMetricCombiner.combineMetrics(merging.getMetric(), existing.getMetric(), existing.getMetricType());
-                mergedValue = new QueryMetricUpdate(metric, existing.getMetricType());
+                mergedValue = new QueryMetricUpdateHolder(metric, existing.getMetricType());
             } catch (Exception e) {
                 if (existingValue.getLastUpdateTime() >= mergingValue.getLastUpdateTime()) {
                     mergedValue = existing;

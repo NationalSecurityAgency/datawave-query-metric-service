@@ -16,7 +16,7 @@ import java.util.Map;
 public class StringMapAdapter extends XmlAdapter<StringMapAdapter.StringMap,Map<String,String>> {
     
     @Override
-    public Map<String,String> unmarshal(StringMapAdapter.StringMap v) {
+    public Map<String,String> unmarshal(StringMapAdapter.StringMap v) throws Exception {
         HashMap<String,String> map = new HashMap<>();
         for (StringMapEntry entry : v.entries) {
             map.put(entry.key, entry.value);
@@ -25,17 +25,17 @@ public class StringMapAdapter extends XmlAdapter<StringMapAdapter.StringMap,Map<
     }
     
     @Override
-    public StringMap marshal(Map<String,String> v) {
-        StringMap map = new StringMap();
+    public StringMap marshal(Map<String,String> v) throws Exception {
+        StringMapAdapter.StringMap map = new StringMapAdapter.StringMap();
         for (Map.Entry<String,String> entry : v.entrySet()) {
-            map.entries.add(new StringMapEntry(entry.getKey(), entry.getValue()));
+            map.entries.add(new StringMapAdapter.StringMapEntry(entry.getKey(), entry.getValue()));
         }
         return map;
     }
     
     public static class StringMap {
         @XmlElement(name = "entry")
-        private List<StringMapEntry> entries = new ArrayList<>();
+        private List<StringMapAdapter.StringMapEntry> entries = new ArrayList<>();
     }
     
     public static class StringMapEntry {

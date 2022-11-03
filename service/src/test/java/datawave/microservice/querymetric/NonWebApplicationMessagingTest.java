@@ -1,6 +1,5 @@
 package datawave.microservice.querymetric;
 
-import datawave.marking.MarkingFunctions;
 import datawave.microservice.querymetric.config.QueryMetricHandlerProperties;
 import datawave.microservice.querymetric.handler.ShardTableQueryMetricHandler;
 import org.apache.accumulo.core.client.Connector;
@@ -20,9 +19,7 @@ import javax.inject.Named;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import static datawave.microservice.querymetric.config.HazelcastMetricCacheConfiguration.INCOMING_METRICS;
 
@@ -60,12 +57,9 @@ public class NonWebApplicationMessagingTest {
     protected CacheManager cacheManager;
     
     private Cache incomingQueryMetricsCache;
-    private Map<String,String> metricMarkings;
     
     @Before
     public void setup() {
-        this.metricMarkings = new HashMap<>();
-        this.metricMarkings.put(MarkingFunctions.Default.COLUMN_VISIBILITY, "A&C");
         this.incomingQueryMetricsCache = cacheManager.getCache(INCOMING_METRICS);
         this.mergeLockLifecycleListener.setAllowReadLock(true);
         
@@ -100,7 +94,7 @@ public class NonWebApplicationMessagingTest {
                 .withMetric(m)
                 .withMetricType(QueryMetricType.COMPLETE)
                 .build());
-        QueryMetricUpdate metricUpdate = this.incomingQueryMetricsCache.get(queryId, QueryMetricUpdate.class);
+        QueryMetricUpdateHolder metricUpdate = this.incomingQueryMetricsCache.get(queryId, QueryMetricUpdateHolder.class);
         QueryMetricTestBase.assertEquals("", metricUpdate.getMetric(), m);
     }
 }
