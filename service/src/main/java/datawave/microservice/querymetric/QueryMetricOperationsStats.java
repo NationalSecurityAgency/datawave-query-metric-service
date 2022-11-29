@@ -63,12 +63,12 @@ public class QueryMetricOperationsStats {
         this.handler = handler;
         this.mapStore = mapStore;
         for (TIMERS name : TIMERS.values()) {
-            timerMap.put(name, new Timer(new SlidingTimeWindowArrayReservoir(1, MINUTES)));
+            this.timerMap.put(name, new Timer(new SlidingTimeWindowArrayReservoir(1, MINUTES)));
         }
         for (METERS name : METERS.values()) {
-            meterMap.put(name, new Meter());
+            this.meterMap.put(name, new Meter());
         }
-        if (this.timelyProperties.getEnabled()) {
+        if (this.timelyProperties.isEnabled()) {
             try {
                 if (timelyProperties.getProtocol().equals(TimelyProperties.Protocol.TCP)) {
                     this.timelyTcpClient = new TcpClient(timelyProperties.getHost(), timelyProperties.getPort());
@@ -84,33 +84,35 @@ public class QueryMetricOperationsStats {
     }
     
     public Timer getTimer(TIMERS name) {
-        return timerMap.get(name);
+        return this.timerMap.get(name);
     }
     
     public Meter getMeter(METERS name) {
-        return meterMap.get(name);
+        return this.meterMap.get(name);
     }
     
     public void writeTimelyData() {
-        synchronized (this.metricsToWrite) {
-            try {
-                for (String metric : this.metricsToWrite) {
-                    if (timelyProperties.getProtocol().equals(TimelyProperties.Protocol.TCP)) {
-                        timelyTcpClient.write(metric);
-                    } else {
-                        timelyUdpClient.write(metric);
+        if (this.timelyProperties.isEnabled()) {
+            synchronized (this.metricsToWrite) {
+                try {
+                    for (String metric : this.metricsToWrite) {
+                        if (this.timelyProperties.getProtocol().equals(TimelyProperties.Protocol.TCP)) {
+                            this.timelyTcpClient.write(metric);
+                        } else {
+                            this.timelyUdpClient.write(metric);
+                        }
                     }
-                }
-                this.metricsToWrite.clear();
-            } catch (Exception e) {
-                log.error("Exception writing metrics to Timely: " + e.getMessage());
-                // keep trying to write metrics, but can't store them forever
-                if (this.metricsToWrite.size() > 10000) {
                     this.metricsToWrite.clear();
-                }
-            } finally {
-                if (timelyProperties.getProtocol().equals(TimelyProperties.Protocol.TCP)) {
-                    timelyTcpClient.flush();
+                } catch (Exception e) {
+                    log.error("Exception writing metrics to Timely: " + e.getMessage());
+                    // keep trying to write metrics, but can't store them forever
+                    if (this.metricsToWrite.size() > 10000) {
+                        this.metricsToWrite.clear();
+                    }
+                } finally {
+                    if (this.timelyProperties.getProtocol().equals(TimelyProperties.Protocol.TCP)) {
+                        this.timelyTcpClient.flush();
+                    }
                 }
             }
         }
@@ -159,7 +161,7 @@ public class QueryMetricOperationsStats {
     public Map<String,Double> getServiceStats() {
         Map<String,Double> stats = new LinkedHashMap<>();
         addTimerStats("store", getTimer(TIMERS.STORE), stats);
-        addTimerStats("accumulo", mapStore.getWriteTimer(), stats);
+        addTimerStats("accumulo", this.mapStore.getWriteTimer(), stats);
         addMeterStats("message", getMeter(METERS.MESSAGE), stats);
         addMeterStats("rest", getMeter(METERS.REST), stats);
         return stats;
@@ -170,7 +172,7 @@ public class QueryMetricOperationsStats {
     }
     
     public void queueTimelyMetrics(BaseQueryMetric queryMetric) {
-        if (this.timelyProperties.getEnabled() && queryMetric.getQueryType().equalsIgnoreCase("RunningQuery")) {
+        if (this.timelyProperties.isEnabled() && queryMetric.getQueryType().equalsIgnoreCase("RunningQuery")) {
             BaseQueryMetric.Lifecycle lifecycle = queryMetric.getLifecycle();
             String host = queryMetric.getHost();
             String user = queryMetric.getUser();
@@ -190,12 +192,12 @@ public class QueryMetricOperationsStats {
             } else if (lifecycle.equals(BaseQueryMetric.Lifecycle.INITIALIZED)) {
                 // aggregate these metrics for later writing to timely
                 synchronized (hostCountMap) {
-                    Long hostCount = hostCountMap.get(host);
-                    hostCountMap.put(host, hostCount == null ? 1l : hostCount + 1);
-                    Long userCount = userCountMap.get(user);
-                    userCountMap.put(user, userCount == null ? 1l : userCount + 1);
-                    Long logicCount = logicCountMap.get(logic);
-                    logicCountMap.put(logic, logicCount == null ? 1l : logicCount + 1);
+                    Long hostCount = this.hostCountMap.get(host);
+                    this.hostCountMap.put(host, hostCount == null ? 1l : hostCount + 1);
+                    Long userCount = this.userCountMap.get(user);
+                    this.userCountMap.put(user, userCount == null ? 1l : userCount + 1);
+                    Long logicCount = this.logicCountMap.get(logic);
+                    this.logicCountMap.put(logic, logicCount == null ? 1l : logicCount + 1);
                 }
             }
         }
@@ -217,27 +219,27 @@ public class QueryMetricOperationsStats {
     }
     
     public void queueAggregatedMetricsForTimely() {
-        if (this.timelyProperties.getEnabled()) {
+        if (this.timelyProperties.isEnabled()) {
             long now = System.currentTimeMillis();
             synchronized (hostCountMap) {
-                hostCountMap.entrySet().forEach(entry -> {
+                this.hostCountMap.entrySet().forEach(entry -> {
                     this.metricsToWrite.add("put dw.query.metrics.COUNT " + now + " " + entry.getValue() + " HOST=" + entry.getKey() + "\n");
                 });
-                hostCountMap.clear();
-                userCountMap.entrySet().forEach(entry -> {
+                this.hostCountMap.clear();
+                this.userCountMap.entrySet().forEach(entry -> {
                     this.metricsToWrite.add("put dw.query.metrics.COUNT " + now + " " + entry.getValue() + " USER=" + entry.getKey() + "\n");
                 });
-                userCountMap.clear();
-                logicCountMap.entrySet().forEach(entry -> {
+                this.userCountMap.clear();
+                this.logicCountMap.entrySet().forEach(entry -> {
                     this.metricsToWrite.add("put dw.query.metrics.COUNT " + now + " " + entry.getValue() + " QUERY_LOGIC=" + entry.getKey() + "\n");
                 });
-                logicCountMap.clear();
+                this.logicCountMap.clear();
             }
         }
     }
     
     public void queueServiceStatsForTimely() {
-        if (this.timelyProperties.getEnabled()) {
+        if (this.timelyProperties.isEnabled()) {
             Map<String,String> tagMap = new LinkedHashMap<>();
             try {
                 tagMap.put("host", InetAddress.getLocalHost().getCanonicalHostName());

@@ -2,7 +2,6 @@ package datawave.microservice.querymetric.config;
 
 import datawave.marking.MarkingFunctions;
 import datawave.microservice.querymetric.BaseQueryMetric;
-import datawave.microservice.querymetric.QueryMetric;
 import datawave.microservice.querymetric.handler.QueryMetricCombiner;
 import datawave.microservice.querymetric.handler.ShardTableQueryMetricHandler;
 import datawave.microservice.querymetric.factory.QueryMetricQueryLogicFactory;
