@@ -39,7 +39,7 @@ public class SimpleQueryGeometryHandler implements QueryGeometryHandler {
     
     @Override
     public QueryGeometryResponse getQueryGeometryResponse(String id, List<? extends BaseQueryMetric> metrics) {
-        QueryGeometryResponse response = new QueryGeometryResponse(id, basemaps);
+        QueryGeometryResponse response = new QueryMetricGeometryResponse(id, basemaps);
         
         if (metrics != null) {
             Set<QueryGeometry> queryGeometries = new LinkedHashSet<>();

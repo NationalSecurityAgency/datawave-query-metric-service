@@ -32,6 +32,10 @@
         <version.microservice.starter-datawave-query-metric>1.5.4</version.microservice.starter-datawave-query-metric>
         <version.spring.cloud.stream>2.1.4.RELEASE</version.spring.cloud.stream>
         <version.validation-api>2.0.2</version.validation-api>
+        <version.webjars.bootstrap>4.3.1</version.webjars.bootstrap>
+        <version.webjars.jquery>3.4.1</version.webjars.jquery>
+        <version.webjars.leaflet>1.5.1</version.webjars.leaflet>
+        <version.webjars.locator-core>0.35</version.webjars.locator-core>
         <version.zookeeper>3.4.14</version.zookeeper>
     </properties>
     <dependencyManagement>
@@ -237,6 +241,26 @@
                 <version>${version.spring.cloud.stream}</version>
             </dependency>
             <dependency>
+                <groupId>org.webjars</groupId>
+                <artifactId>bootstrap</artifactId>
+                <version>${version.webjars.bootstrap}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.webjars</groupId>
+                <artifactId>jquery</artifactId>
+                <version>${version.webjars.jquery}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.webjars</groupId>
+                <artifactId>leaflet</artifactId>
+                <version>${version.webjars.leaflet}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.webjars</groupId>
+                <artifactId>webjars-locator-core</artifactId>
+                <version>${version.webjars.locator-core}</version>
+            </dependency>
+            <dependency>
                 <groupId>gov.nsa.datawave.microservice</groupId>
                 <artifactId>spring-boot-starter-datawave</artifactId>
                 <version>${version.microservice.starter}</version>
@@ -311,6 +335,22 @@
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-stream</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.webjars</groupId>
+            <artifactId>bootstrap</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.webjars</groupId>
+            <artifactId>jquery</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.webjars</groupId>
+            <artifactId>leaflet</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.webjars</groupId>
+            <artifactId>webjars-locator-core</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.cloud</groupId>
