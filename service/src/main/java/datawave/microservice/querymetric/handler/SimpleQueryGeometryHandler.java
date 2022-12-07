@@ -50,6 +50,7 @@ public class SimpleQueryGeometryHandler implements QueryGeometryHandler {
                     JexlNode queryNode = JexlASTHelper.parseAndFlattenJexlQuery(jexlQuery);
                     queryGeometries.addAll(GeoFeatureVisitor.getGeoFeatures(queryNode, isLuceneQuery));
                 } catch (Exception e) {
+                    log.error(e.getMessage(), e);
                     response.addException(new Exception("Unable to parse the geo features"));
                 }
             }
