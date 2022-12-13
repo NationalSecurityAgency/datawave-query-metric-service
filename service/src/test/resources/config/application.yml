@@ -89,10 +89,7 @@ datawave:
         host: localhost
         port: 4242
         tags:
-          - USER
-          - HOST
-          - QUERY_ID
-          - QUERY_LOGIC
+          system: test_system
       client:
         enabled: true
         transport: message_test

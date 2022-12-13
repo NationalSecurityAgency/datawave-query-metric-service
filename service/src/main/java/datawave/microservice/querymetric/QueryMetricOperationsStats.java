@@ -180,15 +180,20 @@ public class QueryMetricOperationsStats {
             if (lifecycle.equals(BaseQueryMetric.Lifecycle.CLOSED) || lifecycle.equals(BaseQueryMetric.Lifecycle.CANCELLED)) {
                 long createDate = queryMetric.getCreateDate().getTime();
                 // write ELAPSED_TIME
-                this.metricsToWrite.add("put dw.query.metrics.ELAPSED_TIME " + createDate + " " + queryMetric.getElapsedTime() + " HOST=" + host + "\n");
-                this.metricsToWrite.add("put dw.query.metrics.ELAPSED_TIME " + createDate + " " + queryMetric.getElapsedTime() + " USER=" + user + "\n");
-                this.metricsToWrite
-                                .add("put dw.query.metrics.ELAPSED_TIME " + createDate + " " + queryMetric.getElapsedTime() + " QUERY_LOGIC=" + logic + "\n");
+                this.metricsToWrite.add("put dw.query.metrics.ELAPSED_TIME " + createDate + " " + queryMetric.getElapsedTime() + " HOST=" + host
+                                + getConfiguredTags() + "\n");
+                this.metricsToWrite.add("put dw.query.metrics.ELAPSED_TIME " + createDate + " " + queryMetric.getElapsedTime() + " USER=" + user
+                                + getConfiguredTags() + "\n");
+                this.metricsToWrite.add("put dw.query.metrics.ELAPSED_TIME " + createDate + " " + queryMetric.getElapsedTime() + " QUERY_LOGIC=" + logic
+                                + getConfiguredTags() + "\n");
                 
                 // write NUM_RESULTS
-                this.metricsToWrite.add("put dw.query.metrics.NUM_RESULTS " + createDate + " " + queryMetric.getNumResults() + " HOST=" + host + "\n");
-                this.metricsToWrite.add("put dw.query.metrics.NUM_RESULTS " + createDate + " " + queryMetric.getNumResults() + " USER=" + user + "\n");
-                this.metricsToWrite.add("put dw.query.metrics.NUM_RESULTS " + createDate + " " + queryMetric.getNumResults() + " QUERY_LOGIC=" + logic + "\n");
+                this.metricsToWrite.add("put dw.query.metrics.NUM_RESULTS " + createDate + " " + queryMetric.getNumResults() + " HOST=" + host
+                                + getConfiguredTags() + "\n");
+                this.metricsToWrite.add("put dw.query.metrics.NUM_RESULTS " + createDate + " " + queryMetric.getNumResults() + " USER=" + user
+                                + getConfiguredTags() + "\n");
+                this.metricsToWrite.add("put dw.query.metrics.NUM_RESULTS " + createDate + " " + queryMetric.getNumResults() + " QUERY_LOGIC=" + logic
+                                + getConfiguredTags() + "\n");
             } else if (lifecycle.equals(BaseQueryMetric.Lifecycle.INITIALIZED)) {
                 // aggregate these metrics for later writing to timely
                 synchronized (hostCountMap) {
@@ -201,6 +206,16 @@ public class QueryMetricOperationsStats {
                 }
             }
         }
+    }
+    
+    private String getConfiguredTags() {
+        String configuredTags = "";
+        Map<String,String> tags = this.timelyProperties.getTags();
+        if (tags != null && !tags.isEmpty()) {
+            configuredTags = tags.entrySet().stream().map(e -> e.getKey() + "=" + e.getValue()).collect(Collectors.joining(" "));
+            configuredTags = " " + configuredTags;
+        }
+        return configuredTags;
     }
     
     public void logServiceStats() {
@@ -223,15 +238,18 @@ public class QueryMetricOperationsStats {
             long now = System.currentTimeMillis();
             synchronized (hostCountMap) {
                 this.hostCountMap.entrySet().forEach(entry -> {
-                    this.metricsToWrite.add("put dw.query.metrics.COUNT " + now + " " + entry.getValue() + " HOST=" + entry.getKey() + "\n");
+                    this.metricsToWrite
+                                    .add("put dw.query.metrics.COUNT " + now + " " + entry.getValue() + " HOST=" + entry.getKey() + getConfiguredTags() + "\n");
                 });
                 this.hostCountMap.clear();
                 this.userCountMap.entrySet().forEach(entry -> {
-                    this.metricsToWrite.add("put dw.query.metrics.COUNT " + now + " " + entry.getValue() + " USER=" + entry.getKey() + "\n");
+                    this.metricsToWrite
+                                    .add("put dw.query.metrics.COUNT " + now + " " + entry.getValue() + " USER=" + entry.getKey() + getConfiguredTags() + "\n");
                 });
                 this.userCountMap.clear();
                 this.logicCountMap.entrySet().forEach(entry -> {
-                    this.metricsToWrite.add("put dw.query.metrics.COUNT " + now + " " + entry.getValue() + " QUERY_LOGIC=" + entry.getKey() + "\n");
+                    this.metricsToWrite.add("put dw.query.metrics.COUNT " + now + " " + entry.getValue() + " QUERY_LOGIC=" + entry.getKey()
+                                    + getConfiguredTags() + "\n");
                 });
                 this.logicCountMap.clear();
             }
@@ -246,7 +264,7 @@ public class QueryMetricOperationsStats {
             } catch (Exception e) {
                 
             }
-            String tags = tagMap.entrySet().stream().map(e -> e.getKey() + "=" + e.getValue()).collect(Collectors.joining(" "));
+            String tags = tagMap.entrySet().stream().map(e -> e.getKey() + "=" + e.getValue()).collect(Collectors.joining(" ")) + getConfiguredTags();
             long timestamp = System.currentTimeMillis();
             Map<String,String> serviceStats = formatStats(getServiceStats(), false);
             serviceStats.entrySet().forEach(entry -> {
