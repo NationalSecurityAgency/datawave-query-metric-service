@@ -3,7 +3,6 @@ package datawave.microservice.querymetric.config;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 
 @ConfigurationProperties(prefix = "datawave.query.metric.timely")
@@ -11,9 +10,9 @@ public class TimelyProperties {
     
     private boolean enabled = false;
     private String host = null;
-    private int port = 0;
+    private Protocol protocol = Protocol.TCP;
+    private int port = 4242;
     private Map<String,String> tags = new LinkedHashMap<>();
-    private Protocol protocol = Protocol.UDP;
     
     public enum Protocol {
         TCP, UDP
