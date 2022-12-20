@@ -1,11 +1,11 @@
 package datawave.microservice.querymetric.handler;
 
-import datawave.webservice.common.connection.AccumuloConnectionPool;
+import datawave.webservice.common.connection.AccumuloClientPool;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MultiTableBatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableExistsException;
@@ -37,8 +37,8 @@ public class AccumuloRecordWriter extends RecordWriter<Text,Mutation> {
     private boolean simulate;
     private boolean createTables;
     
-    private AccumuloConnectionPool connectionPool;
-    private Connector connector;
+    private AccumuloClientPool accumuloClientPool;
+    private AccumuloClient accumuloClient;
     private static final String PREFIX = AccumuloRecordWriter.class.getSimpleName();
     private static final String USERNAME = PREFIX + ".username";
     private static final String DEFAULT_TABLE_NAME = PREFIX + ".defaulttable";
@@ -57,10 +57,10 @@ public class AccumuloRecordWriter extends RecordWriter<Text,Mutation> {
     
     private AtomicBoolean healthy = new AtomicBoolean(true);
     
-    public AccumuloRecordWriter(AccumuloConnectionPool connectionPool, Configuration conf) throws Exception {
+    public AccumuloRecordWriter(AccumuloClientPool accumuloClientPool, Configuration conf) throws Exception {
         this.simulate = getSimulationMode(conf);
         this.createTables = canCreateTables(conf);
-        this.connectionPool = connectionPool;
+        this.accumuloClientPool = accumuloClientPool;
         
         if (simulate) {
             log.info("Simulating output only. No writes to tables will occur");
@@ -72,13 +72,13 @@ public class AccumuloRecordWriter extends RecordWriter<Text,Mutation> {
         this.defaultTableName = (tname == null) ? null : new Text(tname);
         
         if (!simulate) {
-            Map<String,String> trackingMap = AccumuloConnectionTracking.getTrackingMap(Thread.currentThread().getStackTrace());
-            this.connector = connectionPool.borrowObject(trackingMap);
+            Map<String,String> trackingMap = AccumuloClientTracking.getTrackingMap(Thread.currentThread().getStackTrace());
+            this.accumuloClient = accumuloClientPool.borrowObject(trackingMap);
             BatchWriterConfig bwConfig = new BatchWriterConfig();
             bwConfig.setMaxMemory(getMaxMutationBufferSize(conf));
             bwConfig.setMaxLatency(getMaxLatency(conf), TimeUnit.MILLISECONDS);
             bwConfig.setMaxWriteThreads(getMaxWriteThreads(conf));
-            mtbw = this.connector.createMultiTableBatchWriter(bwConfig);
+            mtbw = this.accumuloClient.createMultiTableBatchWriter(bwConfig);
         }
     }
     
@@ -138,9 +138,9 @@ public class AccumuloRecordWriter extends RecordWriter<Text,Mutation> {
         BatchWriter bw;
         String table = tableName.toString();
         
-        if (createTables && !this.connector.tableOperations().exists(table)) {
+        if (createTables && !this.accumuloClient.tableOperations().exists(table)) {
             try {
-                this.connector.tableOperations().create(table);
+                this.accumuloClient.tableOperations().create(table);
             } catch (AccumuloSecurityException e) {
                 log.error("Accumulo security violation creating " + table, e);
                 throw e;
@@ -213,10 +213,10 @@ public class AccumuloRecordWriter extends RecordWriter<Text,Mutation> {
     
     public void returnConnector() {
         try {
-            if (this.connector != null) {
-                this.connectionPool.returnObject(connector);
+            if (this.accumuloClient != null) {
+                this.accumuloClientPool.returnObject(accumuloClient);
             }
-            this.connector = null;
+            this.accumuloClient = null;
         } catch (Exception e) {
             log.error(e.getMessage(), e);
         }

@@ -48,7 +48,7 @@ public class QueryMetricSplitBrainMergePolicyTest extends QueryMetricTestBase {
     // override cleanup method in QueryMetricTestBase since we terminated that Hazelcast instance
     @After
     public void cleanup() {
-        deleteAccumuloEntries(connector, tables, this.auths);
+        deleteAccumuloEntries(this.accumuloClient, this.tables, this.auths);
     }
     
     @Test
@@ -196,12 +196,12 @@ public class QueryMetricSplitBrainMergePolicyTest extends QueryMetricTestBase {
         public void stateChanged(LifecycleEvent event) {
             if (event.getState() == LifecycleEvent.LifecycleState.MERGING) {
                 try {
-                    mergeBlockingLatch.await(30, TimeUnit.SECONDS);
+                    this.mergeBlockingLatch.await(30, TimeUnit.SECONDS);
                 } catch (InterruptedException e) {
                     throw rethrow(e);
                 }
             } else if (event.getState() == LifecycleEvent.LifecycleState.MERGED) {
-                mergeFinishedLatch.countDown();
+                this.mergeFinishedLatch.countDown();
             }
         }
     }
@@ -219,7 +219,7 @@ public class QueryMetricSplitBrainMergePolicyTest extends QueryMetricTestBase {
         
         @Override
         public void memberRemoved(MembershipEvent membershipEvent) {
-            memberRemovedLatch.countDown();
+            this.memberRemovedLatch.countDown();
         }
         
         @Override

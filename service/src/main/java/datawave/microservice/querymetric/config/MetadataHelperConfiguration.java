@@ -1,12 +1,12 @@
 package datawave.microservice.querymetric.config;
 
 import com.github.benmanes.caffeine.cache.CaffeineSpec;
-import datawave.microservice.querymetric.handler.AccumuloConnectionTracking;
+import datawave.microservice.querymetric.handler.AccumuloClientTracking;
 import datawave.query.composite.CompositeMetadataHelper;
 import datawave.query.util.DateIndexHelper;
 import datawave.query.util.DateIndexHelperFactory;
 import datawave.query.util.TypeMetadataHelper;
-import datawave.webservice.common.connection.AccumuloConnectionPool;
+import datawave.webservice.common.connection.AccumuloClientPool;
 import org.apache.accumulo.core.security.Authorizations;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -99,10 +99,10 @@ public class MetadataHelperConfiguration {
     
     @Bean
     @ConditionalOnMissingBean
-    public CompositeMetadataHelper compositeMetadataHelper(@Qualifier("warehouse") AccumuloConnectionPool connectionPool,
+    public CompositeMetadataHelper compositeMetadataHelper(@Qualifier("warehouse-wrapped") AccumuloClientPool accumuloClientPool,
                     @Qualifier("metadataTableName") String metadataTableName, @Qualifier("allMetadataAuths") Set<Authorizations> allMetadataAuths)
                     throws Exception {
-        Map<String,String> trackingMap = AccumuloConnectionTracking.getTrackingMap(Thread.currentThread().getStackTrace());
-        return new CompositeMetadataHelper(connectionPool.borrowObject(trackingMap), metadataTableName, allMetadataAuths);
+        Map<String,String> trackingMap = AccumuloClientTracking.getTrackingMap(Thread.currentThread().getStackTrace());
+        return new CompositeMetadataHelper(accumuloClientPool.borrowObject(trackingMap), metadataTableName, allMetadataAuths);
     }
 }

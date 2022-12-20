@@ -55,12 +55,12 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
     
     @Test
     public void PageMetricTest() throws Exception {
-        int port = webServicePort;
+        int port = this.webServicePort;
         String queryId = createQueryId();
         BaseQueryMetric m = createMetric(queryId);
         UriComponents metricUri = UriComponentsBuilder.newInstance().scheme("https").host("localhost").port(port).path(String.format(getMetricsUrl, queryId))
                         .build();
-        HttpEntity metricRequestEntity = createRequestEntity(null, adminUser, null);
+        HttpEntity metricRequestEntity = createRequestEntity(null, this.adminUser, null);
         
         int numPages = 10;
         for (int i = 0; i < numPages; i++) {
@@ -70,10 +70,10 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
             client.submit(new QueryMetricClient.Request.Builder()
                     .withMetric(m)
                     .withMetricType(QueryMetricType.COMPLETE)
-                    .withUser(adminUser)
+                    .withUser(this.adminUser)
                     .build());
             // @formatter:on
-            ResponseEntity<BaseQueryMetricListResponse> metricResponse = restTemplate.exchange(metricUri.toUri(), HttpMethod.GET, metricRequestEntity,
+            ResponseEntity<BaseQueryMetricListResponse> metricResponse = this.restTemplate.exchange(metricUri.toUri(), HttpMethod.GET, metricRequestEntity,
                             BaseQueryMetricListResponse.class);
             Assert.assertEquals(1, metricResponse.getBody().getNumResults());
             BaseQueryMetric returnedMetric = (BaseQueryMetric) metricResponse.getBody().getResult().get(0);
@@ -84,7 +84,7 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
     
     @Test
     public void OutOfOrderLifecycleTest() throws Exception {
-        int port = webServicePort;
+        int port = this.webServicePort;
         String queryId = createQueryId();
         BaseQueryMetric m = createMetric(queryId);
         UriComponents metricUri = UriComponentsBuilder.newInstance().scheme("https").host("localhost").port(port).path(String.format(getMetricsUrl, queryId))
@@ -94,11 +94,11 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
         client.submit(new QueryMetricClient.Request.Builder()
                 .withMetric(m)
                 .withMetricType(QueryMetricType.COMPLETE)
-                .withUser(adminUser)
+                .withUser(this.adminUser)
                 .build());
         // @formatter:on
-        HttpEntity metricRequestEntity = createRequestEntity(null, adminUser, null);
-        ResponseEntity<BaseQueryMetricListResponse> metricResponse = restTemplate.exchange(metricUri.toUri(), HttpMethod.GET, metricRequestEntity,
+        HttpEntity metricRequestEntity = createRequestEntity(null, this.adminUser, null);
+        ResponseEntity<BaseQueryMetricListResponse> metricResponse = this.restTemplate.exchange(metricUri.toUri(), HttpMethod.GET, metricRequestEntity,
                         BaseQueryMetricListResponse.class);
         
         Assert.assertEquals(1, metricResponse.getBody().getNumResults());
@@ -113,10 +113,10 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
         client.submit(new QueryMetricClient.Request.Builder()
                 .withMetric(m)
                 .withMetricType(QueryMetricType.COMPLETE)
-                .withUser(adminUser)
+                .withUser(this.adminUser)
                 .build());
         // @formatter:on
-        metricRequestEntity = createRequestEntity(null, adminUser, null);
+        metricRequestEntity = createRequestEntity(null, this.adminUser, null);
         metricResponse = restTemplate.exchange(metricUri.toUri(), HttpMethod.GET, metricRequestEntity, BaseQueryMetricListResponse.class);
         
         Assert.assertEquals(1, metricResponse.getBody().getNumResults());
@@ -127,7 +127,7 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
     
     @Test
     public void DistributedUpdateTest() throws Exception {
-        int port = webServicePort;
+        int port = this.webServicePort;
         String queryId = createQueryId();
         UriComponents metricUri = UriComponentsBuilder.newInstance().scheme("https").host("localhost").port(port).path(String.format(getMetricsUrl, queryId))
                         .build();
@@ -150,7 +150,7 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
         client.submit(new QueryMetricClient.Request.Builder()
                 .withMetric(m)
                 .withMetricType(QueryMetricType.DISTRIBUTED)
-                .withUser(adminUser)
+                .withUser(this.adminUser)
                 .build());
         // @formatter:on
         m = createMetric(queryId);
@@ -169,11 +169,11 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
         client.submit(new QueryMetricClient.Request.Builder()
                 .withMetric(m)
                 .withMetricType(QueryMetricType.DISTRIBUTED)
-                .withUser(adminUser)
+                .withUser(this.adminUser)
                 .build());
         // @formatter:on
-        HttpEntity metricRequestEntity = createRequestEntity(null, adminUser, null);
-        ResponseEntity<BaseQueryMetricListResponse> metricResponse = restTemplate.exchange(metricUri.toUri(), HttpMethod.GET, metricRequestEntity,
+        HttpEntity metricRequestEntity = createRequestEntity(null, this.adminUser, null);
+        ResponseEntity<BaseQueryMetricListResponse> metricResponse = this.restTemplate.exchange(metricUri.toUri(), HttpMethod.GET, metricRequestEntity,
                         BaseQueryMetricListResponse.class);
         
         Assert.assertEquals(1, metricResponse.getBody().getNumResults());
@@ -187,7 +187,7 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
         Assert.assertEquals("yield count should be additive", 200, returnedMetric.getYieldCount());
         Assert.assertEquals("doc ranges count should be additive", 200, returnedMetric.getDocRanges());
         Assert.assertEquals("fi ranges should be additive", 200, returnedMetric.getFiRanges());
-        long lastPageNumReturned = queryMetricCombiner.getLastPageNumber(returnedMetric);
+        long lastPageNumReturned = this.queryMetricCombiner.getLastPageNumber(returnedMetric);
         Assert.assertEquals("distributed update should append pages", 2, lastPageNumReturned);
         
         m.setLastUpdated(new Date(now + 1000));
@@ -201,10 +201,10 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
         client.submit(new QueryMetricClient.Request.Builder()
                 .withMetric(m)
                 .withMetricType(QueryMetricType.COMPLETE)
-                .withUser(adminUser)
+                .withUser(this.adminUser)
                 .build());
         // @formatter:on
-        metricRequestEntity = createRequestEntity(null, adminUser, null);
+        metricRequestEntity = createRequestEntity(null, this.adminUser, null);
         metricResponse = restTemplate.exchange(metricUri.toUri(), HttpMethod.GET, metricRequestEntity, BaseQueryMetricListResponse.class);
         
         Assert.assertEquals(1, metricResponse.getBody().getNumResults());
@@ -235,7 +235,7 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
         });
         event.setFields(fields);
         event.setMarkings(queryMetric.getMarkings());
-        BaseQueryMetric newMetric = shardTableQueryMetricHandler.toMetric(event);
+        BaseQueryMetric newMetric = this.shardTableQueryMetricHandler.toMetric(event);
         QueryMetricTestBase.assertEquals("metrics are not equal", queryMetric, newMetric);
     }
     
@@ -249,7 +249,7 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
         
         BaseQueryMetric storedQueryMetricCopy = storedQueryMetric.duplicate();
         BaseQueryMetric updatedQueryMetricCopy = updatedQueryMetric.duplicate();
-        BaseQueryMetric combinedMetric = shardTableQueryMetricHandler.combineMetrics(storedQueryMetric, updatedQueryMetric, QueryMetricType.COMPLETE);
+        BaseQueryMetric combinedMetric = this.shardTableQueryMetricHandler.combineMetrics(storedQueryMetric, updatedQueryMetric, QueryMetricType.COMPLETE);
         QueryMetricTestBase.assertEquals("metric should not change", storedQueryMetricCopy, storedQueryMetric);
         QueryMetricTestBase.assertEquals("metric should not change", updatedQueryMetricCopy, updatedQueryMetricCopy);
         Assert.assertEquals(BaseQueryMetric.Lifecycle.CLOSED, combinedMetric.getLifecycle());
@@ -268,11 +268,11 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
         updatedQueryMetric.setSeekCount(400);
         
         Date now = new Date();
-        shardTableQueryMetricHandler.writeMetric(storedQueryMetric, Collections.singletonList(storedQueryMetric), now, false);
-        shardTableQueryMetricHandler.writeMetric(updatedQueryMetric, Collections.singletonList(storedQueryMetric), now, true);
+        this.shardTableQueryMetricHandler.writeMetric(storedQueryMetric, Collections.singletonList(storedQueryMetric), now, false);
+        this.shardTableQueryMetricHandler.writeMetric(updatedQueryMetric, Collections.singletonList(storedQueryMetric), now, true);
         
-        Collection<Map.Entry<Key,Value>> entries = QueryMetricTestBase.getAccumuloEntries(connector, queryMetricHandlerProperties.getShardTableName(),
-                        this.auths);
+        Collection<Map.Entry<Key,Value>> entries = QueryMetricTestBase.getAccumuloEntries(this.accumuloClient,
+                        this.queryMetricHandlerProperties.getShardTableName(), this.auths);
         Map<String,String> updatedFields = new HashMap();
         updatedFields.put("NUM_UPDATES", "200");
         updatedFields.put("NUM_RESULTS", "2000");
@@ -291,7 +291,7 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
         }
         
         shardTableQueryMetricHandler.writeMetric(updatedQueryMetric, Collections.singletonList(storedQueryMetric), now, false);
-        entries = QueryMetricTestBase.getAccumuloEntries(connector, queryMetricHandlerProperties.getShardTableName(), this.auths);
+        entries = QueryMetricTestBase.getAccumuloEntries(this.accumuloClient, this.queryMetricHandlerProperties.getShardTableName(), this.auths);
         Assert.assertFalse("There should be entries in Accumulo", entries.isEmpty());
         for (Map.Entry<Key,Value> e : entries) {
             if (e.getKey().getColumnFamily().toString().startsWith("querymetrics")) {
@@ -317,16 +317,16 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
         updatedQueryMetric.setSeekCount(400);
         
         mapStore.store(queryId, new QueryMetricUpdateHolder(storedQueryMetric, QueryMetricType.COMPLETE));
-        QueryMetricUpdateHolder lastWrittenMetricUpdate = lastWrittenQueryMetricCache.get(queryId, QueryMetricUpdateHolder.class);
+        QueryMetricUpdateHolder lastWrittenMetricUpdate = this.lastWrittenQueryMetricCache.get(queryId, QueryMetricUpdateHolder.class);
         assertEquals(storedQueryMetric, lastWrittenMetricUpdate.getMetric());
         
         mapStore.store(queryId, new QueryMetricUpdateHolder(updatedQueryMetric, QueryMetricType.COMPLETE));
-        lastWrittenMetricUpdate = lastWrittenQueryMetricCache.get(queryId, QueryMetricUpdateHolder.class);
+        lastWrittenMetricUpdate = this.lastWrittenQueryMetricCache.get(queryId, QueryMetricUpdateHolder.class);
         // all fields that were changed should be reflected in the updated metric
         assertEquals(updatedQueryMetric, lastWrittenMetricUpdate.getMetric());
         
-        Collection<Map.Entry<Key,Value>> entries = QueryMetricTestBase.getAccumuloEntries(connector, queryMetricHandlerProperties.getShardTableName(),
-                        this.auths);
+        Collection<Map.Entry<Key,Value>> entries = QueryMetricTestBase.getAccumuloEntries(this.accumuloClient,
+                        this.queryMetricHandlerProperties.getShardTableName(), this.auths);
         
         Assert.assertFalse("There should be entries in Accumulo", entries.isEmpty());
         Set<String> foundFields = new HashSet<>();

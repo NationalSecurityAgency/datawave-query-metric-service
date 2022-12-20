@@ -1,16 +1,15 @@
 package datawave.microservice.querymetric.config;
 
+import datawave.accumulo.inmemory.InMemoryAccumuloClient;
 import datawave.accumulo.inmemory.InMemoryInstance;
 import datawave.microservice.config.accumulo.AccumuloProperties;
-import datawave.microservice.querymetric.factory.WrappedAccumuloConnectionPoolFactory;
-import datawave.webservice.common.connection.AccumuloConnectionPool;
-import org.apache.accumulo.core.client.AccumuloException;
+import datawave.webservice.common.connection.AccumuloClientPool;
+import datawave.webservice.common.connection.AccumuloClientPoolFactory;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.security.Authorizations;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.apache.commons.pool2.PooledObject;
+import org.apache.commons.pool2.impl.DefaultPooledObject;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.autoconfigure.cache.CacheType;
@@ -29,34 +28,41 @@ import org.springframework.context.annotation.Profile;
 @Configuration
 public class QueryMetricTestConfiguration {
     
-    @Autowired
-    @Qualifier("warehouse")
-    private AccumuloProperties accumuloProperties;
-    
     public QueryMetricTestConfiguration() {}
     
     @Bean
     @Lazy
     @Qualifier("warehouse")
-    public AccumuloConnectionPool accumuloConnectionPool(@Qualifier("warehouse") AccumuloProperties accumuloProperties,
-                    @Qualifier("warehouse") Instance instance) {
-        return new AccumuloConnectionPool(new WrappedAccumuloConnectionPoolFactory(accumuloProperties, instance));
+    public AccumuloClientPool accumuloClientPool(@Qualifier("warehouse") AccumuloProperties accumuloProperties) throws Exception {
+        return new AccumuloClientPool(new InMemoryAccumuloClientPoolFactory(accumuloProperties));
     }
     
     @Bean
     @Lazy
     @Qualifier("warehouse")
-    public Instance memoryWarehouseInstance() throws Exception {
-        Instance instance = new InMemoryInstance();
-        Connector connector = instance.getConnector(accumuloProperties.getUsername(), new PasswordToken(accumuloProperties.getPassword()));
-        connector.securityOperations().changeUserAuthorizations(connector.whoami(), new Authorizations("PUBLIC", "A", "B", "C"));
-        return instance;
+    public AccumuloClientPoolFactory warehouseInstance(AccumuloProperties accumuloProperties) throws Exception {
+        return new InMemoryAccumuloClientPoolFactory(accumuloProperties);
     }
     
-    @Bean
-    @Lazy
-    @Qualifier("warehouse")
-    public Connector memoryWarehouseConnector(@Qualifier("warehouse") Instance instance) throws AccumuloSecurityException, AccumuloException {
-        return instance.getConnector(accumuloProperties.getUsername(), new PasswordToken(accumuloProperties.getPassword()));
+    public class InMemoryAccumuloClientPoolFactory extends AccumuloClientPoolFactory {
+        
+        private AccumuloProperties accumuloProperties;
+        
+        public InMemoryAccumuloClientPoolFactory(AccumuloProperties accumuloProperties) throws Exception {
+            super(accumuloProperties.getUsername(), accumuloProperties.getPassword(), "mock", "mock");
+            this.accumuloProperties = accumuloProperties;
+            try {
+                AccumuloClient accumuloClient = new InMemoryAccumuloClient(accumuloProperties.getUsername(),
+                                new InMemoryInstance(accumuloProperties.getInstanceName()));
+                accumuloClient.securityOperations().changeUserAuthorizations(accumuloClient.whoami(), new Authorizations("PUBLIC", "A", "B", "C"));
+            } catch (AccumuloSecurityException e) {
+                e.printStackTrace();
+            }
+        }
+        
+        public PooledObject<AccumuloClient> makeObject() throws Exception {
+            return new DefaultPooledObject(
+                            new InMemoryAccumuloClient(this.accumuloProperties.getUsername(), new InMemoryInstance(accumuloProperties.getInstanceName())));
+        }
     }
 }

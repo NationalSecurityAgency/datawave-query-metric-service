@@ -35,8 +35,8 @@ import datawave.security.authorization.DatawaveUser;
 import datawave.security.authorization.SubjectIssuerDNPair;
 import datawave.security.util.AuthorizationsUtil;
 import datawave.security.util.DnUtils;
+import datawave.webservice.common.connection.AccumuloClientPool;
 import datawave.webservice.common.connection.AccumuloConnectionFactory.Priority;
-import datawave.webservice.common.connection.AccumuloConnectionPool;
 import datawave.webservice.query.Query;
 import datawave.webservice.query.QueryImpl;
 import datawave.webservice.query.cache.ResultsPage;
@@ -48,9 +48,9 @@ import datawave.webservice.query.runner.RunningQuery;
 import datawave.webservice.query.util.QueryUtil;
 import datawave.webservice.result.BaseQueryResponse;
 import datawave.webservice.result.EventQueryResponseBase;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.NamespaceExistsException;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -101,9 +101,9 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
     private final org.apache.log4j.Logger setupLogger = org.apache.log4j.Logger.getLogger(getClass());
     
     protected static final String QUERY_METRICS_LOGIC_NAME = "QueryMetricsQuery";
-    protected String connectorAuthorizations;
+    protected String clientAuthorizations;
     
-    protected AccumuloConnectionPool connectionPool;
+    protected AccumuloClientPool accumuloClientPool;
     protected QueryMetricHandlerProperties queryMetricHandlerProperties;
     
     @SuppressWarnings("FieldCanBeLocal")
@@ -124,25 +124,25 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
     protected ReentrantReadWriteLock accumuloRecordWriterLock = new ReentrantReadWriteLock();
     
     public ShardTableQueryMetricHandler(QueryMetricHandlerProperties queryMetricHandlerProperties,
-                    @Qualifier("warehouse") AccumuloConnectionPool connectionPool, QueryMetricQueryLogicFactory logicFactory, QueryMetricFactory metricFactory,
+                    @Qualifier("warehouse") AccumuloClientPool accumuloClientPool, QueryMetricQueryLogicFactory logicFactory, QueryMetricFactory metricFactory,
                     MarkingFunctions markingFunctions, QueryMetricCombiner queryMetricCombiner, LuceneToJexlQueryParser luceneToJexlQueryParser) {
         super(luceneToJexlQueryParser);
         this.queryMetricHandlerProperties = queryMetricHandlerProperties;
         this.logicFactory = logicFactory;
         this.metricFactory = metricFactory;
         this.markingFunctions = markingFunctions;
-        this.connectionPool = connectionPool;
+        this.accumuloClientPool = accumuloClientPool;
         this.queryMetricCombiner = queryMetricCombiner;
         this.executorService = Executors.newCachedThreadPool(new ThreadFactoryBuilder().setNameFormat("metric-handler-query-thread-%d").build());
         
         queryMetricHandlerProperties.getProperties().entrySet().forEach(e -> conf.set(e.getKey(), e.getValue()));
         
-        Connector connector = null;
+        AccumuloClient accumuloClient = null;
         try {
             log.info("creating connector with username:" + queryMetricHandlerProperties.getUsername());
-            Map<String,String> trackingMap = AccumuloConnectionTracking.getTrackingMap(Thread.currentThread().getStackTrace());
-            connector = connectionPool.borrowObject(trackingMap);
-            this.connectorAuthorizations = connector.securityOperations().getUserAuthorizations(connector.whoami()).toString();
+            Map<String,String> trackingMap = AccumuloClientTracking.getTrackingMap(Thread.currentThread().getStackTrace());
+            accumuloClient = accumuloClientPool.borrowObject(trackingMap);
+            this.clientAuthorizations = accumuloClient.securityOperations().getUserAuthorizations(accumuloClient.whoami()).toString();
             reload();
             
             if (this.tablesChecked.compareAndSet(false, true)) {
@@ -152,13 +152,13 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
             log.error(e.getMessage(), e);
             throw new RuntimeException(e.getMessage(), e);
         } finally {
-            if (connector != null) {
-                this.connectionPool.returnObject(connector);
+            if (accumuloClient != null) {
+                this.accumuloClientPool.returnObject(accumuloClient);
             }
         }
         Collection<String> auths = new ArrayList<>();
-        if (this.connectorAuthorizations != null) {
-            Arrays.stream(StringUtils.split(this.connectorAuthorizations, ',')).forEach(a -> {
+        if (this.clientAuthorizations != null) {
+            Arrays.stream(StringUtils.split(this.clientAuthorizations, ',')).forEach(a -> {
                 auths.add(a);
             });
         }
@@ -191,7 +191,7 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
     }
     
     public void verifyTables() {
-        Connector connector = null;
+        AccumuloClient accumuloClient = null;
         try {
             AbstractColumnBasedHandler<Key> handler = new ContentIndexingColumnBasedHandler() {
                 @Override
@@ -199,14 +199,14 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
                     return getQueryMetricsIngestHelper(false);
                 }
             };
-            Map<String,String> trackingMap = AccumuloConnectionTracking.getTrackingMap(Thread.currentThread().getStackTrace());
-            connector = connectionPool.borrowObject(trackingMap);
-            createAndConfigureTablesIfNecessary(handler.getTableNames(conf), connector, conf);
+            Map<String,String> trackingMap = AccumuloClientTracking.getTrackingMap(Thread.currentThread().getStackTrace());
+            accumuloClient = accumuloClientPool.borrowObject(trackingMap);
+            createAndConfigureTablesIfNecessary(handler.getTableNames(conf), accumuloClient, conf);
         } catch (Exception e) {
             log.error("Error verifying table configuration", e);
         } finally {
-            if (connector != null) {
-                this.connectionPool.returnObject(connector);
+            if (accumuloClient != null) {
+                this.accumuloClientPool.returnObject(accumuloClient);
             }
         }
     }
@@ -386,7 +386,7 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
         queryImpl.setQuery(query);
         queryImpl.setQueryName(QUERY_METRICS_LOGIC_NAME);
         queryImpl.setColumnVisibility(queryMetricHandlerProperties.getQueryVisibility());
-        queryImpl.setQueryAuthorizations(this.connectorAuthorizations);
+        queryImpl.setQueryAuthorizations(this.clientAuthorizations);
         queryImpl.setExpirationDate(DateUtils.addDays(new Date(), 1));
         queryImpl.setPagesize(1000);
         queryImpl.setId(UUID.randomUUID());
@@ -398,16 +398,16 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
         long startTime = System.currentTimeMillis();
         long maxReadMilliseconds = queryMetricHandlerProperties.getMaxReadMilliseconds();
         List<T> queryMetrics = new ArrayList<>();
-        Connector connector = null;
+        AccumuloClient accumuloClient = null;
         try {
             QueryLogic<?> queryLogic = logicFactory.getObject();
-            Map<String,String> trackingMap = AccumuloConnectionTracking.getTrackingMap(Thread.currentThread().getStackTrace());
-            connector = connectionPool.borrowObject(trackingMap);
-            final Connector finalConnector = connector;
+            Map<String,String> trackingMap = AccumuloClientTracking.getTrackingMap(Thread.currentThread().getStackTrace());
+            accumuloClient = accumuloClientPool.borrowObject(trackingMap);
+            final AccumuloClient finalClient = accumuloClient;
             // create RunningQuery inside an Executor/Future so that we can handle a non-responsive Accumulo and timeout
             Future<Object> future1 = this.executorService.submit(() -> {
                 try {
-                    return new RunningQuery(null, finalConnector, Priority.ADMIN, queryLogic, query, query.getQueryAuthorizations(), datawavePrincipal,
+                    return new RunningQuery(null, finalClient, Priority.ADMIN, queryLogic, query, query.getQueryAuthorizations(), datawavePrincipal,
                                     this.metricFactory);
                 } catch (Exception e) {
                     return e;
@@ -476,8 +476,8 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
                 }
             }
         } finally {
-            if (connector != null) {
-                this.connectionPool.returnObject(connector);
+            if (accumuloClient != null) {
+                this.accumuloClientPool.returnObject(accumuloClient);
             }
         }
         return queryMetrics;
@@ -654,7 +654,7 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
         }
     }
     
-    protected void createAndConfigureTablesIfNecessary(String[] tableNames, Connector connector, Configuration conf)
+    protected void createAndConfigureTablesIfNecessary(String[] tableNames, AccumuloClient accumuloClient, Configuration conf)
                     throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
         for (String table : tableNames) {
             // If the tables don't exist, then create them.
@@ -662,22 +662,22 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
                 String[] tableNameSplit = StringUtils.split(table, '.');
                 if (tableNameSplit.length > 1) {
                     String namespace = tableNameSplit[0];
-                    if (!connector.namespaceOperations().exists(namespace)) {
+                    if (!accumuloClient.namespaceOperations().exists(namespace)) {
                         try {
-                            connector.namespaceOperations().create(namespace);
+                            accumuloClient.namespaceOperations().create(namespace);
                         } catch (NamespaceExistsException e) {
                             log.error(e.getMessage());
                         }
                     }
                 }
-                if (!connector.tableOperations().exists(table)) {
-                    connector.tableOperations().create(table);
+                if (!accumuloClient.tableOperations().exists(table)) {
+                    accumuloClient.tableOperations().create(table);
                     Map<String,TableConfigHelper> tableConfigs = getTableConfigs(conf, tableNames);
                     
                     TableConfigHelper tableHelper = tableConfigs.get(table);
                     
                     if (tableHelper != null) {
-                        tableHelper.configure(connector.tableOperations());
+                        tableHelper.configure(accumuloClient.tableOperations());
                     } else {
                         log.info("No configuration supplied for table: " + table);
                     }
@@ -729,7 +729,7 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
                         // because of an Exception and the writing of the metrics should be re-tried with the new recordWriter.
                         this.recordWriter.returnConnector();
                     }
-                    this.recordWriter = new AccumuloRecordWriter(connectionPool, conf);
+                    this.recordWriter = new AccumuloRecordWriter(accumuloClientPool, conf);
                 } catch (Exception e) {
                     log.error(e.getMessage(), e);
                     throw new RuntimeException(e.getMessage(), e);
@@ -753,9 +753,9 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
             DatawaveUser datawaveUser = currentUser.getPrimaryUser();
             String datawaveUserShortName = DnUtils.getShortName(datawaveUser.getName());
             Collection<String> userAuths = new ArrayList<>(datawaveUser.getAuths());
-            if (connectorAuthorizations != null) {
+            if (clientAuthorizations != null) {
                 Collection<String> connectorAuths = new ArrayList<>();
-                Arrays.stream(StringUtils.split(connectorAuthorizations, ',')).forEach(a -> {
+                Arrays.stream(StringUtils.split(clientAuthorizations, ',')).forEach(a -> {
                     connectorAuths.add(a);
                 });
                 userAuths.retainAll(connectorAuths);

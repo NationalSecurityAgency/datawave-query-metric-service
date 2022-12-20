@@ -2,14 +2,9 @@ package datawave.microservice.querymetric.config;
 
 import datawave.microservice.config.accumulo.AccumuloProperties;
 import datawave.microservice.config.cluster.ClusterProperties;
-import datawave.microservice.querymetric.factory.WrappedAccumuloConnectionPoolFactory;
-import datawave.webservice.common.connection.AccumuloConnectionPool;
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import datawave.microservice.querymetric.factory.WrappedAccumuloClientPoolFactory;
+import datawave.webservice.common.connection.AccumuloClientPool;
+import datawave.webservice.common.connection.AccumuloClientPoolFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -39,27 +34,26 @@ public class AccumuloConfiguration {
     @Lazy
     @Qualifier("warehouse")
     @ConditionalOnMissingBean
-    public AccumuloConnectionPool accumuloConnectionPool(@Qualifier("warehouse") AccumuloProperties accumuloProperties,
-                    @Qualifier("warehouse") Instance instance, QueryMetricHandlerProperties queryMetricHandlerProperties) {
-        AccumuloConnectionPool pool = new AccumuloConnectionPool(new WrappedAccumuloConnectionPoolFactory(accumuloProperties, instance));
-        pool.setMaxTotal(queryMetricHandlerProperties.getAccumuloConnectionPoolSize());
+    public AccumuloClientPool accumuloClientPool(@Qualifier("warehouse") AccumuloClientPoolFactory accumuloClientPoolFactory,
+                    QueryMetricHandlerProperties queryMetricHandlerProperties) {
+        AccumuloClientPool pool = new AccumuloClientPool(new WrappedAccumuloClientPoolFactory(accumuloClientPoolFactory));
+        pool.setMaxTotal(queryMetricHandlerProperties.getAccumuloClientPoolSize());
         return pool;
     }
     
     @Bean
     @Lazy
-    @Qualifier("warehouse")
-    @ConditionalOnMissingBean
-    public Connector warehouseConnector(@Qualifier("warehouse") AccumuloProperties accumuloProperties) throws AccumuloSecurityException, AccumuloException {
-        ZooKeeperInstance zooKeeperInstance = new ZooKeeperInstance(accumuloProperties.getInstanceName(), accumuloProperties.getZookeepers());
-        return zooKeeperInstance.getConnector(accumuloProperties.getUsername(), new PasswordToken(accumuloProperties.getPassword()));
+    @Qualifier("warehouse-wrapped")
+    public AccumuloClientPool accumuloClientPoolWrapped(@Qualifier("warehouse") AccumuloClientPoolFactory accumuloClientPoolFactory) throws Exception {
+        return new AccumuloClientPool(new WrappedAccumuloClientPoolFactory(accumuloClientPoolFactory));
     }
     
     @Bean
     @Lazy
     @Qualifier("warehouse")
     @ConditionalOnMissingBean
-    public Instance warehouseInstance(@Qualifier("warehouse") Connector connector) {
-        return connector.getInstance();
+    public AccumuloClientPoolFactory warehouseInstance(@Qualifier("warehouse") AccumuloProperties accumuloProperties) {
+        return new AccumuloClientPoolFactory(accumuloProperties.getUsername(), accumuloProperties.getPassword(), accumuloProperties.getZookeepers(),
+                        accumuloProperties.getInstanceName());
     }
 }

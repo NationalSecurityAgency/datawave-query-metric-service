@@ -12,16 +12,18 @@ import datawave.microservice.authorization.preauth.ProxiedEntityX509Filter;
 import datawave.microservice.authorization.user.ProxiedUserDetails;
 import datawave.microservice.querymetric.config.QueryMetricClientProperties;
 import datawave.microservice.querymetric.config.QueryMetricHandlerProperties;
+import datawave.microservice.querymetric.handler.AccumuloClientTracking;
 import datawave.microservice.querymetric.handler.QueryMetricCombiner;
 import datawave.microservice.querymetric.handler.ShardTableQueryMetricHandler;
 import datawave.security.authorization.DatawaveUser;
 import datawave.security.authorization.JWTTokenHandler;
 import datawave.security.authorization.SubjectIssuerDNPair;
 import datawave.security.util.DnUtils;
+import datawave.webservice.common.connection.AccumuloClientPool;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchDeleter;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
@@ -90,7 +92,7 @@ public class QueryMetricTestBase {
     protected CacheManager cacheManager;
     
     @Autowired
-    protected @Qualifier("warehouse") Connector connector;
+    protected @Qualifier("warehouse") AccumuloClientPool accumuloClientPool;
     
     @Autowired
     protected QueryMetricHandlerProperties queryMetricHandlerProperties;
@@ -117,6 +119,7 @@ public class QueryMetricTestBase {
     protected Map<String,String> metricMarkings;
     protected List<String> tables;
     protected Collection<String> auths;
+    protected AccumuloClient accumuloClient;
     
     @AfterClass
     public static void afterClass() {
@@ -148,22 +151,29 @@ public class QueryMetricTestBase {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        tables = new ArrayList<>();
-        tables.add(queryMetricHandlerProperties.getIndexTableName());
-        tables.add(queryMetricHandlerProperties.getReverseIndexTableName());
-        tables.add(queryMetricHandlerProperties.getShardTableName());
-        deleteAccumuloEntries(connector, tables, this.auths);
+        this.tables = new ArrayList<>();
+        this.tables.add(queryMetricHandlerProperties.getIndexTableName());
+        this.tables.add(queryMetricHandlerProperties.getReverseIndexTableName());
+        this.tables.add(queryMetricHandlerProperties.getShardTableName());
+        try {
+            Map<String,String> trackingMap = AccumuloClientTracking.getTrackingMap(Thread.currentThread().getStackTrace());
+            this.accumuloClient = this.accumuloClientPool.borrowObject(trackingMap);
+        } catch (Exception e) {
+            log.error(e.getMessage(), e);
+        }
+        deleteAccumuloEntries(this.accumuloClient, this.tables, this.auths);
         Assert.assertTrue("metadata table empty", getMetadataEntries().size() > 0);
         SimpleModule baseQueryMetricDeserializer = new SimpleModule(BaseQueryMetricListResponse.class.getName());
         baseQueryMetricDeserializer.addAbstractTypeMapping(BaseQueryMetricListResponse.class, QueryMetricListResponse.class);
-        objectMapper.registerModule(baseQueryMetricDeserializer);
+        this.objectMapper.registerModule(baseQueryMetricDeserializer);
     }
     
     @After
     public void cleanup() {
-        deleteAccumuloEntries(connector, tables, this.auths);
+        deleteAccumuloEntries(this.accumuloClient, this.tables, this.auths);
         this.incomingQueryMetricsCache.clear();
         this.lastWrittenQueryMetricCache.clear();
+        this.accumuloClientPool.returnObject(this.accumuloClient);
     }
     
     protected BaseQueryMetric createMetric() {
@@ -171,7 +181,7 @@ public class QueryMetricTestBase {
     }
     
     protected BaseQueryMetric createMetric(String queryId) {
-        BaseQueryMetric m = queryMetricFactory.createMetric();
+        BaseQueryMetric m = this.queryMetricFactory.createMetric();
         populateMetric(m, queryId);
         return m;
     }
@@ -216,7 +226,7 @@ public class QueryMetricTestBase {
         
         HttpHeaders headers = new HttpHeaders();
         if (this.jwtTokenHandler != null && jwtUser != null) {
-            String token = jwtTokenHandler.createTokenFromUsers(jwtUser.getUsername(), jwtUser.getProxiedUsers());
+            String token = this.jwtTokenHandler.createTokenFromUsers(jwtUser.getUsername(), jwtUser.getProxiedUsers());
             headers.add("Authorization", "Bearer " + token);
         }
         if (trustedUser != null) {
@@ -227,7 +237,7 @@ public class QueryMetricTestBase {
         if (body == null) {
             return new HttpEntity<>(null, headers);
         } else {
-            return new HttpEntity<>(objectMapper.writeValueAsString(body), headers);
+            return new HttpEntity<>(this.objectMapper.writeValueAsString(body), headers);
         }
     }
     
@@ -313,9 +323,9 @@ public class QueryMetricTestBase {
     protected Collection<String> getAllAccumuloEntries() {
         List<String> entries = new ArrayList<>();
         List<String> tables = new ArrayList<>();
-        tables.add(queryMetricHandlerProperties.getShardTableName());
-        tables.add(queryMetricHandlerProperties.getIndexTableName());
-        tables.add(queryMetricHandlerProperties.getReverseIndexTableName());
+        tables.add(this.queryMetricHandlerProperties.getShardTableName());
+        tables.add(this.queryMetricHandlerProperties.getIndexTableName());
+        tables.add(this.queryMetricHandlerProperties.getReverseIndexTableName());
         tables.forEach(t -> {
             entries.addAll(getAccumuloEntryStrings(t));
         });
@@ -323,13 +333,13 @@ public class QueryMetricTestBase {
     }
     
     protected Collection<String> getMetadataEntries() {
-        return getAccumuloEntryStrings(queryMetricHandlerProperties.getMetadataTableName());
+        return getAccumuloEntryStrings(this.queryMetricHandlerProperties.getMetadataTableName());
     }
     
     protected Collection<String> getAccumuloEntryStrings(String table) {
         List<String> entryStrings = new ArrayList<>();
         try {
-            Collection<Map.Entry<Key,Value>> entries = getAccumuloEntries(connector, table, this.auths);
+            Collection<Map.Entry<Key,Value>> entries = getAccumuloEntries(this.accumuloClient, table, this.auths);
             for (Map.Entry<Key,Value> e : entries) {
                 entryStrings.add(table + " -> " + e.getKey());
             }
@@ -343,12 +353,13 @@ public class QueryMetricTestBase {
         getAllAccumuloEntries().forEach(s -> System.out.println(s));
     }
     
-    public static Collection<Map.Entry<Key,Value>> getAccumuloEntries(Connector connector, String table, Collection<String> authorizations) throws Exception {
+    public static Collection<Map.Entry<Key,Value>> getAccumuloEntries(AccumuloClient accumuloClient, String table, Collection<String> authorizations)
+                    throws Exception {
         Collection<Map.Entry<Key,Value>> entries = new ArrayList<>();
         String[] authArray = new String[authorizations.size()];
         authorizations.toArray(authArray);
         Authorizations auths = new Authorizations(authArray);
-        try (BatchScanner bs = connector.createBatchScanner(table, auths, 1)) {
+        try (BatchScanner bs = accumuloClient.createBatchScanner(table, auths, 1)) {
             bs.setRanges(Collections.singletonList(new Range()));
             final Iterator<Map.Entry<Key,Value>> itr = bs.iterator();
             while (itr.hasNext()) {
@@ -358,13 +369,13 @@ public class QueryMetricTestBase {
         return entries;
     }
     
-    public static void deleteAccumuloEntries(Connector connector, List<String> tables, Collection<String> authorizations) {
+    public static void deleteAccumuloEntries(AccumuloClient accumuloClient, List<String> tables, Collection<String> authorizations) {
         try {
             String[] authArray = new String[authorizations.size()];
             authorizations.toArray(authArray);
             tables.forEach(t -> {
                 Authorizations auths = new Authorizations(authArray);
-                try (BatchDeleter bd = connector.createBatchDeleter(t, auths, 1, new BatchWriterConfig())) {
+                try (BatchDeleter bd = accumuloClient.createBatchDeleter(t, auths, 1, new BatchWriterConfig())) {
                     bd.setRanges(Collections.singletonList(new Range()));
                     bd.delete();
                 } catch (Exception e) {
@@ -393,7 +404,7 @@ public class QueryMetricTestBase {
     
     protected void ensureDataWritten(Cache incomingCache, Cache lastWrittenCache, String queryId) {
         long now = System.currentTimeMillis();
-        Config config = ((HazelcastCacheManager) cacheManager).getHazelcastInstance().getConfig();
+        Config config = ((HazelcastCacheManager) this.cacheManager).getHazelcastInstance().getConfig();
         MapStoreConfig mapStoreConfig = config.getMapConfig(incomingCache.getName()).getMapStoreConfig();
         int writeDelaySeconds = Math.min(mapStoreConfig.getWriteDelaySeconds(), 1000);
         boolean found = false;

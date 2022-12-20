@@ -1,11 +1,16 @@
 package datawave.microservice.querymetric;
 
 import datawave.microservice.querymetric.config.QueryMetricHandlerProperties;
+import datawave.microservice.querymetric.handler.AccumuloClientTracking;
 import datawave.microservice.querymetric.handler.ShardTableQueryMetricHandler;
+import datawave.webservice.common.connection.AccumuloClientPool;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Connector;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -20,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import static datawave.microservice.querymetric.config.HazelcastMetricCacheConfiguration.INCOMING_METRICS;
 
@@ -33,6 +39,8 @@ import static datawave.microservice.querymetric.config.HazelcastMetricCacheConfi
 @DirtiesContext
 @ActiveProfiles({"NonWebApplicationMessagingTest", "QueryMetricTest", "hazelcast-writethrough"})
 public class NonWebApplicationMessagingTest {
+    
+    private Logger log = LoggerFactory.getLogger(getClass());
     
     @Autowired
     private QueryMetricClient client;
@@ -50,7 +58,7 @@ public class NonWebApplicationMessagingTest {
     private ShardTableQueryMetricHandler shardTableQueryMetricHandler;
     
     @Autowired
-    protected @Qualifier("warehouse") Connector connector;
+    protected @Qualifier("warehouse") AccumuloClientPool accumuloClientPool;
     
     @Autowired
     @Named("queryMetricCacheManager")
@@ -71,14 +79,25 @@ public class NonWebApplicationMessagingTest {
             this.shardTableQueryMetricHandler.writeMetric(m, Collections.singletonList(m), m.getLastUpdated(), false);
             this.shardTableQueryMetricHandler.flush();
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error(e.getMessage(), e);
         }
         List<String> auths = Arrays.asList("PUBLIC", "A", "B", "C");
         List<String> tables = new ArrayList<>();
         tables.add(queryMetricHandlerProperties.getIndexTableName());
         tables.add(queryMetricHandlerProperties.getReverseIndexTableName());
         tables.add(queryMetricHandlerProperties.getShardTableName());
-        QueryMetricTestBase.deleteAccumuloEntries(connector, tables, auths);
+        AccumuloClient accumuloClient = null;
+        try {
+            Map<String,String> trackingMap = AccumuloClientTracking.getTrackingMap(Thread.currentThread().getStackTrace());
+            accumuloClient = this.accumuloClientPool.borrowObject(trackingMap);
+            QueryMetricTestBase.deleteAccumuloEntries(accumuloClient, tables, auths);
+        } catch (Exception e) {
+            log.error(e.getMessage(), e);
+        } finally {
+            if (accumuloClient != null) {
+                this.accumuloClientPool.returnObject(accumuloClient);
+            }
+        }
     }
     
     /*

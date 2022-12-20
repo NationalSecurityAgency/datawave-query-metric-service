@@ -4,11 +4,11 @@
     <parent>
         <groupId>gov.nsa.datawave.microservice</groupId>
         <artifactId>datawave-microservice-service-parent</artifactId>
-        <version>1.7.1</version>
+        <version>2.1</version>
         <relativePath />
     </parent>
     <artifactId>query-metric-service</artifactId>
-    <version>1.6.3-SNAPSHOT</version>
+    <version>2.1.0-SNAPSHOT</version>
     <description>DATAWAVE Query Metric Microservice</description>
     <url>https://code.nsa.gov/datawave-query-metric-service</url>
     <scm>
@@ -19,29 +19,34 @@
     <properties>
         <spotbugs.excludes.file>${basedir}/spotbugs-exclude.xml</spotbugs.excludes.file>
         <start-class>datawave.microservice.querymetric.QueryMetricService</start-class>
-        <version.base-rest-responses>1.2</version.base-rest-responses>
+        <version.base-rest-responses>2.1.0</version.base-rest-responses>
         <version.cache-api>1.1.1</version.cache-api>
-        <version.datawave>3.35.0</version.datawave>
-        <version.docker.plugin>1.2.1</version.docker.plugin>
+        <version.datawave>5.0.0</version.datawave>
         <version.hazelcast-kubernetes>1.4</version.hazelcast-kubernetes>
-        <version.in-memory-accumulo>1.9.2.3</version.in-memory-accumulo>
+        <version.in-memory-accumulo>2.1.0</version.in-memory-accumulo>
         <version.log4j12>2.17.1</version.log4j12>
         <version.microservice.accumulo-api>1.2</version.microservice.accumulo-api>
-        <version.microservice.hazelcast>1.6</version.microservice.hazelcast>
-        <version.microservice.metadata-utils>1.10</version.microservice.metadata-utils>
-        <version.microservice.starter>1.6.7</version.microservice.starter>
+        <version.microservice.hazelcast>2.1.0</version.microservice.hazelcast>
+        <version.microservice.metadata-utils>2.1.0</version.microservice.metadata-utils>
+        <version.microservice.starter>2.1.0</version.microservice.starter>
         <version.microservice.starter-datawave-query-metric>1.5.4</version.microservice.starter-datawave-query-metric>
-        <version.microservice.type-utils>1.11</version.microservice.type-utils>
+        <version.microservice.type-utils>1.8</version.microservice.type-utils>
+        <version.protobuf-java>3.7.1</version.protobuf-java>
         <version.spring.cloud.stream>2.1.4.RELEASE</version.spring.cloud.stream>
         <version.validation-api>2.0.2</version.validation-api>
         <version.webjars.bootstrap>4.3.1</version.webjars.bootstrap>
         <version.webjars.jquery>3.4.1</version.webjars.jquery>
         <version.webjars.leaflet>1.5.1</version.webjars.leaflet>
         <version.webjars.locator-core>0.35</version.webjars.locator-core>
-        <version.zookeeper>3.4.14</version.zookeeper>
+        <version.zookeeper>3.8.0</version.zookeeper>
     </properties>
     <dependencyManagement>
         <dependencies>
+            <dependency>
+                <groupId>com.google.protobuf</groupId>
+                <artifactId>protobuf-java</artifactId>
+                <version>${version.protobuf-java}</version>
+            </dependency>
             <dependency>
                 <groupId>com.hazelcast</groupId>
                 <artifactId>hazelcast-kubernetes</artifactId>
