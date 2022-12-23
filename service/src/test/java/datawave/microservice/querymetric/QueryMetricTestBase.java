@@ -9,7 +9,7 @@ import com.hazelcast.map.IMap;
 import com.hazelcast.spring.cache.HazelcastCacheManager;
 import datawave.marking.MarkingFunctions;
 import datawave.microservice.authorization.preauth.ProxiedEntityX509Filter;
-import datawave.microservice.authorization.user.ProxiedUserDetails;
+import datawave.microservice.authorization.user.DatawaveUserDetails;
 import datawave.microservice.querymetric.config.QueryMetricClientProperties;
 import datawave.microservice.querymetric.config.QueryMetricHandlerProperties;
 import datawave.microservice.querymetric.function.QueryMetricSupplier;
@@ -126,8 +126,8 @@ public class QueryMetricTestBase {
     protected int webServicePort;
     
     protected RestTemplate restTemplate;
-    protected ProxiedUserDetails adminUser;
-    protected ProxiedUserDetails nonAdminUser;
+    protected DatawaveUserDetails adminUser;
+    protected DatawaveUserDetails nonAdminUser;
     protected static boolean isHazelCast;
     protected static CacheManager staticCacheManager;
     protected static Map<String,String> metricMarkings;
@@ -155,8 +155,8 @@ public class QueryMetricTestBase {
         Collection<String> roles = Arrays.asList("Administrator");
         DatawaveUser adminDWUser = new DatawaveUser(ALLOWED_CALLER, USER, null, auths, roles, null, System.currentTimeMillis());
         DatawaveUser nonAdminDWUser = new DatawaveUser(ALLOWED_CALLER, USER, null, auths, null, null, System.currentTimeMillis());
-        this.adminUser = new ProxiedUserDetails(Collections.singleton(adminDWUser), adminDWUser.getCreationTime());
-        this.nonAdminUser = new ProxiedUserDetails(Collections.singleton(nonAdminDWUser), nonAdminDWUser.getCreationTime());
+        this.adminUser = new DatawaveUserDetails(Collections.singleton(adminDWUser), adminDWUser.getCreationTime());
+        this.nonAdminUser = new DatawaveUserDetails(Collections.singleton(nonAdminDWUser), nonAdminDWUser.getCreationTime());
         QueryMetricTestBase.isHazelCast = cacheManager instanceof HazelcastCacheManager;
         QueryMetricTestBase.staticCacheManager = cacheManager;
         this.incomingQueryMetricsCache = cacheManager.getCache(INCOMING_METRICS);
@@ -330,7 +330,7 @@ public class QueryMetricTestBase {
         return sb.toString();
     }
     
-    protected HttpEntity createRequestEntity(ProxiedUserDetails trustedUser, ProxiedUserDetails jwtUser, Object body) throws JsonProcessingException {
+    protected HttpEntity createRequestEntity(DatawaveUserDetails trustedUser, DatawaveUserDetails jwtUser, Object body) throws JsonProcessingException {
         
         HttpHeaders headers = new HttpHeaders();
         if (this.jwtTokenHandler != null && jwtUser != null) {

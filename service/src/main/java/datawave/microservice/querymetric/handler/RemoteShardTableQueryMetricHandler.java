@@ -2,7 +2,7 @@ package datawave.microservice.querymetric.handler;
 
 import datawave.core.common.connection.AccumuloConnectionPool;
 import datawave.marking.MarkingFunctions;
-import datawave.microservice.authorization.user.ProxiedUserDetails;
+import datawave.microservice.authorization.user.DatawaveUserDetails;
 import datawave.microservice.query.DefaultQueryParameters;
 import datawave.microservice.query.QueryParameters;
 import datawave.microservice.querymetric.BaseQueryMetric;
@@ -32,7 +32,7 @@ import java.util.stream.Collectors;
 public class RemoteShardTableQueryMetricHandler<T extends BaseQueryMetric> extends ShardTableQueryMetricHandler<T> {
     private static final Logger log = LoggerFactory.getLogger(RemoteShardTableQueryMetricHandler.class);
     
-    private ProxiedUserDetails userDetails;
+    private DatawaveUserDetails userDetails;
     private final WebClient webClient;
     private final WebClient authWebClient;
     private final JWTTokenHandler jwtTokenHandler;
@@ -67,7 +67,7 @@ public class RemoteShardTableQueryMetricHandler<T extends BaseQueryMetric> exten
             
             Collection<DatawaveUser> principals = jwtTokenHandler.createUsersFromToken(jwt);
             long createTime = principals.stream().map(DatawaveUser::getCreationTime).min(Long::compareTo).orElse(System.currentTimeMillis());
-            userDetails = new ProxiedUserDetails(principals, createTime);
+            userDetails = new DatawaveUserDetails(principals, createTime);
         }
         
         return "Bearer " + jwtTokenHandler.createTokenFromUsers(userDetails.getPrimaryUser().getName(), userDetails.getProxiedUsers());

@@ -4,7 +4,7 @@ import com.hazelcast.map.IMap;
 import com.hazelcast.map.LocalMapStats;
 import com.hazelcast.spring.cache.HazelcastCacheManager;
 import datawave.marking.MarkingFunctions;
-import datawave.microservice.authorization.user.ProxiedUserDetails;
+import datawave.microservice.authorization.user.DatawaveUserDetails;
 import datawave.microservice.querymetric.BaseQueryMetric.Lifecycle;
 import datawave.microservice.querymetric.config.TimelyProperties;
 import datawave.microservice.querymetric.factory.BaseQueryMetricListResponseFactory;
@@ -315,7 +315,7 @@ public class QueryMetricOperations {
     @PermitAll
     @RequestMapping(path = "/id/{queryId}", method = {RequestMethod.GET},
                     produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE, MediaType.TEXT_HTML_VALUE})
-    public BaseQueryMetricListResponse query(@AuthenticationPrincipal ProxiedUserDetails currentUser,
+    public BaseQueryMetricListResponse query(@AuthenticationPrincipal DatawaveUserDetails currentUser,
                     @Parameter(description = "queryId to return") @PathVariable("queryId") String queryId) {
         
         BaseQueryMetricListResponse response = this.queryMetricListResponseFactory.createDetailedResponse();
@@ -379,7 +379,7 @@ public class QueryMetricOperations {
     @PermitAll
     @RequestMapping(path = "/id/{queryId}/map", method = {RequestMethod.GET, RequestMethod.POST},
                     produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE, MediaType.TEXT_HTML_VALUE})
-    public QueryGeometryResponse map(@AuthenticationPrincipal ProxiedUserDetails currentUser, @PathVariable("queryId") String queryId) {
+    public QueryGeometryResponse map(@AuthenticationPrincipal DatawaveUserDetails currentUser, @PathVariable("queryId") String queryId) {
         QueryGeometryResponse queryGeometryResponse = new QueryGeometryResponse();
         BaseQueryMetricListResponse metricResponse = query(currentUser, queryId);
         if (!metricResponse.getExceptions().isEmpty()) {
@@ -412,7 +412,7 @@ public class QueryMetricOperations {
         }
     }
     
-    private QueryMetricsSummaryResponse queryMetricsSummary(Date begin, Date end, ProxiedUserDetails currentUser, boolean onlyCurrentUser) {
+    private QueryMetricsSummaryResponse queryMetricsSummary(Date begin, Date end, DatawaveUserDetails currentUser, boolean onlyCurrentUser) {
         
         if (null == end) {
             end = new Date();
@@ -452,7 +452,7 @@ public class QueryMetricOperations {
     @Secured({"Administrator", "JBossAdministrator", "MetricsAdministrator"})
     @RequestMapping(path = "/summary/all", method = {RequestMethod.GET},
                     produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE, MediaType.TEXT_HTML_VALUE})
-    public QueryMetricsSummaryResponse getQueryMetricsSummary(@AuthenticationPrincipal ProxiedUserDetails currentUser,
+    public QueryMetricsSummaryResponse getQueryMetricsSummary(@AuthenticationPrincipal DatawaveUserDetails currentUser,
                     @RequestParam(required = false) String begin, @RequestParam(required = false) String end) {
         
         try {
@@ -481,7 +481,7 @@ public class QueryMetricOperations {
     @PermitAll
     @RequestMapping(path = "/summary/user", method = {RequestMethod.GET},
                     produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE, MediaType.TEXT_HTML_VALUE})
-    public QueryMetricsSummaryResponse getQueryMetricsUserSummary(@AuthenticationPrincipal ProxiedUserDetails currentUser,
+    public QueryMetricsSummaryResponse getQueryMetricsUserSummary(@AuthenticationPrincipal DatawaveUserDetails currentUser,
                     @RequestParam(required = false) String begin, @RequestParam(required = false) String end) {
         try {
             return queryMetricsSummary(parseDate(begin, BEGIN), parseDate(end, END), currentUser, true);
