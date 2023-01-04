@@ -22,6 +22,7 @@
         <version.base-rest-responses>1.2</version.base-rest-responses>
         <version.cache-api>1.1.1</version.cache-api>
         <version.datawave>3.35.0</version.datawave>
+        <version.docker.plugin>1.2.1</version.docker.plugin>
         <version.hazelcast-kubernetes>1.4</version.hazelcast-kubernetes>
         <version.in-memory-accumulo>1.9.2.3</version.in-memory-accumulo>
         <version.log4j12>2.17.1</version.log4j12>
