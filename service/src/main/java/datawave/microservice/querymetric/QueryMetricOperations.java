@@ -142,7 +142,8 @@ public class QueryMetricOperations {
     
     @PreDestroy
     public void shutdown() {
-        stats.queueAggregatedMetricsForTimely();
+        this.stats.queueAggregatedQueryStatsForTimely();
+        this.stats.writeQueryStatsToTimely();
     }
     
     /**
@@ -470,15 +471,19 @@ public class QueryMetricOperations {
         return cacheStats;
     }
     
-    @Scheduled(fixedRate = 60000)
+    @Scheduled(fixedRateString = "${datawave.query.metric.stats.logServiceStatsRateMs:300000}")
     public void logStats() {
         this.stats.logServiceStats();
     }
     
-    @Scheduled(fixedRate = 60000)
-    public void publishStats() {
-        this.stats.queueServiceStatsForTimely();
-        this.stats.queueAggregatedMetricsForTimely();
-        this.stats.writeTimelyData();
+    @Scheduled(fixedRateString = "${datawave.query.metric.stats.publishServiceStatsToTimelyRateMs:60000}")
+    public void publishServiceStatsToTimely() {
+        this.stats.writeServiceStatsToTimely();
+    }
+    
+    @Scheduled(fixedRateString = "${datawave.query.metric.stats.publishQueryStatsToTimelyRateMs:60000}")
+    public void publishQueryStatsToTimely() {
+        this.stats.queueAggregatedQueryStatsForTimely();
+        this.stats.writeQueryStatsToTimely();
     }
 }

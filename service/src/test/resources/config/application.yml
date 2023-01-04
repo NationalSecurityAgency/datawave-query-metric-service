@@ -84,17 +84,21 @@ datawave:
         queryVisibility: PUBLIC
         defaultMetricVisibility: (PUBLIC)
         baseMaps: "{}"
+      client:
+        enabled: true
+        transport: message_test
+        host: localhost
+        port: ${server.port}
       timely:
         enabled: false
         host: localhost
         port: 4242
         tags:
           system: test_system
-      client:
-        enabled: true
-        transport: message_test
-        host: localhost
-        port: ${server.port}
+      stats:
+        logServiceStatsRateMs: 300000
+        publishServiceStatsToTimelyRateMs: 60000
+        publishQueryStatsToTimelyRateMs: 60000
 
   metadata:
     all-metadata-auths:
