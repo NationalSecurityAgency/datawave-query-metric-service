@@ -5,6 +5,7 @@ import com.codahale.metrics.Metered;
 import com.codahale.metrics.SlidingTimeWindowArrayReservoir;
 import com.codahale.metrics.Snapshot;
 import com.codahale.metrics.Timer;
+import com.hazelcast.core.IMap;
 import com.hazelcast.monitor.LocalMapStats;
 import datawave.microservice.querymetric.config.TimelyProperties;
 import datawave.microservice.querymetric.handler.ShardTableQueryMetricHandler;
@@ -13,6 +14,8 @@ import datawave.util.timely.TcpClient;
 import datawave.util.timely.UdpClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 
 import java.net.InetAddress;
 import java.text.DecimalFormat;
@@ -27,6 +30,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import static datawave.microservice.querymetric.config.HazelcastMetricCacheConfiguration.INCOMING_METRICS;
+import static datawave.microservice.querymetric.config.HazelcastMetricCacheConfiguration.LAST_WRITTEN_METRICS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 
 public class QueryMetricOperationsStats {
@@ -40,6 +45,7 @@ public class QueryMetricOperationsStats {
     protected TimelyProperties timelyProperties;
     protected ShardTableQueryMetricHandler handler;
     protected AccumuloMapStore mapStore;
+    protected CacheManager cacheManager;
     protected Map<String,Long> hostCountMap = new HashMap<>();
     protected Map<String,Long> userCountMap = new HashMap<>();
     protected Map<String,Long> logicCountMap = new HashMap<>();
@@ -60,10 +66,12 @@ public class QueryMetricOperationsStats {
      * REST - receive request and send it out to the message queue MESSAGE - receive message and do all of the following CORRELATE COMBINE STORE ENTRY
      */
     
-    public QueryMetricOperationsStats(TimelyProperties timelyProperties, ShardTableQueryMetricHandler handler, AccumuloMapStore mapStore) {
+    public QueryMetricOperationsStats(TimelyProperties timelyProperties, ShardTableQueryMetricHandler handler, CacheManager cacheManager,
+                    AccumuloMapStore mapStore) {
         this.timelyProperties = timelyProperties;
         this.handler = handler;
         this.mapStore = mapStore;
+        this.cacheManager = cacheManager;
         for (TIMERS name : TIMERS.values()) {
             this.timerMap.put(name, new Timer(new SlidingTimeWindowArrayReservoir(1, MINUTES)));
         }
@@ -98,12 +106,29 @@ public class QueryMetricOperationsStats {
         return this.meterMap.get(name);
     }
     
+    protected void addLocalMapStats(Map<String,Double> serviceStats) {
+        Cache incomingCache = this.cacheManager.getCache(INCOMING_METRICS);
+        if (incomingCache != null) {
+            IMap<Object,Object> incomingQueryMetricsCache = ((IMap<Object,Object>) incomingCache.getNativeCache());
+            serviceStats.put("incomingQueryMetrics.dirtyEntryCount", Double.valueOf(incomingQueryMetricsCache.getLocalMapStats().getDirtyEntryCount()));
+            serviceStats.put("incomingQueryMetrics.ownedEntryCount", Double.valueOf(incomingQueryMetricsCache.getLocalMapStats().getOwnedEntryCount()));
+        }
+        Cache lastWrittenCache = this.cacheManager.getCache(LAST_WRITTEN_METRICS);
+        if (lastWrittenCache != null) {
+            IMap<Object,Object> lastWrittenQueryMetricCache = ((IMap<Object,Object>) lastWrittenCache.getNativeCache());
+            serviceStats.put("lastWrittenQueryMetric.dirtyEntryCount", Double.valueOf(lastWrittenQueryMetricCache.getLocalMapStats().getDirtyEntryCount()));
+            serviceStats.put("lastWrittenQueryMetric.ownedEntryCount", Double.valueOf(lastWrittenQueryMetricCache.getLocalMapStats().getOwnedEntryCount()));
+        }
+    }
+    
     public void writeServiceStatsToTimely() {
         if (this.timelyProperties.isEnabled()) {
             List<String> serviceStatsToWriteToTimely = new ArrayList<>();
             
             long timestamp = System.currentTimeMillis();
-            Map<String,String> serviceStats = formatStats(getServiceStats(), false);
+            Map<String,Double> serviceStatsDouble = getServiceStats();
+            addLocalMapStats(serviceStatsDouble);
+            Map<String,String> serviceStats = formatStats(serviceStatsDouble, false);
             serviceStats.entrySet().forEach(entry -> {
                 serviceStatsToWriteToTimely
                                 .add("put microservice.querymetric." + entry.getKey() + " " + timestamp + " " + entry.getValue() + getCommonTags() + "\n");
