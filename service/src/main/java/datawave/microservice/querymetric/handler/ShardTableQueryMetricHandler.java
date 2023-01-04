@@ -51,9 +51,9 @@ import datawave.webservice.result.EventQueryResponseBase;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.NamespaceExistsException;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -201,7 +201,7 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
             };
             Map<String,String> trackingMap = AccumuloConnectionTracking.getTrackingMap(Thread.currentThread().getStackTrace());
             connector = connectionPool.borrowObject(trackingMap);
-            createAndConfigureTablesIfNecessary(handler.getTableNames(conf), connector.tableOperations(), conf);
+            createAndConfigureTablesIfNecessary(handler.getTableNames(conf), connector, conf);
         } catch (Exception e) {
             log.error("Error verifying table configuration", e);
         } finally {
@@ -654,19 +654,30 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
         }
     }
     
-    protected void createAndConfigureTablesIfNecessary(String[] tableNames, TableOperations tops, Configuration conf)
+    protected void createAndConfigureTablesIfNecessary(String[] tableNames, Connector connector, Configuration conf)
                     throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
         for (String table : tableNames) {
             // If the tables don't exist, then create them.
             try {
-                if (!tops.exists(table)) {
-                    tops.create(table);
+                String[] tableNameSplit = StringUtils.split(table, '.');
+                if (tableNameSplit.length > 1) {
+                    String namespace = tableNameSplit[0];
+                    if (!connector.namespaceOperations().exists(namespace)) {
+                        try {
+                            connector.namespaceOperations().create(namespace);
+                        } catch (NamespaceExistsException e) {
+                            log.error(e.getMessage());
+                        }
+                    }
+                }
+                if (!connector.tableOperations().exists(table)) {
+                    connector.tableOperations().create(table);
                     Map<String,TableConfigHelper> tableConfigs = getTableConfigs(conf, tableNames);
                     
                     TableConfigHelper tableHelper = tableConfigs.get(table);
                     
                     if (tableHelper != null) {
-                        tableHelper.configure(tops);
+                        tableHelper.configure(connector.tableOperations());
                     } else {
                         log.info("No configuration supplied for table: " + table);
                     }
