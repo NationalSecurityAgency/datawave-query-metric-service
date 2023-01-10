@@ -684,7 +684,6 @@ public abstract class BaseQueryMetric implements HasMarkings, Serializable {
     
     public static final String DATAWAVE = "DATAWAVE";
     protected static final Map<String,String> discoveredVersionMap = BaseQueryMetric.getVersionsFromClasspath();
-    protected int lastWrittenHash = 0;
     protected long numUpdates = 0;
     
     public enum Lifecycle {
@@ -990,14 +989,6 @@ public abstract class BaseQueryMetric implements HasMarkings, Serializable {
     public boolean isLifecycleFinal() {
         return Lifecycle.CLOSED == lifecycle || Lifecycle.CANCELLED == lifecycle || Lifecycle.MAXRESULTS == lifecycle || Lifecycle.NEXTTIMEOUT == lifecycle
                         || Lifecycle.TIMEOUT == lifecycle || Lifecycle.SHUTDOWN == lifecycle;
-    }
-    
-    public int getLastWrittenHash() {
-        return lastWrittenHash;
-    }
-    
-    public void setLastWrittenHash(int lastWrittenHash) {
-        this.lastWrittenHash = lastWrittenHash;
     }
     
     public String getQueryAuthorizations() {

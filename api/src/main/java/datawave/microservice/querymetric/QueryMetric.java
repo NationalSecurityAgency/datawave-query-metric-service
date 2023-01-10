@@ -87,7 +87,6 @@ public class QueryMetric extends BaseQueryMetric implements Serializable, Messag
         }
         this.columnVisibility = other.columnVisibility;
         this.queryLogic = other.queryLogic;
-        this.lastWrittenHash = other.lastWrittenHash;
         this.numUpdates = other.numUpdates;
         this.queryName = other.queryName;
         this.parameters = other.parameters;

@@ -80,7 +80,6 @@ public class QueryMetricTest {
         queryMetric.setErrorMessage("errorMessage");
         queryMetric.setHost("host");
         queryMetric.setLastUpdated(d);
-        queryMetric.setLastWrittenHash(0);
         queryMetric.setLifecycle(Lifecycle.INITIALIZED);
         queryMetric.setMarkings(markings);
         queryMetric.setNegativeSelectors(negativeSelectors);
@@ -108,7 +107,6 @@ public class QueryMetricTest {
         assertEquals("errorMessage", queryMetric.getErrorMessage());
         assertEquals("host", queryMetric.getHost());
         assertEquals(d, queryMetric.getLastUpdated());
-        assertEquals(0, queryMetric.getLastWrittenHash());
         assertEquals(Lifecycle.INITIALIZED, queryMetric.getLifecycle());
         assertEquals("PUBLIC", queryMetric.getMarkings().get(MarkingFunctions.Default.COLUMN_VISIBILITY));
         assertEquals("negativeSelector1", queryMetric.getNegativeSelectors().get(0));
@@ -157,7 +155,7 @@ public class QueryMetricTest {
         ProtostuffIOUtil.mergeFrom(baos.toByteArray(), deserializedMetric, schema);
         assertEquals(queryMetric, deserializedMetric);
     }
-    
+
     @Test
     public void testVersionSerialization() throws Exception {
         QueryMetric qm = new QueryMetric();
@@ -171,7 +169,6 @@ public class QueryMetricTest {
         qm.setErrorMessage("errorMessage");
         qm.setHost("host");
         qm.setLastUpdated(d);
-        qm.setLastWrittenHash(0);
         qm.setLifecycle(BaseQueryMetric.Lifecycle.INITIALIZED);
         qm.setMarkings(markings);
         qm.setNegativeSelectors(negativeSelectors);
