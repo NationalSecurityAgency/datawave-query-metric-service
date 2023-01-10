@@ -5,11 +5,14 @@ import com.fasterxml.jackson.module.jaxb.JaxbAnnotationModule;
 import datawave.marking.MarkingFunctions;
 import datawave.microservice.querymetric.BaseQueryMetric.Lifecycle;
 import datawave.microservice.querymetric.BaseQueryMetric.PageMetric;
+import datawave.microservice.querymetric.BaseQueryMetric.Prediction;
 import datawave.webservice.query.exception.BadRequestQueryException;
 import datawave.webservice.query.exception.DatawaveErrorCode;
 import io.protostuff.LinkedBuffer;
+import io.protostuff.Message;
 import io.protostuff.ProtostuffIOUtil;
 import io.protostuff.Schema;
+import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -18,13 +21,18 @@ import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 public class QueryMetricTest {
     
@@ -155,7 +163,48 @@ public class QueryMetricTest {
         ProtostuffIOUtil.mergeFrom(baos.toByteArray(), deserializedMetric, schema);
         assertEquals(queryMetric, deserializedMetric);
     }
-
+    
+    @Test
+    public void testProtobufCompleteness() throws Exception {
+        testSchemaCompleteness(QueryMetric.class);
+        testSchemaCompleteness(PageMetric.class);
+        testSchemaCompleteness(Prediction.class);
+    }
+    
+    public void testSchemaCompleteness(Class clazz) throws Exception {
+        Object o = null;
+        try {
+            o = clazz.getConstructor().newInstance();
+        } catch (Exception e) {
+            Assert.fail(e.getMessage());
+        }
+        String className = clazz.getSimpleName();
+        Schema schema = null;
+        if (o instanceof Message) {
+            schema = ((Message) o).cachedSchema();
+        } else {
+            Assert.fail(String.format("%s does not implement Message interface", className));
+        }
+        List<Field> fields = new ArrayList<>();
+        Class currentClazz = clazz;
+        while (currentClazz != Object.class) {
+            fields.addAll(Arrays.asList(currentClazz.getDeclaredFields()));
+            currentClazz = currentClazz.getSuperclass();
+        }
+        String message = "field [%s.%s] (or parent class) must be included in getFieldNumber, getFieldName, writeTo, and mergeFrom";
+        for (Field f : fields) {
+            if (!Modifier.isStatic(f.getModifiers())) {
+                String fieldName = f.getName();
+                int fieldNumber = schema.getFieldNumber(fieldName);
+                assertTrue(String.format(message, fieldName, className), fieldNumber > 0);
+                String schemaFieldName = schema.getFieldName(fieldNumber);
+                assertNotNull(String.format(message, f.getName(), className, fieldName), schemaFieldName);
+                assertEquals(String.format("field name [%s] and protobuf field name [%s] should match", f.getName(), schemaFieldName), f.getName(),
+                                schemaFieldName);
+            }
+        }
+    }
+    
     @Test
     public void testVersionSerialization() throws Exception {
         QueryMetric qm = new QueryMetric();
