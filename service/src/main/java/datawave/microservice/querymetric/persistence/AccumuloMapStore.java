@@ -50,8 +50,8 @@ public class AccumuloMapStore<T extends BaseQueryMetric> extends AccumuloMapLoad
     private MergeLockLifecycleListener mergeLock;
     private QueryMetricHandlerProperties queryMetricHandlerProperties;
     private com.google.common.cache.Cache failures;
-    private ExecutorService executorService;
-    private SynchronousQueue<QueryMetricUpdateHolder> updateQueue = new SynchronousQueue<>();
+    private ExecutorService executorService = null;
+    private SynchronousQueue<QueryMetricUpdateHolder> updateQueue = new SynchronousQueue<>(true);
     private List<Writer> updateWriters = new ArrayList<>();
     private Timer writeTimer = new Timer(new SlidingTimeWindowArrayReservoir(1, MINUTES));
     private boolean shuttingDown = false;
@@ -92,6 +92,8 @@ public class AccumuloMapStore<T extends BaseQueryMetric> extends AccumuloMapLoad
                     if (!this.shuttingDown) {
                         log.error(e.getMessage(), e);
                     }
+                } catch (Exception e) {
+                    log.error(e.getMessage(), e);
                 }
             }
         }
@@ -106,8 +108,8 @@ public class AccumuloMapStore<T extends BaseQueryMetric> extends AccumuloMapLoad
         this.failures = CacheBuilder.newBuilder().expireAfterWrite(10, TimeUnit.MINUTES).build();
         AccumuloMapStore.instance = this;
         int writerThreads = queryMetricHandlerProperties.getMapStoreWriteThreads();
-        this.executorService = Executors.newFixedThreadPool(writerThreads, new ThreadFactoryBuilder().setNameFormat("map-store-write-thread-%d").build());
         if (writerThreads > 1) {
+            this.executorService = Executors.newFixedThreadPool(writerThreads, new ThreadFactoryBuilder().setNameFormat("map-store-write-thread-%d").build());
             for (int x = 0; x < writerThreads; x++) {
                 Writer w = new Writer(this.updateQueue);
                 this.updateWriters.add(w);
@@ -130,15 +132,18 @@ public class AccumuloMapStore<T extends BaseQueryMetric> extends AccumuloMapLoad
         } catch (Exception e) {
             log.error(e.getMessage(), e);
         }
-        // ensure the writer threads exit
-        boolean shutdownSuccess = false;
-        try {
-            shutdownSuccess = this.executorService.awaitTermination(60, SECONDS);
-        } catch (InterruptedException e) {
-            
-        }
-        if (!shutdownSuccess) {
-            this.executorService.shutdownNow();
+        
+        if (this.executorService != null) {
+            // ensure the writer threads exit
+            boolean shutdownSuccess = false;
+            try {
+                shutdownSuccess = this.executorService.awaitTermination(60, SECONDS);
+            } catch (InterruptedException e) {
+                
+            }
+            if (!shutdownSuccess) {
+                this.executorService.shutdownNow();
+            }
         }
     }
     
