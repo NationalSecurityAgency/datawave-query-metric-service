@@ -141,9 +141,7 @@ public class QueryMetricTestBase {
     
     @AfterAll
     public static void afterClass() {
-        if (isHazelCast) {
-            ((HazelcastCacheManager) staticCacheManager).getHazelcastInstance().shutdown();
-        }
+        ((HazelcastCacheManager) staticCacheManager).getHazelcastInstance().shutdown();
     }
     
     @BeforeEach
@@ -318,7 +316,7 @@ public class QueryMetricTestBase {
         m.addPrediction(new BaseQueryMetric.Prediction("PredictionTest", 200.0));
     }
     
-    protected static String createQueryId() {
+    public static String createQueryId() {
         StringBuilder sb = new StringBuilder();
         sb.append(RandomStringUtils.randomNumeric(4));
         sb.append("-");
@@ -398,7 +396,7 @@ public class QueryMetricTestBase {
             Assertions.assertTrue(assertObjectsEqual(m1.getPlan(), m2.getPlan()), message + "plan");
             Assertions.assertEquals(m1.getLoginTime(), m2.getLoginTime(), message + "loginTime");
             Assertions.assertTrue(assertObjectsEqual(m1.getPredictions(), m2.getPredictions()), message + "predictions");
-            Assertions.assertEquals(m1.getVersion(), m2.getVersion(), message + "version");
+            Assertions.assertEquals(m1.getVersionMap(), m2.getVersionMap(), message + "versionMap");
         }
     }
     
@@ -412,12 +410,20 @@ public class QueryMetricTestBase {
         } else if (o1.getClass() != o2.getClass()) {
             return false;
         } else if (o1 instanceof Date) {
-            long t1 = ((((Date) o1).getTime()) / 1000) * 1000;
-            long t2 = ((((Date) o2).getTime()) / 1000) * 1000;
-            return t1 == t2;
+            return datesEqual((Date) o1, (Date) o2);
         } else {
             return o1.equals(o2);
         }
+    }
+    
+    public static boolean datesEqual(Date d1, Date d2) {
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd HHmmss");
+        return sdf.format(d1).equals(sdf.format(d2));
+    }
+    
+    public static String formatDate(Date d) {
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd HHmmss");
+        return sdf.format(d);
     }
     
     protected Collection<String> getAllAccumuloEntries() {
@@ -486,22 +492,34 @@ public class QueryMetricTestBase {
         }
     }
     
-    protected void waitForWriteBehind(Cache incomingCache, Cache lastWrittenCache, String queryId) {
+    protected void ensureDataStored(Cache incomingCache, String queryId) {
+        long now = System.currentTimeMillis();
+        int writeDelaySeconds = 1000;
+        boolean found = false;
+        IMap<Object,Object> hzCache = ((IMap<Object,Object>) incomingCache.getNativeCache());
+        while (!found && System.currentTimeMillis() < (now + (1000 * (writeDelaySeconds + 1)))) {
+            found = hzCache.containsKey(queryId);
+            if (!found) {
+                try {
+                    Thread.sleep(250);
+                } catch (InterruptedException e) {}
+            }
+        }
+    }
+    
+    protected void ensureDataWritten(Cache incomingCache, Cache lastWrittenCache, String queryId) {
         long now = System.currentTimeMillis();
         Config config = ((HazelcastCacheManager) cacheManager).getHazelcastInstance().getConfig();
         MapStoreConfig mapStoreConfig = config.getMapConfig(incomingCache.getName()).getMapStoreConfig();
-        int writeDelaySeconds = mapStoreConfig.getWriteDelaySeconds();
-        // only wait on value if this is a write-behind cache
-        if (writeDelaySeconds > 0) {
-            boolean found = false;
-            IMap<Object,Object> hzCache = ((IMap<Object,Object>) lastWrittenCache.getNativeCache());
-            while (!found && System.currentTimeMillis() < (now + (1000 * (writeDelaySeconds + 1)))) {
-                found = hzCache.containsKey(queryId);
-                if (!found) {
-                    try {
-                        Thread.sleep(200);
-                    } catch (InterruptedException e) {}
-                }
+        int writeDelaySeconds = Math.min(mapStoreConfig.getWriteDelaySeconds(), 1000);
+        boolean found = false;
+        IMap<Object,Object> hzCache = ((IMap<Object,Object>) lastWrittenCache.getNativeCache());
+        while (!found && System.currentTimeMillis() < (now + (1000 * (writeDelaySeconds + 1)))) {
+            found = hzCache.containsKey(queryId);
+            if (!found) {
+                try {
+                    Thread.sleep(250);
+                } catch (InterruptedException e) {}
             }
         }
     }
@@ -516,7 +534,7 @@ public class QueryMetricTestBase {
             return new QueryMetricSupplier() {
                 @Override
                 public boolean send(Message<QueryMetricUpdate> queryMetricUpdate) {
-                    queryMetricOperations.storeMetric(queryMetricUpdate.getPayload().getMetric(), queryMetricUpdate.getPayload().getMetricType());
+                    queryMetricOperations.handleEvent(queryMetricUpdate.getPayload());
                     return true;
                 }
             };

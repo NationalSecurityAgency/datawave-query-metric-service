@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class AccumuloRecordWriter extends RecordWriter<Text,Mutation> {
     private MultiTableBatchWriter mtbw = null;
@@ -36,9 +37,6 @@ public class AccumuloRecordWriter extends RecordWriter<Text,Mutation> {
     private boolean simulate;
     private boolean createTables;
     
-    private long mutCount = 0;
-    private long valCount = 0;
-    
     private AccumuloConnectionPool connectionPool;
     private Connector connector;
     private static final String PREFIX = AccumuloRecordWriter.class.getSimpleName();
@@ -46,7 +44,6 @@ public class AccumuloRecordWriter extends RecordWriter<Text,Mutation> {
     private static final String DEFAULT_TABLE_NAME = PREFIX + ".defaulttable";
     
     private static final String CREATETABLES = PREFIX + ".createtables";
-    private static final String LOGLEVEL = PREFIX + ".loglevel";
     private static final String SIMULATE = PREFIX + ".simulate";
     
     // BatchWriter options
@@ -57,6 +54,8 @@ public class AccumuloRecordWriter extends RecordWriter<Text,Mutation> {
     private static final long DEFAULT_MAX_MUTATION_BUFFER_SIZE = 10000000; // ~10M
     private static final int DEFAULT_MAX_LATENCY = 120000; // 1 minute
     private static final int DEFAULT_NUM_WRITE_THREADS = 4;
+    
+    private AtomicBoolean healthy = new AtomicBoolean(true);
     
     public AccumuloRecordWriter(AccumuloConnectionPool connectionPool, Configuration conf) throws Exception {
         this.simulate = getSimulationMode(conf);
@@ -83,6 +82,14 @@ public class AccumuloRecordWriter extends RecordWriter<Text,Mutation> {
         }
     }
     
+    public void setHealthy(boolean healthy) {
+        this.healthy.set(healthy);
+    }
+    
+    public boolean isHealthy() {
+        return healthy.get();
+    }
+    
     /**
      * Push a mutation into a table. If table is null, the defaultTable will be used. If canCreateTable is set, the table will be created if it does not exist.
      * The table name must only contain alphanumerics and underscore.
@@ -97,8 +104,6 @@ public class AccumuloRecordWriter extends RecordWriter<Text,Mutation> {
             throw new IOException("No table or default table specified. Try simulation mode next time");
         }
         
-        ++mutCount;
-        valCount += mutation.size();
         printMutation(table, mutation);
         
         if (simulate) {
@@ -130,7 +135,7 @@ public class AccumuloRecordWriter extends RecordWriter<Text,Mutation> {
         }
         
         log.debug("Adding table: " + tableName);
-        BatchWriter bw = null;
+        BatchWriter bw;
         String table = tableName.toString();
         
         if (createTables && !this.connector.tableOperations().exists(table)) {
@@ -182,7 +187,6 @@ public class AccumuloRecordWriter extends RecordWriter<Text,Mutation> {
     
     @Override
     public void close(TaskAttemptContext attempt) throws IOException, InterruptedException {
-        log.debug("mutations written: " + mutCount + ", values written: " + valCount);
         if (simulate) {
             return;
         }
@@ -207,12 +211,6 @@ public class AccumuloRecordWriter extends RecordWriter<Text,Mutation> {
         }
     }
     
-    @Override
-    protected void finalize() throws Throwable {
-        super.finalize();
-        returnConnector();
-    }
-    
     public void returnConnector() {
         try {
             if (this.connector != null) {
@@ -220,7 +218,7 @@ public class AccumuloRecordWriter extends RecordWriter<Text,Mutation> {
             }
             this.connector = null;
         } catch (Exception e) {
-            log.error(e.getMessage());
+            log.error(e.getMessage(), e);
         }
     }
     

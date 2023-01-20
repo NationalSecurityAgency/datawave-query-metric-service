@@ -24,9 +24,12 @@ import java.util.concurrent.TimeUnit;
 
 import static com.hazelcast.internal.util.ExceptionUtil.rethrow;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.junit4.SpringRunner;
+
 public class QueryMetricSplitBrainMergePolicyTest {
-    
-    private Logger log = LoggerFactory.getLogger(TestMemberShipListener.class);
     
     private final static QueryMetricFactory queryMetricFactory = new QueryMetricFactoryImpl();
     
@@ -72,20 +75,20 @@ public class QueryMetricSplitBrainMergePolicyTest {
         BaseQueryMetric.PageMetric pm4 = newPageMetric();
         BaseQueryMetric.PageMetric pm5 = newPageMetric();
         
-        map1.put("key1", new QueryMetricUpdate(metric1, QueryMetricType.COMPLETE));
+        map1.put("key1", new QueryMetricUpdateHolder(metric1, QueryMetricType.COMPLETE));
         // prevent updating at the same time
         HazelcastUtils.sleepAtLeastMillis(1000);
         metric1.addPageMetric(pm1);
         metric1.addPageMetric(pm2);
-        map2.put("key1", new QueryMetricUpdate(metric1, QueryMetricType.COMPLETE));
+        map2.put("key1", new QueryMetricUpdateHolder(metric1, QueryMetricType.COMPLETE));
         BaseQueryMetric metric2 = createMetric();
         metric2.addPageMetric(pm3);
         metric2.addPageMetric(pm4);
-        map2.put("key2", new QueryMetricUpdate(metric2, QueryMetricType.COMPLETE));
+        map2.put("key2", new QueryMetricUpdateHolder(metric2, QueryMetricType.COMPLETE));
         // prevent updating at the same time
         HazelcastUtils.sleepAtLeastMillis(1000);
         metric2.addPageMetric(pm5);
-        map1.put("key2", new QueryMetricUpdate(metric2, QueryMetricType.COMPLETE));
+        map1.put("key2", new QueryMetricUpdateHolder(metric2, QueryMetricType.COMPLETE));
         
         // allow merge process to continue
         mergeBlockingLatch.countDown();
@@ -143,12 +146,12 @@ public class QueryMetricSplitBrainMergePolicyTest {
         BaseQueryMetric metric1 = createMetric();
         metric1.setLifecycle(BaseQueryMetric.Lifecycle.DEFINED);
         metric1.setLastUpdated(new Date(time1));
-        map1.put(key, new QueryMetricUpdate(metric1, QueryMetricType.COMPLETE));
+        map1.put(key, new QueryMetricUpdateHolder(metric1, QueryMetricType.COMPLETE));
         
         IMap<Object,Object> map2 = h2.getMap(mapName);
         metric1.setLifecycle(BaseQueryMetric.Lifecycle.CLOSED);
         metric1.setLastUpdated(new Date(time2));
-        map2.put(key, new QueryMetricUpdate(metric1, QueryMetricType.COMPLETE));
+        map2.put(key, new QueryMetricUpdateHolder(metric1, QueryMetricType.COMPLETE));
         
         // allow merge process to continue
         mergeBlockingLatch.countDown();
@@ -158,7 +161,7 @@ public class QueryMetricSplitBrainMergePolicyTest {
         
         IMap<Object,Object> mapTest = h2.getMap(mapName);
         Assertions.assertNotNull(mapTest.get(key));
-        BaseQueryMetric mergedMetric = ((QueryMetricUpdate) mapTest.get(key)).getMetric();
+        BaseQueryMetric mergedMetric = ((QueryMetricUpdateHolder) mapTest.get(key)).getMetric();
         
         Assertions.assertEquals(BaseQueryMetric.Lifecycle.CLOSED, mergedMetric.getLifecycle());
         Assertions.assertEquals(time2, mergedMetric.getLastUpdated().getTime());

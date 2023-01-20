@@ -1,4 +1,4 @@
-package datawave.microservice.querymetric.stats;
+package datawave.microservice.querymetric;
 
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Provides JAX-B marshalling/unmarshalling of {@link Map} of String to String. This allows the marshalled type to be in our own namespace rather than in the
+ * Provides JAX-B marshalling/unmarshalling of {@link Map} of String to Long. This allows the marshalled type to be in our own namespace rather than in the
  * "default" one, which when triggered will then assume the "" prefix and push all of our own elements into the "ns2" prefix.
  */
 public class LongMapAdapter extends XmlAdapter<LongMapAdapter.LongMap,Map<String,Long>> {
@@ -35,7 +35,7 @@ public class LongMapAdapter extends XmlAdapter<LongMapAdapter.LongMap,Map<String
     
     public static class LongMap {
         @XmlElement(name = "entry")
-        private List<LongMapAdapter.LongMapEntry> entries = new ArrayList<LongMapAdapter.LongMapEntry>();
+        private List<LongMapAdapter.LongMapEntry> entries = new ArrayList<>();
     }
     
     public static class LongMapEntry {

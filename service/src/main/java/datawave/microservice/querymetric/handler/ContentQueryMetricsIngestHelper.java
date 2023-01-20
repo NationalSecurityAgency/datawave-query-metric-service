@@ -186,8 +186,11 @@ public class ContentQueryMetricsIngestHelper extends CSVIngestHelper implements 
             if (updatedQueryMetric.getUserDN() != null) {
                 fields.put("USER_DN", updatedQueryMetric.getUserDN());
             }
-            if (updatedQueryMetric.getVersion() != null) {
-                fields.put("VERSION", updatedQueryMetric.getVersion());
+            Map<String,String> versionMap = updatedQueryMetric.getVersionMap();
+            if (versionMap != null) {
+                versionMap.entrySet().stream().forEach(e -> {
+                    fields.put("VERSION." + e.getKey().toUpperCase(), e.getValue());
+                });
             }
             fields.put("YIELD_COUNT", Long.toString(updatedQueryMetric.getYieldCount()));
             

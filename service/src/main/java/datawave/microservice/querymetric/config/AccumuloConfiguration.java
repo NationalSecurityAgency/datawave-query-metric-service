@@ -40,8 +40,10 @@ public class AccumuloConfiguration {
     @Qualifier("warehouse")
     @ConditionalOnMissingBean
     public AccumuloConnectionPool accumuloConnectionPool(@Qualifier("warehouse") AccumuloProperties accumuloProperties,
-                    @Qualifier("warehouse") Instance instance) {
-        return new AccumuloConnectionPool(new WrappedAccumuloConnectionPoolFactory(accumuloProperties, instance));
+                    @Qualifier("warehouse") Instance instance, QueryMetricHandlerProperties queryMetricHandlerProperties) {
+        AccumuloConnectionPool pool = new AccumuloConnectionPool(new WrappedAccumuloConnectionPoolFactory(accumuloProperties, instance));
+        pool.setMaxTotal(queryMetricHandlerProperties.getAccumuloConnectionPoolSize());
+        return pool;
     }
     
     @Bean

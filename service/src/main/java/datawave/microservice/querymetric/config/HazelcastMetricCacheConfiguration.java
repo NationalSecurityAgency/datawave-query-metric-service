@@ -20,7 +20,8 @@ import datawave.microservice.querymetric.MergeLockLifecycleListener;
 import datawave.microservice.querymetric.persistence.AccumuloMapLoader;
 import datawave.microservice.querymetric.persistence.AccumuloMapStore;
 import datawave.microservice.querymetric.persistence.MetricMapListener;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -41,7 +42,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 @EnableConfigurationProperties({HazelcastMetricCacheProperties.class})
 public class HazelcastMetricCacheConfiguration {
     
-    private Logger log = Logger.getLogger(HazelcastMetricCacheConfiguration.class);
+    private Logger log = LoggerFactory.getLogger(HazelcastMetricCacheConfiguration.class);
     public static final String LAST_WRITTEN_METRICS = "lastWrittenQueryMetrics";
     public static final String INCOMING_METRICS = "incomingQueryMetrics";
     
@@ -175,14 +176,14 @@ public class HazelcastMetricCacheConfiguration {
             config.setProperty("hazelcast.merge.first.run.delay.seconds", Integer.toString(serverProperties.getMergeDelaySeconds()));
             config.setProperty("hazelcast.merge.next.run.delay.seconds", Integer.toString(serverProperties.getMergeIntervalSeconds()));
             config.getNetworkConfig().setReuseAddress(true); // Reuse addresses (so we can try to keep our port on a restart)
-            ListenerConfig lifecycleListenerConfig = new ListenerConfig();
-            lifecycleListenerConfig.setImplementation(lifecycleListener);
-            config.addListenerConfig(lifecycleListenerConfig);
-            
-            ListenerConfig membershipListenerConfig = new ListenerConfig();
-            membershipListenerConfig.setImplementation(new ClusterMembershipListener());
-            config.addListenerConfig(membershipListenerConfig);
         }
+        ListenerConfig lifecycleListenerConfig = new ListenerConfig();
+        lifecycleListenerConfig.setImplementation(lifecycleListener);
+        config.addListenerConfig(lifecycleListenerConfig);
+        
+        ListenerConfig membershipListenerConfig = new ListenerConfig();
+        membershipListenerConfig.setImplementation(new ClusterMembershipListener());
+        config.addListenerConfig(membershipListenerConfig);
         return config;
     }
 }

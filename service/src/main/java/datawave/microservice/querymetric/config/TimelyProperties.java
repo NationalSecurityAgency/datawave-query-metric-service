@@ -12,6 +12,11 @@ public class TimelyProperties {
     private String host = null;
     private int port = 0;
     private List<String> tags = new ArrayList<>();
+    private Protocol protocol = Protocol.UDP;
+    
+    public enum Protocol {
+        TCP, UDP
+    }
     
     public String getHost() {
         return host;
@@ -29,6 +34,14 @@ public class TimelyProperties {
         this.port = port;
     }
     
+    public Protocol getProtocol() {
+        return protocol;
+    }
+    
+    public void setProtocol(Protocol protocol) {
+        this.protocol = protocol;
+    }
+    
     public List<String> getTags() {
         return tags;
     }
@@ -41,7 +54,7 @@ public class TimelyProperties {
         this.enabled = enabled;
     }
     
-    public boolean getEnabled() {
+    public boolean isEnabled() {
         return enabled;
     }
 }

@@ -4,6 +4,7 @@ import datawave.core.common.connection.AccumuloConnectionPool;
 import datawave.marking.MarkingFunctions;
 import datawave.microservice.querymetric.QueryMetricFactory;
 import datawave.microservice.querymetric.factory.QueryMetricQueryLogicFactory;
+import datawave.microservice.querymetric.BaseQueryMetric;
 import datawave.microservice.querymetric.handler.QueryMetricCombiner;
 import datawave.microservice.querymetric.handler.ShardTableQueryMetricHandler;
 import datawave.microservice.security.util.DnUtils;
@@ -27,7 +28,21 @@ public class AlternateQueryMetricConfiguration {
     
     @Bean
     QueryMetricFactory metricFactory() {
-        return () -> new AlternateQueryMetric();
+        return new QueryMetricFactory() {
+            @Override
+            public BaseQueryMetric createMetric() {
+                return createMetric(true);
+            }
+            
+            @Override
+            public BaseQueryMetric createMetric(boolean populateVersionMap) {
+                BaseQueryMetric queryMetric = new AlternateQueryMetric();
+                if (populateVersionMap) {
+                    queryMetric.populateVersionMap();
+                }
+                return queryMetric;
+            }
+        };
     }
     
     @Bean

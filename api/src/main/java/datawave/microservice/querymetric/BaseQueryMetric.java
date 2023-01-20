@@ -21,12 +21,15 @@ import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
+import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Serializable;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -34,6 +37,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.UUID;
 
 @XmlAccessorType(XmlAccessType.NONE)
@@ -663,7 +667,8 @@ public abstract class BaseQueryMetric implements HasMarkings, Serializable {
     @XmlElement
     protected long yieldCount = 0L;
     @XmlElement
-    protected String version = BaseQueryMetric.getVersionFromProperties();
+    @XmlJavaTypeAdapter(StringMapAdapter.class)
+    protected Map<String,String> versionMap = new TreeMap<>();
     @XmlElement
     protected long docRanges = 0;
     @XmlElement
@@ -676,6 +681,8 @@ public abstract class BaseQueryMetric implements HasMarkings, Serializable {
     @XmlElement(name = "prediction")
     protected Set<Prediction> predictions = new HashSet<>();
     
+    public static final String DATAWAVE = "DATAWAVE";
+    protected static final Map<String,String> discoveredVersionMap = BaseQueryMetric.getVersionsFromClasspath();
     protected int lastWrittenHash = 0;
     protected long numUpdates = 0;
     
@@ -794,31 +801,48 @@ public abstract class BaseQueryMetric implements HasMarkings, Serializable {
         this.host = host;
     }
     
-    public static String getVersionFromProperties() {
-        String returnStr = "";
+    public static Map<String,String> getVersionsFromClasspath() {
+        Map<String,String> versionMap = new TreeMap<>();
         try {
-            final Properties props = new Properties();
-            InputStream in = BaseQueryMetric.class.getResourceAsStream("/version.properties");
-            if (in != null) {
-                props.load(in);
-                returnStr = props.getProperty("currentVersion");
-                in.close();
-            } else {
-                log.warn("version.properties InputStream is null. Keeping version string empty.");
+            Enumeration<URL> locations = BaseQueryMetric.class.getClassLoader().getResources("version.properties");
+            while (locations.hasMoreElements()) {
+                URL url = locations.nextElement();
+                try (InputStream in = url.openStream()) {
+                    Properties loadedProperties = new Properties();
+                    loadedProperties.load(in);
+                    for (Map.Entry<Object,Object> e : loadedProperties.entrySet()) {
+                        String key = (String) e.getKey();
+                        String value = (String) e.getValue();
+                        if (key.equals("currentVersion") && url.toString().contains("datawave-ws-client")) {
+                            versionMap.put(DATAWAVE, value);
+                        } else if (key.startsWith("version.")) {
+                            versionMap.put(key.toUpperCase().substring(8), value);
+                        }
+                    }
+                } catch (Exception e) {
+                    log.error("Exception reading {}", url);
+                }
             }
-            
-        } catch (IOException e) {
-            log.warn("IOException encountered, attempting to read in version.properties.");
+        } catch (Exception e) {
+            log.warn(e.getMessage(), e);
         }
-        return returnStr;
+        return versionMap;
     }
     
-    public String getVersion() {
-        return this.version;
+    public void populateVersionMap() {
+        this.versionMap.putAll(BaseQueryMetric.discoveredVersionMap);
     }
     
-    public void setVersion(String version) {
-        this.version = version;
+    public Map<String,String> getVersionMap() {
+        return versionMap;
+    }
+    
+    public void setVersionMap(Map<String,String> versionMap) {
+        this.versionMap = versionMap;
+    }
+    
+    public void addVersion(String name, String version) {
+        this.versionMap.put(name, version);
     }
     
     public void addPageTime(long pagesize, long timeToReturn, long requestedTime, long returnedTime) {

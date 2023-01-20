@@ -178,7 +178,8 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
         
         Assertions.assertEquals(1, metricResponse.getBody().getNumResults());
         BaseQueryMetric returnedMetric = (BaseQueryMetric) metricResponse.getBody().getResult().get(0);
-        Assertions.assertEquals(new Date(now), returnedMetric.getLastUpdated(), "create date should not change");
+        Assertions.assertEquals(formatDate(new Date(now - 1000)), formatDate(returnedMetric.getCreateDate()),
+                        "create date should be the earlier of the two values");
         Assertions.assertEquals(new Date(now), returnedMetric.getLastUpdated(), "last updated should only increase");
         Assertions.assertEquals(200, returnedMetric.getSourceCount(), "source count should be additive");
         Assertions.assertEquals(200, returnedMetric.getNextCount(), "next count should be additive");
@@ -208,7 +209,7 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
         
         Assertions.assertEquals(1, metricResponse.getBody().getNumResults());
         returnedMetric = (BaseQueryMetric) metricResponse.getBody().getResult().get(0);
-        Assertions.assertEquals(new Date(now + 1000), returnedMetric.getLastUpdated(), "last updated should only increase");
+        Assertions.assertEquals(formatDate(new Date(now + 1000)), formatDate(returnedMetric.getLastUpdated()), "last updated should only increase");
         Assertions.assertEquals(1000, returnedMetric.getSourceCount(), "latest source count should be used");
         Assertions.assertEquals(1000, returnedMetric.getNextCount(), "latest next count should be used");
         Assertions.assertEquals(1000, returnedMetric.getSeekCount(), "latest seek count should be used");
@@ -315,12 +316,12 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
         updatedQueryMetric.setNextCount(400);
         updatedQueryMetric.setSeekCount(400);
         
-        mapStore.store(queryId, new QueryMetricUpdate(storedQueryMetric, QueryMetricType.COMPLETE));
-        QueryMetricUpdate lastWrittenMetricUpdate = lastWrittenQueryMetricCache.get(queryId, QueryMetricUpdate.class);
+        mapStore.store(queryId, new QueryMetricUpdateHolder(storedQueryMetric, QueryMetricType.COMPLETE));
+        QueryMetricUpdateHolder lastWrittenMetricUpdate = lastWrittenQueryMetricCache.get(queryId, QueryMetricUpdateHolder.class);
         Assertions.assertEquals(storedQueryMetric, lastWrittenMetricUpdate.getMetric());
         
-        mapStore.store(queryId, new QueryMetricUpdate(updatedQueryMetric, QueryMetricType.COMPLETE));
-        lastWrittenMetricUpdate = lastWrittenQueryMetricCache.get(queryId, QueryMetricUpdate.class);
+        mapStore.store(queryId, new QueryMetricUpdateHolder(updatedQueryMetric, QueryMetricType.COMPLETE));
+        lastWrittenMetricUpdate = lastWrittenQueryMetricCache.get(queryId, QueryMetricUpdateHolder.class);
         // all fields that were changed should be reflected in the updated metric
         Assertions.assertEquals(updatedQueryMetric, lastWrittenMetricUpdate.getMetric());
         

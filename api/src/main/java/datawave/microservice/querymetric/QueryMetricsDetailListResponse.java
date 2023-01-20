@@ -18,6 +18,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 @XmlRootElement(name = "QueryMetricListResponse")
 @XmlAccessorType(XmlAccessType.NONE)
@@ -47,7 +48,7 @@ public class QueryMetricsDetailListResponse extends QueryMetricListResponse {
         builder.append("<th>Query Setup Time (ms)</th><th>Query Setup Call Time (ms)</th><th>Number Pages</th><th>Number Results</th>");
         
         builder.append("<th>Doc Ranges</th><th>FI Ranges</th>");
-        builder.append("<th>Sources</th><th>Next Calls</th><th>Seek Calls</th><th>Yield Count</th><th>Version</th>");
+        builder.append("<th>Sources</th><th>Next Calls</th><th>Seek Calls</th><th>Yield Count</th><th>Versions</th>");
         
         builder.append("<th>Total Page Time (ms)</th><th>Total Page Call Time (ms)</th><th>Total Page Serialization Time (ms)</th>");
         builder.append("<th>Total Page Bytes Sent (uncompressed)</th><th>Lifecycle</th><th>Elapsed Time</th><th>Error Code</th><th>Error Message</th>");
@@ -58,7 +59,7 @@ public class QueryMetricsDetailListResponse extends QueryMetricListResponse {
         pageTimesBuilder.append("<th>Page size</th><th>Call time (ms)</th><th>Login time (ms)</th><th>Serialization time (ms)</th>");
         pageTimesBuilder.append("<th>Bytes written (uncompressed)</th></tr>");
         
-        TreeMap<Date,QueryMetric> metricMap = new TreeMap<Date,QueryMetric>(Collections.reverseOrder());
+        TreeMap<Date,QueryMetric> metricMap = new TreeMap<>(Collections.reverseOrder());
         
         for (QueryMetric metric : this.getResult()) {
             metricMap.put(metric.getCreateDate(), metric);
@@ -107,7 +108,7 @@ public class QueryMetricsDetailListResponse extends QueryMetricListResponse {
             if (metric.getPredictions() != null && !metric.getPredictions().isEmpty()) {
                 builder.append("<td>");
                 String delimiter = "";
-                List<Prediction> predictions = new ArrayList<Prediction>(metric.getPredictions());
+                List<Prediction> predictions = new ArrayList<>(metric.getPredictions());
                 Collections.sort(predictions);
                 for (Prediction prediction : predictions) {
                     builder.append(delimiter).append(prediction.getName()).append(" = ").append(prediction.getPrediction());
@@ -129,7 +130,8 @@ public class QueryMetricsDetailListResponse extends QueryMetricListResponse {
             builder.append("<td>").append(metric.getNextCount()).append("</td>");
             builder.append("<td>").append(metric.getSeekCount()).append("</td>");
             builder.append("<td>").append(metric.getYieldCount()).append("</td>");
-            builder.append("<td>").append(metric.getVersion()).append("</td>");
+            String versions = metric.getVersionMap().entrySet().stream().map(e -> e.getKey() + "=" + e.getValue()).collect(Collectors.joining("<br/>"));
+            builder.append("<td style=\"min-width:250px !important;\">").append(versions).append("</td>");
             
             long count = 0l;
             long callTime = 0l;
