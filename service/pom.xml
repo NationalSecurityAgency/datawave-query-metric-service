@@ -31,7 +31,6 @@
         <version.microservice.starter-datawave-query-metric>1.6.1-SNAPSHOT</version.microservice.starter-datawave-query-metric>
         <version.microservice.starter-metadata>1.0-SNAPSHOT</version.microservice.starter-metadata>
         <version.microservice.type-utils>1.13-SNAPSHOT</version.microservice.type-utils>
-        <version.spring.cloud.stream>2.1.4.RELEASE</version.spring.cloud.stream>
         <version.validation-api>2.0.2</version.validation-api>
         <version.webjars.bootstrap>4.3.1</version.webjars.bootstrap>
         <version.webjars.jquery>3.4.1</version.webjars.jquery>
@@ -261,11 +260,6 @@
                 </exclusions>
             </dependency>
             <dependency>
-                <groupId>org.springframework.cloud</groupId>
-                <artifactId>spring-cloud-stream-test-support</artifactId>
-                <version>${version.spring.cloud.stream}</version>
-            </dependency>
-            <dependency>
                 <groupId>org.webjars</groupId>
                 <artifactId>bootstrap</artifactId>
                 <version>${version.webjars.bootstrap}</version>
@@ -352,16 +346,8 @@
             <artifactId>cache-api</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-engine</artifactId>
-        </dependency>
-        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-cache</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.cloud</groupId>
-            <artifactId>spring-cloud-stream</artifactId>
         </dependency>
         <dependency>
             <groupId>org.webjars</groupId>
@@ -380,8 +366,8 @@
             <artifactId>webjars-locator-core</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.springframework.cloud</groupId>
-            <artifactId>spring-cloud-stream-test-support</artifactId>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-engine</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -403,37 +389,6 @@
     </repositories>
     <build>
         <plugins>
-            <plugin>
-                <artifactId>maven-enforcer-plugin</artifactId>
-                <version>3.0.0</version>
-                <executions>
-                    <execution>
-                        <id>enforce-banned-dependencies</id>
-                        <goals>
-                            <goal>enforce</goal>
-                        </goals>
-                        <configuration>
-                            <rules>
-                                <bannedDependencies>
-                                    <excludes>
-                                        <!-- spring boot microservices do not use the following slf4j binders -->
-                                        <exclude>org.slf4j:slf4j-reload4j</exclude>
-                                        <!-- spring boot microservices do not use 1.x versions of log4j -->
-                                        <exclude>log4j:log4j</exclude>
-                                        <!-- spring boot microservices do not use 1.x versions of junit -->
-                                        <exclude>junit:junit</exclude>
-                                    </excludes>
-                                    <includes>
-                                        <!-- some spring boot microservices include test dependencies which use 1.x versions of junit -->
-                                        <include>junit:junit:*:*:test</include>
-                                    </includes>
-                                </bannedDependencies>
-                            </rules>
-                            <fail>true</fail>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
