@@ -26,11 +26,12 @@
         <version.hazelcast-kubernetes>1.4</version.hazelcast-kubernetes>
         <version.in-memory-accumulo>1.9.2.3</version.in-memory-accumulo>
         <version.log4j12>2.17.1</version.log4j12>
-        <version.microservice.accumulo-api>1.2</version.microservice.accumulo-api>
-        <version.microservice.hazelcast>1.6</version.microservice.hazelcast>
+        <version.microservice.accumulo-api>1.4</version.microservice.accumulo-api>
+        <version.microservice.hazelcast>1.9</version.microservice.hazelcast>
         <version.microservice.metadata-utils>1.10</version.microservice.metadata-utils>
-        <version.microservice.starter>1.6.7</version.microservice.starter>
-        <version.microservice.starter-datawave-query-metric>1.5.4</version.microservice.starter-datawave-query-metric>
+        <version.microservice.query-metric-api>1.6.3</version.microservice.query-metric-api>
+        <version.microservice.starter>1.6.8</version.microservice.starter>
+        <version.microservice.starter-datawave-query-metric>1.5.5</version.microservice.starter-datawave-query-metric>
         <version.microservice.type-utils>1.11</version.microservice.type-utils>
         <version.spring.cloud.stream>2.1.4.RELEASE</version.spring.cloud.stream>
         <version.validation-api>2.0.2</version.validation-api>
@@ -151,7 +152,7 @@
             <dependency>
                 <groupId>gov.nsa.datawave.microservice</groupId>
                 <artifactId>query-metric-api</artifactId>
-                <version>${project.version}</version>
+                <version>${version.microservice.query-metric-api}</version>
                 <exclusions>
                     <exclusion>
                         <artifactId>log4j</artifactId>
