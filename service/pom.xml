@@ -27,7 +27,7 @@
         <version.in-memory-accumulo>1.10.3-SNAPSHOT</version.in-memory-accumulo>
         <version.microservice.accumulo-api>1.4-SNAPSHOT</version.microservice.accumulo-api>
         <version.microservice.hazelcast>1.9-SNAPSHOT</version.microservice.hazelcast>
-        <version.microservice.starter>1.6.8-SNAPSHOT</version.microservice.starter>
+        <version.microservice.starter>1.6.9-SNAPSHOT</version.microservice.starter>
         <version.microservice.starter-datawave-query-metric>1.6.1-SNAPSHOT</version.microservice.starter-datawave-query-metric>
         <version.microservice.starter-metadata>1.0-SNAPSHOT</version.microservice.starter-metadata>
         <version.microservice.type-utils>1.13-SNAPSHOT</version.microservice.type-utils>
