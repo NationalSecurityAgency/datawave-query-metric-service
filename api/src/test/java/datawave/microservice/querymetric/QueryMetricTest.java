@@ -5,11 +5,14 @@ import com.fasterxml.jackson.module.jaxb.JaxbAnnotationModule;
 import datawave.marking.MarkingFunctions;
 import datawave.microservice.querymetric.BaseQueryMetric.Lifecycle;
 import datawave.microservice.querymetric.BaseQueryMetric.PageMetric;
+import datawave.microservice.querymetric.BaseQueryMetric.Prediction;
 import datawave.webservice.query.exception.BadRequestQueryException;
 import datawave.webservice.query.exception.DatawaveErrorCode;
 import io.protostuff.LinkedBuffer;
+import io.protostuff.Message;
 import io.protostuff.ProtostuffIOUtil;
 import io.protostuff.Schema;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -18,7 +21,10 @@ import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -80,7 +86,6 @@ public class QueryMetricTest {
         queryMetric.setErrorMessage("errorMessage");
         queryMetric.setHost("host");
         queryMetric.setLastUpdated(d);
-        queryMetric.setLastWrittenHash(0);
         queryMetric.setLifecycle(Lifecycle.INITIALIZED);
         queryMetric.setMarkings(markings);
         queryMetric.setNegativeSelectors(negativeSelectors);
@@ -108,7 +113,6 @@ public class QueryMetricTest {
         assertEquals("errorMessage", queryMetric.getErrorMessage());
         assertEquals("host", queryMetric.getHost());
         assertEquals(d, queryMetric.getLastUpdated());
-        assertEquals(0, queryMetric.getLastWrittenHash());
         assertEquals(Lifecycle.INITIALIZED, queryMetric.getLifecycle());
         assertEquals("PUBLIC", queryMetric.getMarkings().get(MarkingFunctions.Default.COLUMN_VISIBILITY));
         assertEquals("negativeSelector1", queryMetric.getNegativeSelectors().get(0));
@@ -159,8 +163,50 @@ public class QueryMetricTest {
     }
     
     @Test
+    public void testProtobufCompleteness() throws Exception {
+        testSchemaCompleteness(QueryMetric.class);
+        testSchemaCompleteness(PageMetric.class);
+        testSchemaCompleteness(Prediction.class);
+    }
+    
+    public void testSchemaCompleteness(Class clazz) throws Exception {
+        Object o = null;
+        try {
+            o = clazz.getConstructor().newInstance();
+        } catch (Exception e) {
+            Assertions.fail(e.getMessage());
+        }
+        String className = clazz.getSimpleName();
+        Schema schema = null;
+        if (o instanceof Message) {
+            schema = ((Message) o).cachedSchema();
+        } else {
+            Assertions.fail(String.format("%s does not implement Message interface", className));
+        }
+        List<Field> fields = new ArrayList<>();
+        Class currentClazz = clazz;
+        while (currentClazz != Object.class) {
+            fields.addAll(Arrays.asList(currentClazz.getDeclaredFields()));
+            currentClazz = currentClazz.getSuperclass();
+        }
+        String message = "field [%s.%s] (or parent class) must be included in getFieldNumber, getFieldName, writeTo, and mergeFrom";
+        for (Field f : fields) {
+            if (!Modifier.isStatic(f.getModifiers())) {
+                String fieldName = f.getName();
+                int fieldNumber = schema.getFieldNumber(fieldName);
+                Assertions.assertTrue(fieldNumber > 0, String.format(message, fieldName, className));
+                String schemaFieldName = schema.getFieldName(fieldNumber);
+                Assertions.assertNotNull(schemaFieldName, String.format(message, f.getName(), className, fieldName));
+                assertEquals(String.format("field name [%s] and protobuf field name [%s] should match", f.getName(), schemaFieldName), f.getName(),
+                                schemaFieldName);
+            }
+        }
+    }
+    
+    @Test
     public void testVersionSerialization() throws Exception {
         QueryMetric qm = new QueryMetric();
+        qm.populateVersionMap();
         Date d = new Date();
         qm.setBeginDate(d);
         qm.setCreateCallTime(0);
@@ -170,7 +216,6 @@ public class QueryMetricTest {
         qm.setErrorMessage("errorMessage");
         qm.setHost("host");
         qm.setLastUpdated(d);
-        qm.setLastWrittenHash(0);
         qm.setLifecycle(BaseQueryMetric.Lifecycle.INITIALIZED);
         qm.setMarkings(markings);
         qm.setNegativeSelectors(negativeSelectors);
@@ -190,7 +235,7 @@ public class QueryMetricTest {
         
         // The version is added to queryMetric objects by default through injection, so we can verify
         // the object on creation.
-        assertEquals(BaseQueryMetric.getVersionFromProperties(), qm.getVersion());
+        assertEquals(BaseQueryMetric.discoveredVersionMap, qm.getVersionMap());
         
         Schema<QueryMetric> schema = (Schema<QueryMetric>) qm.getSchemaInstance();
         ByteArrayOutputStream baos = new ByteArrayOutputStream();

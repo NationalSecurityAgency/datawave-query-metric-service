@@ -48,7 +48,7 @@ logging:
       query: error
       ingest: error
       security: error
-      microservice.querymetric: error
+      microservice.querymetric: info
 
 datawave:
   query:
@@ -58,6 +58,8 @@ datawave:
         instanceName: ${warehouse-cluster.accumulo.instanceName}
         username: ${warehouse-cluster.accumulo.username}
         password: ${warehouse-cluster.accumulo.password}
+        accumuloConnectionPoolSize: 16
+        mapStoreWriteThreads: 1
         numShards: 10
         fieldLengthThreshold: 4049
         shardTableName: QueryMetrics_e
@@ -68,7 +70,7 @@ datawave:
         metadataDefaultAuths: PUBLIC
         recordWriterMaxMemory: 100000
         recordWriterMaxLatency: 10
-        recordWriterNumThreads: 4
+        recordWriterNumThreads: 16
         enableBloomFilter: false
         queryVisibility: PUBLIC
         defaultMetricVisibility: (PUBLIC)
@@ -79,20 +81,21 @@ datawave:
         remoteQueryTimeout: 10
         remoteQueryTimeUnit: SECONDS
         maxReadMilliseconds: 10000
-      timely:
-        enabled: false
-        host: localhost
-        port: 4242
-        tags:
-          - USER
-          - HOST
-          - QUERY_ID
-          - QUERY_LOGIC
       client:
         enabled: true
         transport: message
         host: localhost
         port: ${server.port}
+      timely:
+        enabled: false
+        host: localhost
+        port: 4242
+        tags:
+          system: test_system
+      stats:
+        logServiceStatsRateMs: 300000
+        publishServiceStatsToTimelyRateMs: 60000
+        publishQueryStatsToTimelyRateMs: 60000
 
   metadata:
     all-metadata-auths:

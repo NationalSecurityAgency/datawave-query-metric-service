@@ -19,7 +19,7 @@ public class QueryMetricConsumer implements Consumer<QueryMetricUpdate> {
     @Override
     public void accept(QueryMetricUpdate queryMetricUpdate) {
         try {
-            queryMetricOperations.storeMetric(queryMetricUpdate.getMetric(), queryMetricUpdate.getMetricType());
+            queryMetricOperations.storeMetric(queryMetricUpdate);
         } catch (Exception e) {
             log.error("Error processing query metric update message: {}", e.getMessage());
             throw new RuntimeException(e);

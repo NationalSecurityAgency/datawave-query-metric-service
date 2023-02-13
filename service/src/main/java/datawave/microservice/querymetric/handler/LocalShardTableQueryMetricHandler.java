@@ -1,5 +1,6 @@
 package datawave.microservice.querymetric.handler;
 
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import datawave.core.common.connection.AccumuloConnectionFactory.Priority;
 import datawave.core.common.connection.AccumuloConnectionPool;
 import datawave.core.query.logic.QueryLogic;
@@ -45,6 +46,8 @@ public class LocalShardTableQueryMetricHandler<T extends BaseQueryMetric> extend
     private final DatawavePrincipal datawavePrincipal;
     private final Map<String,CachedQuery> cachedQueryMap = new HashMap<>();
     
+    protected ExecutorService executorService;
+    
     public LocalShardTableQueryMetricHandler(QueryMetricHandlerProperties queryMetricHandlerProperties,
                     @Qualifier("warehouse") AccumuloConnectionPool connectionPool, QueryMetricQueryLogicFactory logicFactory, QueryMetricFactory metricFactory,
                     MarkingFunctions markingFunctions, QueryMetricCombiner queryMetricCombiner, LuceneToJexlQueryParser luceneToJexlQueryParser,
@@ -60,6 +63,8 @@ public class LocalShardTableQueryMetricHandler<T extends BaseQueryMetric> extend
         }
         DatawaveUser datawaveUser = new DatawaveUser(SubjectIssuerDNPair.of("admin"), USER, null, auths, null, null, System.currentTimeMillis());
         datawavePrincipal = new DatawavePrincipal(Collections.singletonList(datawaveUser));
+        
+        this.executorService = Executors.newCachedThreadPool(new ThreadFactoryBuilder().setNameFormat("metric-handler-query-thread-%d").build());
     }
     
     @Override
@@ -69,7 +74,7 @@ public class LocalShardTableQueryMetricHandler<T extends BaseQueryMetric> extend
         Future<BaseQueryResponse> createAndNextFuture = null;
         final CachedQuery cachedQuery = new CachedQuery();
         try {
-            createAndNextFuture = cachedQuery.getExecutor().submit(() -> {
+            createAndNextFuture = this.executorService.submit(() -> {
                 RunningQuery runningQuery;
                 Connector connector;
                 
@@ -116,7 +121,7 @@ public class LocalShardTableQueryMetricHandler<T extends BaseQueryMetric> extend
         Future<BaseQueryResponse> nextFuture = null;
         final CachedQuery cachedQuery = cachedQueryMap.get(queryId);
         try {
-            nextFuture = cachedQuery.getExecutor().submit(() -> cachedQuery.getTransformer().createResponse(cachedQuery.getRunningQuery().next()));
+            nextFuture = this.executorService.submit(() -> cachedQuery.getTransformer().createResponse(cachedQuery.getRunningQuery().next()));
             
             return nextFuture.get(
                             Math.max(0, queryMetricHandlerProperties.getMaxReadMilliseconds() - (System.currentTimeMillis() - cachedQuery.getStartTime())),
@@ -142,9 +147,6 @@ public class LocalShardTableQueryMetricHandler<T extends BaseQueryMetric> extend
             if (cachedQuery.getConnector() != null) {
                 this.connectionPool.returnObject(cachedQuery.getConnector());
             }
-            if (cachedQuery.getExecutor() != null) {
-                cachedQuery.getExecutor().shutdownNow();
-            }
         } catch (Exception e) {
             log.error(e.getMessage(), e);
             throw new IllegalStateException("Running query close call failed", e);
@@ -153,8 +155,6 @@ public class LocalShardTableQueryMetricHandler<T extends BaseQueryMetric> extend
     
     private static class CachedQuery {
         private long startTime = System.currentTimeMillis();
-        
-        private ExecutorService executor = Executors.newSingleThreadExecutor();
         
         private RunningQuery runningQuery;
         private QueryLogicTransformer<?,?> transformer;
@@ -166,14 +166,6 @@ public class LocalShardTableQueryMetricHandler<T extends BaseQueryMetric> extend
         
         public void setStartTime(long startTime) {
             this.startTime = startTime;
-        }
-        
-        public ExecutorService getExecutor() {
-            return executor;
-        }
-        
-        public void setExecutor(ExecutorService executor) {
-            this.executor = executor;
         }
         
         public RunningQuery getRunningQuery() {

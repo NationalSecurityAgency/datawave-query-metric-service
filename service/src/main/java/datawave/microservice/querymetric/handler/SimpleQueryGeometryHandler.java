@@ -39,7 +39,7 @@ public class SimpleQueryGeometryHandler implements QueryGeometryHandler {
     
     @Override
     public QueryGeometryResponse getQueryGeometryResponse(String id, List<? extends BaseQueryMetric> metrics) {
-        QueryGeometryResponse response = new QueryGeometryResponse(id, basemaps);
+        QueryGeometryResponse response = new QueryMetricGeometryResponse(id, basemaps);
         
         if (metrics != null) {
             Set<QueryGeometry> queryGeometries = new LinkedHashSet<>();
@@ -50,6 +50,7 @@ public class SimpleQueryGeometryHandler implements QueryGeometryHandler {
                     JexlNode queryNode = JexlASTHelper.parseAndFlattenJexlQuery(jexlQuery);
                     queryGeometries.addAll(GeoFeatureVisitor.getGeoFeatures(queryNode, isLuceneQuery));
                 } catch (Exception e) {
+                    log.error(e.getMessage(), e);
                     response.addException(new Exception("Unable to parse the geo features"));
                 }
             }

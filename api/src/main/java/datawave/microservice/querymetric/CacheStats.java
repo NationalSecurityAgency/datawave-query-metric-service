@@ -1,12 +1,11 @@
-package datawave.microservice.querymetric.stats;
+package datawave.microservice.querymetric;
 
-import javax.xml.bind.annotation.XmlAccessOrder;
 import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorOrder;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.XmlType;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import java.io.Serializable;
 import java.util.HashMap;
@@ -15,7 +14,7 @@ import java.util.Objects;
 
 @XmlRootElement(name = "CacheStats")
 @XmlAccessorType(XmlAccessType.NONE)
-@XmlAccessorOrder(XmlAccessOrder.ALPHABETICAL)
+@XmlType(propOrder = {"serviceStats", "incomingQueryMetrics", "lastWrittenQueryMetrics"})
 public class CacheStats implements Serializable {
     
     private static final long serialVersionUID = 1L;
@@ -26,13 +25,17 @@ public class CacheStats implements Serializable {
     @XmlAttribute
     private String memberUuid;
     
+    @XmlElement(name = "serviceStats")
+    @XmlJavaTypeAdapter(StringMapAdapter.class)
+    private Map<String,String> serviceStats = new HashMap<>();
+    
     @XmlElement(name = "incomingQueryMetrics")
-    @XmlJavaTypeAdapter(LongMapAdapter.class)
-    private Map<String,Long> incomingQueryMetrics = new HashMap<>();
+    @XmlJavaTypeAdapter(StringMapAdapter.class)
+    private Map<String,String> incomingQueryMetrics = new HashMap<>();
     
     @XmlElement(name = "lastWrittenQueryMetrics")
-    @XmlJavaTypeAdapter(LongMapAdapter.class)
-    private Map<String,Long> lastWrittenQueryMetrics = new HashMap<>();
+    @XmlJavaTypeAdapter(StringMapAdapter.class)
+    private Map<String,String> lastWrittenQueryMetrics = new HashMap<>();
     
     public CacheStats() {
         
@@ -54,20 +57,28 @@ public class CacheStats implements Serializable {
         return memberUuid;
     }
     
-    public void setIncomingQueryMetrics(Map<String,Long> stats) {
+    public void setIncomingQueryMetrics(Map<String,String> stats) {
         this.incomingQueryMetrics = stats;
     }
     
-    public Map<String,Long> getIncomingQueryMetrics() {
+    public Map<String,String> getIncomingQueryMetrics() {
         return incomingQueryMetrics;
     }
     
-    public void setLastWrittenQueryMetrics(Map<String,Long> stats) {
+    public void setLastWrittenQueryMetrics(Map<String,String> stats) {
         this.lastWrittenQueryMetrics = stats;
     }
     
-    public Map<String,Long> getLastWrittenQueryMetrics() {
+    public Map<String,String> getLastWrittenQueryMetrics() {
         return lastWrittenQueryMetrics;
+    }
+    
+    public void setServiceStats(Map<String,String> serviceStats) {
+        this.serviceStats = serviceStats;
+    }
+    
+    public Map<String,String> getServiceStats() {
+        return serviceStats;
     }
     
     @Override
@@ -77,11 +88,12 @@ public class CacheStats implements Serializable {
         if (o == null || getClass() != o.getClass())
             return false;
         CacheStats that = (CacheStats) o;
-        return incomingQueryMetrics.equals(that.incomingQueryMetrics) && lastWrittenQueryMetrics.equals(that.lastWrittenQueryMetrics);
+        return host.equals(that.host) && memberUuid.equals(that.memberUuid) && incomingQueryMetrics.equals(that.incomingQueryMetrics)
+                        && lastWrittenQueryMetrics.equals(that.lastWrittenQueryMetrics) && serviceStats.equals(that.serviceStats);
     }
     
     @Override
     public int hashCode() {
-        return Objects.hash(incomingQueryMetrics, lastWrittenQueryMetrics);
+        return Objects.hash(host, memberUuid, incomingQueryMetrics, lastWrittenQueryMetrics, serviceStats);
     }
 }

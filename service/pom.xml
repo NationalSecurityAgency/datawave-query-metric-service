@@ -8,7 +8,7 @@
         <relativePath>../../../microservice-service-parent/pom.xml</relativePath>
     </parent>
     <artifactId>query-metric-service</artifactId>
-    <version>1.5.5-SNAPSHOT</version>
+    <version>1.6.5-SNAPSHOT</version>
     <description>DATAWAVE Query Metric Microservice</description>
     <url>https://code.nsa.gov/datawave-query-metric-service</url>
     <scm>
@@ -22,15 +22,21 @@
         <start-class>datawave.microservice.querymetric.QueryMetricService</start-class>
         <version.base-rest-responses>1.3-SNAPSHOT</version.base-rest-responses>
         <version.cache-api>1.1.1</version.cache-api>
-        <version.datawave>3.32.0-SNAPSHOT</version.datawave>
+        <version.datawave>3.38.0-SNAPSHOT</version.datawave>
         <version.hazelcast-kubernetes>2.2.3</version.hazelcast-kubernetes>
         <version.in-memory-accumulo>1.10.3-SNAPSHOT</version.in-memory-accumulo>
-        <version.microservice.accumulo-api>1.4-SNAPSHOT</version.microservice.accumulo-api>
-        <version.microservice.hazelcast>1.9-SNAPSHOT</version.microservice.hazelcast>
-        <version.microservice.starter>1.6.8-SNAPSHOT</version.microservice.starter>
+        <version.microservice.accumulo-api>1.5-SNAPSHOT</version.microservice.accumulo-api>
+        <version.microservice.hazelcast>1.10-SNAPSHOT</version.microservice.hazelcast>
+        <version.microservice.query-metric-api>1.6.5-SNAPSHOT</version.microservice.query-metric-api>
+        <version.microservice.starter>1.6.9-SNAPSHOT</version.microservice.starter>
+        <version.microservice.starter-datawave-query-metric>1.6.5-SNAPSHOT</version.microservice.starter-datawave-query-metric>
         <version.microservice.starter-metadata>1.0-SNAPSHOT</version.microservice.starter-metadata>
-        <version.spring.cloud.stream>2.1.4.RELEASE</version.spring.cloud.stream>
+        <version.microservice.type-utils>1.13-SNAPSHOT</version.microservice.type-utils>
         <version.validation-api>2.0.2</version.validation-api>
+        <version.webjars.bootstrap>4.3.1</version.webjars.bootstrap>
+        <version.webjars.jquery>3.4.1</version.webjars.jquery>
+        <version.webjars.leaflet>1.5.1</version.webjars.leaflet>
+        <version.webjars.locator-core>0.35</version.webjars.locator-core>
         <version.zookeeper>3.4.14</version.zookeeper>
     </properties>
     <dependencyManagement>
@@ -155,7 +161,7 @@
             <dependency>
                 <groupId>gov.nsa.datawave.microservice</groupId>
                 <artifactId>query-metric-api</artifactId>
-                <version>${project.version}</version>
+                <version>${version.microservice.query-metric-api}</version>
                 <exclusions>
                     <exclusion>
                         <artifactId>log4j</artifactId>
@@ -186,7 +192,22 @@
             <dependency>
                 <groupId>gov.nsa.datawave.microservice</groupId>
                 <artifactId>spring-boot-starter-datawave-query-metric</artifactId>
-                <version>${project.version}</version>
+                <version>${version.microservice.starter-datawave-query-metric}</version>
+            </dependency>
+            <dependency>
+                <groupId>gov.nsa.datawave.microservice</groupId>
+                <artifactId>type-utils</artifactId>
+                <version>${version.microservice.type-utils}</version>
+                <exclusions>
+                    <exclusion>
+                        <artifactId>log4j</artifactId>
+                        <groupId>log4j</groupId>
+                    </exclusion>
+                    <exclusion>
+                        <artifactId>slf4j-reload4j</artifactId>
+                        <groupId>org.slf4j</groupId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>gov.nsa.datawave.webservices</groupId>
@@ -245,6 +266,26 @@
                 <version>${version.spring.cloud.stream}</version>
             </dependency>
             <dependency>
+                <groupId>org.webjars</groupId>
+                <artifactId>bootstrap</artifactId>
+                <version>${version.webjars.bootstrap}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.webjars</groupId>
+                <artifactId>jquery</artifactId>
+                <version>${version.webjars.jquery}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.webjars</groupId>
+                <artifactId>leaflet</artifactId>
+                <version>${version.webjars.leaflet}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.webjars</groupId>
+                <artifactId>webjars-locator-core</artifactId>
+                <version>${version.webjars.locator-core}</version>
+            </dependency>
+            <dependency>
                 <groupId>gov.nsa.datawave.microservice</groupId>
                 <artifactId>spring-boot-starter-datawave</artifactId>
                 <version>${version.microservice.starter}</version>
@@ -291,6 +332,10 @@
             <artifactId>spring-boot-starter-datawave-query-metric</artifactId>
         </dependency>
         <dependency>
+            <groupId>gov.nsa.datawave.microservice</groupId>
+            <artifactId>type-utils</artifactId>
+        </dependency>
+        <dependency>
             <groupId>gov.nsa.datawave.webservices</groupId>
             <artifactId>datawave-ws-common</artifactId>
         </dependency>
@@ -309,6 +354,22 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-cache</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.webjars</groupId>
+            <artifactId>bootstrap</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.webjars</groupId>
+            <artifactId>jquery</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.webjars</groupId>
+            <artifactId>leaflet</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.webjars</groupId>
+            <artifactId>webjars-locator-core</artifactId>
         </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>

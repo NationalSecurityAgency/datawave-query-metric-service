@@ -49,7 +49,7 @@ public class HazelcastCachingTest extends QueryMetricTestBase {
         BaseQueryMetric m = createMetric(queryId);
         
         // use a native cache set vs Cache.put to prevent the fetching and return of Accumulo value
-        ((IMap<Object,Object>) incomingQueryMetricsCache.getNativeCache()).set(queryId, new QueryMetricUpdate(m));
+        ((IMap<Object,Object>) incomingQueryMetricsCache.getNativeCache()).set(queryId, new QueryMetricUpdateHolder<>(m));
         try {
             BaseQueryMetric metricFromAccumulo = null;
             do {

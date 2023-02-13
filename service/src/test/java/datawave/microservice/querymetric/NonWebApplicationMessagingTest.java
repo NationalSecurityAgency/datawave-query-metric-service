@@ -1,6 +1,7 @@
 package datawave.microservice.querymetric;
 
 import datawave.marking.MarkingFunctions;
+import datawave.microservice.querymetric.config.TimelyProperties;
 import datawave.microservice.querymetric.function.QueryMetricSupplier;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -8,6 +9,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.cache.CacheManager;
+import org.springframework.cache.caffeine.CaffeineCacheManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
@@ -16,9 +18,9 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Profile;
 import org.springframework.messaging.Message;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import javax.inject.Named;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -32,6 +34,7 @@ import java.util.Map;
 @ExtendWith(SpringExtension.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @ActiveProfiles({"NonWebApplicationMessagingTest", "QueryMetricTest"})
+@ContextConfiguration(classes = {NonWebApplicationMessagingTest.QueryMetricHttpTestConfiguration.class, QueryMetricService.class})
 public class NonWebApplicationMessagingTest {
     
     @Autowired
@@ -42,9 +45,6 @@ public class NonWebApplicationMessagingTest {
     
     @Autowired
     public List<QueryMetricUpdate> storedMetricUpdates;
-    
-    @Named("queryMetricCacheManager")
-    protected CacheManager cacheManager;
     
     private Map<String,String> metricMarkings;
     
@@ -74,8 +74,17 @@ public class NonWebApplicationMessagingTest {
 
     @Configuration
     @Profile("NonWebApplicationMessagingTest")
-    @ComponentScan(basePackages = "datawave.microservice")
     public static class QueryMetricHttpTestConfiguration {
+        @Bean(name = "queryMetricCacheManager")
+        public CacheManager queryMetricCacheManager() {
+            return new CaffeineCacheManager();
+        }
+
+        @Bean
+        public QueryMetricOperationsStats queryMetricOperationStats() {
+            return new QueryMetricOperationsStats(new TimelyProperties(), null, queryMetricCacheManager(), null);
+        }
+
         @Bean
         public List<QueryMetricUpdate> storedMetricUpdates() {
             return new ArrayList<>();
@@ -83,7 +92,7 @@ public class NonWebApplicationMessagingTest {
 
         @Primary
         @Bean
-        public QueryMetricSupplier testQueryMetricSource(@Lazy QueryMetricOperations queryMetricOperations) {
+        public QueryMetricSupplier testQueryMetricSource() {
             return new QueryMetricSupplier() {
                 @Override
                 public boolean send(Message<QueryMetricUpdate> queryMetricUpdate) {

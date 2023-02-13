@@ -6,16 +6,17 @@ import datawave.microservice.querymetric.QueryMetricType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-public class QueryMetricCombiner<T extends BaseQueryMetric> {
+public class QueryMetricCombiner<T extends BaseQueryMetric> implements Serializable {
     
-    private final Logger log = LoggerFactory.getLogger(getClass());
+    private static final Logger log = LoggerFactory.getLogger(QueryMetricCombiner.class);
     
-    public T combineMetrics(T updatedQueryMetric, T cachedQueryMetric, QueryMetricType metricType) throws Exception {
+    public T combineMetrics(T updatedQueryMetric, T cachedQueryMetric, QueryMetricType metricType) {
         
         T combinedMetric = updatedQueryMetric;
         // new metrics coming in may be complete or partial updates

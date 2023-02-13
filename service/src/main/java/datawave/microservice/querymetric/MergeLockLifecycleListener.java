@@ -23,6 +23,8 @@ public class MergeLockLifecycleListener implements LifecycleListener, HazelcastI
     private Future writeLockRunnableFuture;
     private HazelcastInstance instance;
     private String localMemberUuid;
+    private AtomicBoolean allowReadLock = new AtomicBoolean(false);
+    private AtomicBoolean shuttingDown = new AtomicBoolean(false);
     
     public MergeLockLifecycleListener() {
         this.clusterLock = new ReentrantReadWriteLock(true);
@@ -32,12 +34,24 @@ public class MergeLockLifecycleListener implements LifecycleListener, HazelcastI
     
     @PreDestroy
     public void preDestroy() {
-        this.writeLockRunnable.shutdown();
+        makeServiceUnavailable();
         try {
             this.writeLockRunnableFuture.get(5, TimeUnit.SECONDS);
         } catch (Exception e) {
             this.writeLockRunnableFuture.cancel(true);
         }
+    }
+    
+    public void setAllowReadLock(boolean allowReadLock) {
+        this.allowReadLock.set(allowReadLock);
+    }
+    
+    public boolean isAllowedReadLock() {
+        return this.allowReadLock.get();
+    }
+    
+    public boolean isShuttingDown() {
+        return shuttingDown.get();
     }
     
     @Override
@@ -58,6 +72,15 @@ public class MergeLockLifecycleListener implements LifecycleListener, HazelcastI
         return (this.localMemberUuid == null) ? "" : this.localMemberUuid;
     }
     
+    private void makeServiceAvailable() {
+        setAllowReadLock(true);
+    }
+    
+    private void makeServiceUnavailable() {
+        this.setAllowReadLock(false);
+        this.shuttingDown.set(true);
+    }
+    
     // A writeLock around STARTING and STARTED is taken care of in HazelcastMetricCacheConfiguration.hazelcastInstance to
     // ensure that the lastWrittenQueryMetricCache is set into the MapStore before the instance is active and the writeLock is released
     // multiple log lines are used to keep log/lock sequencing consistent (lock, log, <do stuff>, log, unlock) for paired events
@@ -72,6 +95,7 @@ public class MergeLockLifecycleListener implements LifecycleListener, HazelcastI
             case SHUTTING_DOWN:
                 // lock for a maximum time so that we don't lock forever
                 this.writeLockRunnable.lock(60000, event.getState());
+                makeServiceUnavailable();
                 log.info(event + " [" + getLocalMemberUuid() + "]");
                 break;
             case MERGED:
@@ -81,8 +105,8 @@ public class MergeLockLifecycleListener implements LifecycleListener, HazelcastI
                 break;
             case MERGE_FAILED:
                 log.info(event + " [" + getLocalMemberUuid() + "]");
+                makeServiceUnavailable();
                 this.writeLockRunnable.unlock(event.getState());
-                this.writeLockRunnable.shutdown();
                 QueryMetricService.shutdown();
                 break;
             default:
@@ -91,6 +115,13 @@ public class MergeLockLifecycleListener implements LifecycleListener, HazelcastI
     }
     
     public void lock() {
+        while (!this.allowReadLock.get()) {
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException e) {
+                
+            }
+        }
         if (log.isTraceEnabled()) {
             log.trace("locking for read");
         }
@@ -116,7 +147,6 @@ public class MergeLockLifecycleListener implements LifecycleListener, HazelcastI
         private AtomicBoolean requestLock = new AtomicBoolean();
         private AtomicBoolean requestUnlock = new AtomicBoolean();
         private long scheduledUnlockTime = Long.MAX_VALUE;
-        private boolean shuttingDown = false;
         
         public WriteLockRunnable(ReentrantReadWriteLock clusterLock) {
             this.clusterLock = clusterLock;
@@ -124,14 +154,14 @@ public class MergeLockLifecycleListener implements LifecycleListener, HazelcastI
         
         @Override
         public void run() {
-            while (!shuttingDown) {
+            while (!isShuttingDown()) {
                 if (this.requestLock.get() == true) {
                     this.clusterLock.writeLock().lock();
                     // allow the lock() thread to continue
                     this.requestLock.set(false);
                     try {
                         // wait for unlock() to be called or a scheduled unlock
-                        while (requestUnlock.get() == false && System.currentTimeMillis() < this.scheduledUnlockTime && !shuttingDown) {
+                        while (requestUnlock.get() == false && System.currentTimeMillis() < this.scheduledUnlockTime && !shuttingDown.get()) {
                             try {
                                 Thread.sleep(100);
                             } catch (InterruptedException e) {
@@ -159,7 +189,7 @@ public class MergeLockLifecycleListener implements LifecycleListener, HazelcastI
             if (this.requestLock.compareAndSet(false, true)) {
                 this.scheduledUnlockTime = System.currentTimeMillis() + maxLockMilliseconds;
                 // wait until run() method locks the writeLock and sets requestLock to false
-                while (requestLock.get() == true) {
+                while (requestLock.get() == true && !isShuttingDown()) {
                     try {
                         Thread.sleep(100);
                     } catch (InterruptedException e) {
@@ -177,7 +207,7 @@ public class MergeLockLifecycleListener implements LifecycleListener, HazelcastI
             // prompt run() method to unlock the writeLock
             if (this.requestUnlock.compareAndSet(false, true)) {
                 // wait until run() method unlocks the writeLock and sets requestUnlock to false
-                while (requestUnlock.get() == true) {
+                while (requestUnlock.get() == true && !isShuttingDown()) {
                     try {
                         Thread.sleep(100);
                     } catch (InterruptedException e) {
@@ -186,10 +216,9 @@ public class MergeLockLifecycleListener implements LifecycleListener, HazelcastI
                 }
             }
             log.info("unlocked for write [" + state + "]");
-        }
-        
-        public void shutdown() {
-            this.shuttingDown = true;
+            if (state.equals(LifecycleEvent.LifecycleState.STARTED)) {
+                makeServiceAvailable();
+            }
         }
     }
 }

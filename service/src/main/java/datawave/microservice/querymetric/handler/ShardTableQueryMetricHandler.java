@@ -16,7 +16,6 @@ import datawave.ingest.data.config.ingest.AbstractContentIngestHelper;
 import datawave.ingest.mapreduce.handler.shard.AbstractColumnBasedHandler;
 import datawave.ingest.mapreduce.handler.tokenize.ContentIndexingColumnBasedHandler;
 import datawave.ingest.mapreduce.job.BulkIngestKey;
-import datawave.ingest.mapreduce.job.writer.LiveContextWriter;
 import datawave.ingest.table.config.TableConfigHelper;
 import datawave.marking.MarkingFunctions;
 import datawave.microservice.authorization.user.DatawaveUserDetails;
@@ -44,13 +43,13 @@ import datawave.webservice.result.EventQueryResponseBase;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.MutationsRejectedException;
+import org.apache.accumulo.core.client.NamespaceExistsException;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.time.DateUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -81,6 +80,7 @@ import java.util.Map.Entry;
 import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public abstract class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends BaseQueryMetricHandler<T> {
     private final Logger log = LoggerFactory.getLogger(getClass());
@@ -104,6 +104,8 @@ public abstract class ShardTableQueryMetricHandler<T extends BaseQueryMetric> ex
     protected QueryMetricCombiner queryMetricCombiner;
     protected MarkingFunctions markingFunctions;
     protected DnUtils dnUtils;
+    // this lock is necessary for when there is an error condition and the accumuloRecordWriter needs to be replaced
+    protected ReentrantReadWriteLock accumuloRecordWriterLock = new ReentrantReadWriteLock();
     
     public ShardTableQueryMetricHandler(QueryMetricHandlerProperties queryMetricHandlerProperties,
                     @Qualifier("warehouse") AccumuloConnectionPool connectionPool, QueryMetricQueryLogicFactory logicFactory, QueryMetricFactory metricFactory,
@@ -117,6 +119,7 @@ public abstract class ShardTableQueryMetricHandler<T extends BaseQueryMetric> ex
         this.dnUtils = dnUtils;
         this.connectionPool = connectionPool;
         this.queryMetricCombiner = queryMetricCombiner;
+        
         queryMetricHandlerProperties.getProperties().entrySet().forEach(e -> conf.set(e.getKey(), e.getValue()));
         
         Connector connector = null;
@@ -140,15 +143,28 @@ public abstract class ShardTableQueryMetricHandler<T extends BaseQueryMetric> ex
         }
     }
     
-    @Override
-    protected void finalize() throws Throwable {
-        super.finalize();
-        this.recordWriter.close(null);
+    public void shutdown() throws Exception {
+        if (this.recordWriter != null) {
+            this.accumuloRecordWriterLock.writeLock().lock();
+            try {
+                this.recordWriter.close(null);
+                this.recordWriter = null;
+            } finally {
+                this.accumuloRecordWriterLock.writeLock().unlock();
+            }
+        }
     }
     
     @Override
     public void flush() throws Exception {
-        this.recordWriter.flush();
+        if (this.recordWriter != null) {
+            this.accumuloRecordWriterLock.readLock().lock();
+            try {
+                this.recordWriter.flush();
+            } finally {
+                this.accumuloRecordWriterLock.readLock().unlock();
+            }
+        }
     }
     
     public void verifyTables() {
@@ -162,7 +178,7 @@ public abstract class ShardTableQueryMetricHandler<T extends BaseQueryMetric> ex
             };
             Map<String,String> trackingMap = AccumuloConnectionTracking.getTrackingMap(Thread.currentThread().getStackTrace());
             connector = connectionPool.borrowObject(trackingMap);
-            createAndConfigureTablesIfNecessary(handler.getTableNames(conf), connector.tableOperations(), conf);
+            createAndConfigureTablesIfNecessary(handler.getTableNames(conf), connector, conf);
         } catch (Exception e) {
             log.error("Error verifying table configuration", e);
         } finally {
@@ -173,56 +189,56 @@ public abstract class ShardTableQueryMetricHandler<T extends BaseQueryMetric> ex
     }
     
     public void writeMetric(T updatedQueryMetric, List<T> storedQueryMetrics, Date lastUpdated, boolean delete) throws Exception {
-        LiveContextWriter contextWriter = null;
-        MapContext<Text,RawRecordContainer,Text,Mutation> context = null;
-        
         try {
-            contextWriter = new LiveContextWriter();
-            contextWriter.setup(conf, false);
-            
             TaskAttemptID taskId = new TaskAttemptID(new TaskID(new JobID(JOB_ID, 1), TaskType.MAP, 1), 1);
-            context = new MapContextImpl<>(conf, taskId, null, recordWriter, null, reporter, null);
             
-            for (T storedQueryMetric : storedQueryMetrics) {
-                ContentIndexingColumnBasedHandler handler = new ContentIndexingColumnBasedHandler() {
-                    @Override
-                    public AbstractContentIngestHelper getContentIndexingDataTypeHelper() {
-                        return getQueryMetricsIngestHelper(delete);
-                    }
-                };
-                handler.setup(context);
-                
-                Multimap<BulkIngestKey,Value> r = getEntries(handler, updatedQueryMetric, storedQueryMetric, lastUpdated);
-                
-                try {
+            this.accumuloRecordWriterLock.readLock().lock();
+            try {
+                MapContext<Text,RawRecordContainer,Text,Mutation> context = new MapContextImpl<>(conf, taskId, null, this.recordWriter, null, reporter, null);
+                for (T storedQueryMetric : storedQueryMetrics) {
+                    ContentIndexingColumnBasedHandler handler = new ContentIndexingColumnBasedHandler() {
+                        @Override
+                        public AbstractContentIngestHelper getContentIndexingDataTypeHelper() {
+                            return getQueryMetricsIngestHelper(delete);
+                        }
+                    };
+                    handler.setup(context);
+                    Multimap<BulkIngestKey,Value> r = getEntries(handler, updatedQueryMetric, storedQueryMetric, lastUpdated);
                     if (r != null) {
-                        contextWriter.write(r, context);
+                        for (Entry<BulkIngestKey,Value> e : r.entries()) {
+                            recordWriter.write(e.getKey().getTableName(), getMutation(e.getKey().getKey(), e.getValue()));
+                        }
                     }
-                    
                     if (!delete && handler.getMetadata() != null) {
-                        contextWriter.write(handler.getMetadata().getBulkMetadata(), context);
+                        for (Entry<BulkIngestKey,Value> e : handler.getMetadata().getBulkMetadata().entries()) {
+                            recordWriter.write(e.getKey().getTableName(), getMutation(e.getKey().getKey(), e.getValue()));
+                        }
                     }
-                } finally {
-                    contextWriter.commit(context);
                 }
+            } finally {
+                this.accumuloRecordWriterLock.readLock().unlock();
             }
         } catch (Exception e) {
+            log.error(e.getMessage(), e);
             // assume that an error happened with the AccumuloRecordWriter
-            contextWriter = null;
+            // mark recordWriter as unhealthy -- the first thread to get the writeLock in
+            // reload will create a new one that will be marked healthy
+            this.recordWriter.setHealthy(false);
             reload();
             // we have no way of knowing if the rejected mutation is this one or a previously
-            // buffered one, but will stop the Exception propagation here just in case.
-            // Otherwise, Hazelcast will keep trying to write the metric
-            if (e.getCause() instanceof MutationsRejectedException) {
-                log.error(e.getMessage(), e);
-            } else {
-                throw e;
-            }
-        } finally {
-            if (contextWriter != null && context != null) {
-                contextWriter.cleanup(context);
-            }
+            // written one throw the exception so that the metric will be re-written
+            throw e;
         }
+    }
+    
+    private Mutation getMutation(Key key, Value value) {
+        Mutation m = new Mutation(key.getRow());
+        if (key.isDeleted()) {
+            m.putDelete(key.getColumnFamily(), key.getColumnQualifier(), new ColumnVisibility(key.getColumnVisibility()), key.getTimestamp());
+        } else {
+            m.put(key.getColumnFamily(), key.getColumnQualifier(), new ColumnVisibility(key.getColumnVisibility()), key.getTimestamp(), value);
+        }
+        return m;
     }
     
     public Map<String,String> getEventFields(BaseQueryMetric queryMetric) {
@@ -417,7 +433,7 @@ public abstract class ShardTableQueryMetricHandler<T extends BaseQueryMetric> ex
         List<String> excludedFields = Arrays.asList("ELAPSED_TIME", "RECORD_ID", "NUM_PAGES", "NUM_RESULTS");
         
         try {
-            T m = (T) metricFactory.createMetric();
+            T m = (T) metricFactory.createMetric(false);
             List<FieldBase> field = event.getFields();
             m.setMarkings(event.getMarkings());
             TreeMap<Long,PageMetric> pageMetrics = Maps.newTreeMap();
@@ -556,11 +572,11 @@ public abstract class ShardTableQueryMetricHandler<T extends BaseQueryMetric> ex
                     } else if (fieldName.equals("USER_DN")) {
                         m.setUserDN(fieldValue);
                     } else if (fieldName.equals("VERSION")) {
-                        m.setVersion(fieldValue);
+                        m.addVersion(BaseQueryMetric.DATAWAVE, fieldValue);
+                    } else if (fieldName.startsWith("VERSION.")) {
+                        m.addVersion(fieldName.substring(8), fieldValue);
                     } else if (fieldName.equals("YIELD_COUNT")) {
                         m.setYieldCount(Long.parseLong(fieldValue));
-                    } else {
-                        log.debug("encountered unanticipated field name: " + fieldName);
                     }
                 }
             }
@@ -580,19 +596,30 @@ public abstract class ShardTableQueryMetricHandler<T extends BaseQueryMetric> ex
         }
     }
     
-    protected void createAndConfigureTablesIfNecessary(String[] tableNames, TableOperations tops, Configuration conf)
+    protected void createAndConfigureTablesIfNecessary(String[] tableNames, Connector connector, Configuration conf)
                     throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
         for (String table : tableNames) {
             // If the tables don't exist, then create them.
             try {
-                if (!tops.exists(table)) {
-                    tops.create(table);
+                String[] tableNameSplit = StringUtils.split(table, '.');
+                if (tableNameSplit.length > 1) {
+                    String namespace = tableNameSplit[0];
+                    if (!connector.namespaceOperations().exists(namespace)) {
+                        try {
+                            connector.namespaceOperations().create(namespace);
+                        } catch (NamespaceExistsException e) {
+                            log.error(e.getMessage());
+                        }
+                    }
+                }
+                if (!connector.tableOperations().exists(table)) {
+                    connector.tableOperations().create(table);
                     Map<String,TableConfigHelper> tableConfigs = getTableConfigs(conf, tableNames);
                     
                     TableConfigHelper tableHelper = tableConfigs.get(table);
                     
                     if (tableHelper != null) {
-                        tableHelper.configure(tops);
+                        tableHelper.configure(connector.tableOperations());
                     } else {
                         log.info("No configuration supplied for table: " + table);
                     }
@@ -634,16 +661,24 @@ public abstract class ShardTableQueryMetricHandler<T extends BaseQueryMetric> ex
     
     @Override
     public void reload() {
+        this.accumuloRecordWriterLock.writeLock().lock();
         try {
-            if (this.recordWriter != null) {
-                // don't try to flush the mtbw (close). If recordWriter != null then this method is being called
-                // because of an Exception and the metrics have been saved off to be added to the new recordWriter.
-                this.recordWriter.returnConnector();
+            if (this.recordWriter == null || !this.recordWriter.isHealthy()) {
+                log.info("creating new AccumuloRecordWriter");
+                try {
+                    if (this.recordWriter != null) {
+                        // don't try to flush the mtbw (close). If recordWriter != null then this method is being called
+                        // because of an Exception and the writing of the metrics should be re-tried with the new recordWriter.
+                        this.recordWriter.returnConnector();
+                    }
+                    this.recordWriter = new AccumuloRecordWriter(connectionPool, conf);
+                } catch (Exception e) {
+                    log.error(e.getMessage(), e);
+                    throw new RuntimeException(e.getMessage(), e);
+                }
             }
-            recordWriter = new AccumuloRecordWriter(connectionPool, conf);
-        } catch (Exception e) {
-            log.error(e.getMessage(), e);
-            throw new RuntimeException(e.getMessage(), e);
+        } finally {
+            this.accumuloRecordWriterLock.writeLock().unlock();
         }
     }
     
