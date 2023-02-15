@@ -197,8 +197,8 @@ public class QueryMetricTest {
                 Assertions.assertTrue(fieldNumber > 0, String.format(message, fieldName, className));
                 String schemaFieldName = schema.getFieldName(fieldNumber);
                 Assertions.assertNotNull(schemaFieldName, String.format(message, f.getName(), className, fieldName));
-                assertEquals(String.format("field name [%s] and protobuf field name [%s] should match", f.getName(), schemaFieldName), f.getName(),
-                                schemaFieldName);
+                assertEquals(f.getName(), schemaFieldName,
+                                String.format("field name [%s] and protobuf field name [%s] should match", f.getName(), schemaFieldName));
             }
         }
     }
