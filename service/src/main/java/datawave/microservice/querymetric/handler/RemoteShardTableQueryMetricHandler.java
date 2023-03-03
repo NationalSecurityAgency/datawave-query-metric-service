@@ -89,7 +89,7 @@ public class RemoteShardTableQueryMetricHandler<T extends BaseQueryMetric> exten
             // @formatter:off
             return webClient.post()
                     .uri(uriBuilder -> uriBuilder
-                            .path(queryMetricHandlerProperties.getQueryMetricsLogic() + "/createAndNext")
+                            .path("/" + queryMetricHandlerProperties.getQueryMetricsLogic() + "/createAndNext")
                             .queryParam(QueryParameters.QUERY_POOL, queryMetricHandlerProperties.getQueryPool())
                             .queryParam(QueryParameters.QUERY_BEGIN, beginDate)
                             .queryParam(QueryParameters.QUERY_END, endDate)
@@ -120,7 +120,7 @@ public class RemoteShardTableQueryMetricHandler<T extends BaseQueryMetric> exten
             // @formatter:off
             return webClient.get()
                     .uri(uriBuilder -> uriBuilder
-                            .path(queryId + "/next")
+                            .path("/" + queryId + "/next")
                             .build())
                     .header("Authorization", bearerHeader)
                     .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)

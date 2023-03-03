@@ -68,7 +68,7 @@ public class QueryMetricHandlerProperties {
     protected String policyEnforcerClass = "datawave.policy.IngestPolicyEnforcer$NoOpIngestPolicyEnforcer";
     protected String baseMaps = "{}";
     protected String authServiceUri = "https://authorization:8443/authorization/v1/authorize";
-    protected String queryServiceUri = "https://query:8443/query/v1/";
+    protected String queryServiceUri = "https://query:8443/query/v1/query";
     protected String queryPool = "";
     @NotEmpty
     protected String queryMetricsLogic = "InternalQueryMetricsQuery";
