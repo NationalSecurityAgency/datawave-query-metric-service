@@ -1,10 +1,6 @@
 package datawave.microservice.querymetric.handler;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import datawave.core.common.connection.AccumuloConnectionFactory.Priority;
-import datawave.core.common.connection.AccumuloConnectionPool;
-import datawave.core.query.logic.QueryLogic;
-import datawave.core.query.logic.QueryLogicTransformer;
 import datawave.marking.MarkingFunctions;
 import datawave.microservice.querymetric.BaseQueryMetric;
 import datawave.microservice.querymetric.QueryMetricFactory;
@@ -15,7 +11,11 @@ import datawave.query.language.parser.jexl.LuceneToJexlQueryParser;
 import datawave.security.authorization.DatawavePrincipal;
 import datawave.security.authorization.DatawaveUser;
 import datawave.security.authorization.SubjectIssuerDNPair;
+import datawave.webservice.common.connection.AccumuloConnectionFactory;
+import datawave.webservice.common.connection.AccumuloConnectionPool;
 import datawave.webservice.query.Query;
+import datawave.webservice.query.logic.QueryLogic;
+import datawave.webservice.query.logic.QueryLogicTransformer;
 import datawave.webservice.query.runner.RunningQuery;
 import datawave.webservice.result.BaseQueryResponse;
 import org.apache.accumulo.core.client.Connector;
@@ -86,8 +86,8 @@ public class LocalShardTableQueryMetricHandler<T extends BaseQueryMetric> extend
                 
                 cachedQuery.setConnector(connector);
                 
-                runningQuery = new RunningQuery(null, connector, Priority.ADMIN, queryLogic, query, query.getQueryAuthorizations(), datawavePrincipal,
-                                datawaveQueryMetricFactory);
+                runningQuery = new RunningQuery(null, connector, AccumuloConnectionFactory.Priority.ADMIN, queryLogic, query, query.getQueryAuthorizations(),
+                                datawavePrincipal, datawaveQueryMetricFactory);
                 
                 cachedQuery.setRunningQuery(runningQuery);
                 
