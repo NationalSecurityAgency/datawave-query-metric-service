@@ -3,7 +3,9 @@ package datawave.microservice.querymetric;
 import com.hazelcast.cluster.MembershipEvent;
 import com.hazelcast.cluster.MembershipListener;
 import com.hazelcast.config.Config;
+import com.hazelcast.config.JoinConfig;
 import com.hazelcast.config.MergePolicyConfig;
+import com.hazelcast.config.TcpIpConfig;
 import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.LifecycleEvent;
@@ -26,7 +28,7 @@ import static com.hazelcast.internal.util.ExceptionUtil.rethrow;
 
 public class QueryMetricSplitBrainMergePolicyTest {
     
-    private Logger log = LoggerFactory.getLogger(TestMemberShipListener.class);
+    private Logger log = LoggerFactory.getLogger(QueryMetricSplitBrainMergePolicyTest.class);
     
     private final static QueryMetricFactory queryMetricFactory = new QueryMetricFactoryImpl();
     
@@ -181,11 +183,15 @@ public class QueryMetricSplitBrainMergePolicyTest {
                         .setProperty(ClusterProperty.MERGE_NEXT_RUN_DELAY_SECONDS.getName(), "3");
         
         config.setClusterName(HazelcastUtils.generateRandomString(10));
-        
         MergePolicyConfig mergePolicyConfig = new MergePolicyConfig();
         mergePolicyConfig.setPolicy(mergePolicy);
         config.getMapConfig(mapName).setMergePolicyConfig(mergePolicyConfig);
         config.getMapConfig(mapName).setPerEntryStatsEnabled(true);
+        JoinConfig joinConfig = config.getNetworkConfig().getJoin();
+        joinConfig.getMulticastConfig().setEnabled(false);
+        TcpIpConfig tcpIpConfig = joinConfig.getTcpIpConfig();
+        tcpIpConfig.addMember("127.0.0.1");
+        tcpIpConfig.setEnabled(true);
         return config;
     }
     
