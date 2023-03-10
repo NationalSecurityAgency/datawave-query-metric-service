@@ -10,7 +10,7 @@ import datawave.microservice.security.util.DnUtils;
 import datawave.query.language.parser.jexl.LuceneToJexlQueryParser;
 import datawave.security.authorization.DatawaveUser;
 import datawave.security.authorization.JWTTokenHandler;
-import datawave.webservice.common.connection.AccumuloConnectionPool;
+import datawave.webservice.common.connection.AccumuloClientPool;
 import datawave.webservice.query.Query;
 import datawave.webservice.query.QueryParameters;
 import datawave.webservice.query.QueryParametersImpl;
@@ -37,12 +37,11 @@ public class RemoteShardTableQueryMetricHandler<T extends BaseQueryMetric> exten
     private final WebClient authWebClient;
     private final JWTTokenHandler jwtTokenHandler;
     
-    public RemoteShardTableQueryMetricHandler(QueryMetricHandlerProperties queryMetricHandlerProperties,
-                    @Qualifier("warehouse") AccumuloConnectionPool connectionPool, QueryMetricQueryLogicFactory logicFactory, QueryMetricFactory metricFactory,
-                    MarkingFunctions markingFunctions, QueryMetricCombiner queryMetricCombiner, LuceneToJexlQueryParser luceneToJexlQueryParser,
-                    WebClient.Builder webClientBuilder, JWTTokenHandler jwtTokenHandler, DnUtils dnUtils) {
-        super(queryMetricHandlerProperties, connectionPool, logicFactory, metricFactory, markingFunctions, queryMetricCombiner, luceneToJexlQueryParser,
-                        dnUtils);
+    public RemoteShardTableQueryMetricHandler(QueryMetricHandlerProperties queryMetricHandlerProperties, @Qualifier("warehouse") AccumuloClientPool clientPool,
+                    QueryMetricQueryLogicFactory logicFactory, QueryMetricFactory metricFactory, MarkingFunctions markingFunctions,
+                    QueryMetricCombiner queryMetricCombiner, LuceneToJexlQueryParser luceneToJexlQueryParser, WebClient.Builder webClientBuilder,
+                    JWTTokenHandler jwtTokenHandler, DnUtils dnUtils) {
+        super(queryMetricHandlerProperties, clientPool, logicFactory, metricFactory, markingFunctions, queryMetricCombiner, luceneToJexlQueryParser, dnUtils);
         
         this.webClient = webClientBuilder.baseUrl(queryMetricHandlerProperties.getQueryServiceUri()).build();
         this.jwtTokenHandler = jwtTokenHandler;
@@ -80,8 +79,8 @@ public class RemoteShardTableQueryMetricHandler<T extends BaseQueryMetric> exten
         String expirationDate = QueryParametersImpl.formatDate(query.getExpirationDate());
         
         Collection<String> userAuths = new ArrayList<>(userDetails.getPrimaryUser().getAuths());
-        if (connectorAuthorizations != null) {
-            Collection<String> connectorAuths = Arrays.asList(StringUtils.split(connectorAuthorizations, ','));
+        if (clientAuthorizations != null) {
+            Collection<String> connectorAuths = Arrays.asList(StringUtils.split(clientAuthorizations, ','));
             userAuths.retainAll(connectorAuths);
         }
         

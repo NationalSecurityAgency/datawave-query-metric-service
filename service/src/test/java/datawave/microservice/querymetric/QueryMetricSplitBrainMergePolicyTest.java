@@ -10,8 +10,6 @@ import com.hazelcast.core.LifecycleEvent;
 import com.hazelcast.core.LifecycleListener;
 import com.hazelcast.map.IMap;
 import com.hazelcast.spi.properties.ClusterProperty;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,6 +21,9 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import static com.hazelcast.internal.util.ExceptionUtil.rethrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
 public class QueryMetricSplitBrainMergePolicyTest {
     
@@ -33,7 +34,7 @@ public class QueryMetricSplitBrainMergePolicyTest {
     @Test
     public void testAllPagesMerged() {
         // This test always fails during github CI (presumably due to resource constraints), so we need to be able to skip it
-        Assumptions.assumeFalse(Boolean.parseBoolean(System.getProperty("skipSplitBrainTest")));
+        assumeFalse(Boolean.parseBoolean(System.getProperty("skipSplitBrainTest")));
         
         String mapName = HazelcastUtils.randomMapName();
         Config config = newConfig(QueryMetricSplitBrainMergePolicy.class.getName(), mapName);
@@ -53,8 +54,8 @@ public class QueryMetricSplitBrainMergePolicyTest {
         
         HazelcastUtils.assertClusterSizeEventually(2, h1, h2);
         
-        Assertions.assertEquals(2, h1.getCluster().getMembers().size());
-        Assertions.assertEquals(2, h2.getCluster().getMembers().size());
+        assertEquals(2, h1.getCluster().getMembers().size());
+        assertEquals(2, h2.getCluster().getMembers().size());
         
         HazelcastUtils.closeConnectionBetween(h1, h2);
         
@@ -94,8 +95,8 @@ public class QueryMetricSplitBrainMergePolicyTest {
         HazelcastUtils.assertClusterSizeEventually(2, h1, h2);
         
         IMap<Object,Object> mapTest = h1.getMap(mapName);
-        Assertions.assertEquals(2, ((QueryMetricUpdate) mapTest.get("key1")).getMetric().getNumPages());
-        Assertions.assertEquals(3, ((QueryMetricUpdate) mapTest.get("key2")).getMetric().getNumPages());
+        assertEquals(2, ((QueryMetricUpdate) mapTest.get("key1")).getMetric().getNumPages());
+        assertEquals(3, ((QueryMetricUpdate) mapTest.get("key2")).getMetric().getNumPages());
         
         h1.shutdown();
         h2.shutdown();
@@ -104,7 +105,7 @@ public class QueryMetricSplitBrainMergePolicyTest {
     @Test
     public void testFieldsUpdated() {
         // This test always fails during github CI (presumably due to resource constraints), so we need to be able to skip it
-        Assumptions.assumeFalse(Boolean.parseBoolean(System.getProperty("skipSplitBrainTest")));
+        assumeFalse(Boolean.parseBoolean(System.getProperty("skipSplitBrainTest")));
         
         String mapName = HazelcastUtils.randomMapName();
         Config config = newConfig(QueryMetricSplitBrainMergePolicy.class.getName(), mapName);
@@ -124,8 +125,8 @@ public class QueryMetricSplitBrainMergePolicyTest {
         
         HazelcastUtils.assertClusterSizeEventually(2, h1, h2);
         
-        Assertions.assertEquals(2, h1.getCluster().getMembers().size());
-        Assertions.assertEquals(2, h2.getCluster().getMembers().size());
+        assertEquals(2, h1.getCluster().getMembers().size());
+        assertEquals(2, h2.getCluster().getMembers().size());
         
         HazelcastUtils.closeConnectionBetween(h1, h2);
         
@@ -157,11 +158,11 @@ public class QueryMetricSplitBrainMergePolicyTest {
         HazelcastUtils.assertClusterSizeEventually(2, h1, h2);
         
         IMap<Object,Object> mapTest = h2.getMap(mapName);
-        Assertions.assertNotNull(mapTest.get(key));
+        assertNotNull(mapTest.get(key));
         BaseQueryMetric mergedMetric = ((QueryMetricUpdateHolder) mapTest.get(key)).getMetric();
         
-        Assertions.assertEquals(BaseQueryMetric.Lifecycle.CLOSED, mergedMetric.getLifecycle());
-        Assertions.assertEquals(time2, mergedMetric.getLastUpdated().getTime());
+        assertEquals(BaseQueryMetric.Lifecycle.CLOSED, mergedMetric.getLifecycle());
+        assertEquals(time2, mergedMetric.getLastUpdated().getTime());
         
         h1.shutdown();
         h2.shutdown();
@@ -203,12 +204,12 @@ public class QueryMetricSplitBrainMergePolicyTest {
         public void stateChanged(LifecycleEvent event) {
             if (event.getState() == LifecycleEvent.LifecycleState.MERGING) {
                 try {
-                    mergeBlockingLatch.await(30, TimeUnit.SECONDS);
+                    this.mergeBlockingLatch.await(30, TimeUnit.SECONDS);
                 } catch (InterruptedException e) {
                     throw rethrow(e);
                 }
             } else if (event.getState() == LifecycleEvent.LifecycleState.MERGED) {
-                mergeFinishedLatch.countDown();
+                this.mergeFinishedLatch.countDown();
             }
         }
     }
@@ -226,7 +227,7 @@ public class QueryMetricSplitBrainMergePolicyTest {
         
         @Override
         public void memberRemoved(MembershipEvent membershipEvent) {
-            memberRemovedLatch.countDown();
+            this.memberRemovedLatch.countDown();
         }
     }
 }

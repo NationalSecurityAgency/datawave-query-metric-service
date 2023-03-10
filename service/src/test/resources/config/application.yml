@@ -58,7 +58,7 @@ datawave:
         instanceName: ${warehouse-cluster.accumulo.instanceName}
         username: ${warehouse-cluster.accumulo.username}
         password: ${warehouse-cluster.accumulo.password}
-        accumuloConnectionPoolSize: 16
+        accumuloClientPoolSize: 16
         mapStoreWriteThreads: 1
         numShards: 10
         fieldLengthThreshold: 4049

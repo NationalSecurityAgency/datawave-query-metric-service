@@ -15,6 +15,8 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 @ExtendWith(SpringExtension.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ContextConfiguration(classes = MessagingTest.MessagingTestConfiguration.class)
@@ -51,9 +53,9 @@ public class MessagingTest extends QueryMetricTestBase {
         ResponseEntity<BaseQueryMetricListResponse> metricResponse = restTemplate.exchange(metricUri.toUri(), HttpMethod.GET, metricRequestEntity,
                         BaseQueryMetricListResponse.class);
         
-        Assertions.assertEquals(1, metricResponse.getBody().getNumResults());
+        assertEquals(1, metricResponse.getBody().getNumResults());
         BaseQueryMetric returnedMetric = (BaseQueryMetric) metricResponse.getBody().getResult().get(0);
-        assertEquals(m, returnedMetric);
+        metricAssertEquals(m, returnedMetric);
     }
     
     @Test
@@ -80,10 +82,10 @@ public class MessagingTest extends QueryMetricTestBase {
             ResponseEntity<BaseQueryMetricListResponse> metricResponse = restTemplate.exchange(metricUri.toUri(), HttpMethod.GET, metricRequestEntity,
                             BaseQueryMetricListResponse.class);
             
-            Assertions.assertEquals(1, metricResponse.getBody().getNumResults());
+            assertEquals(1, metricResponse.getBody().getNumResults());
             BaseQueryMetric returnedMetric = (BaseQueryMetric) metricResponse.getBody().getResult().get(0);
-            Assertions.assertEquals(i + 1, returnedMetric.getPageTimes().size());
-            assertEquals(m, returnedMetric);
+            assertEquals(i + 1, returnedMetric.getPageTimes().size());
+            metricAssertEquals(m, returnedMetric);
         }
     }
 }

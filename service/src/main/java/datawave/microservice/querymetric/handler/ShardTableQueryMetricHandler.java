@@ -31,7 +31,7 @@ import datawave.query.iterator.QueryOptions;
 import datawave.query.language.parser.jexl.LuceneToJexlQueryParser;
 import datawave.security.authorization.DatawaveUser;
 import datawave.security.util.AuthorizationsUtil;
-import datawave.webservice.common.connection.AccumuloConnectionPool;
+import datawave.webservice.common.connection.AccumuloClientPool;
 import datawave.webservice.query.Query;
 import datawave.webservice.query.QueryImpl;
 import datawave.webservice.query.exception.QueryExceptionType;
@@ -40,9 +40,9 @@ import datawave.webservice.query.result.event.FieldBase;
 import datawave.webservice.query.util.QueryUtil;
 import datawave.webservice.result.BaseQueryResponse;
 import datawave.webservice.result.EventQueryResponseBase;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.NamespaceExistsException;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -86,9 +86,9 @@ public abstract class ShardTableQueryMetricHandler<T extends BaseQueryMetric> ex
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final org.apache.log4j.Logger setupLogger = org.apache.log4j.Logger.getLogger(getClass());
     
-    protected String connectorAuthorizations;
+    protected String clientAuthorizations;
     
-    protected AccumuloConnectionPool connectionPool;
+    protected AccumuloClientPool accumuloClientPool;
     protected QueryMetricHandlerProperties queryMetricHandlerProperties;
     
     @SuppressWarnings("FieldCanBeLocal")
@@ -108,7 +108,7 @@ public abstract class ShardTableQueryMetricHandler<T extends BaseQueryMetric> ex
     protected ReentrantReadWriteLock accumuloRecordWriterLock = new ReentrantReadWriteLock();
     
     public ShardTableQueryMetricHandler(QueryMetricHandlerProperties queryMetricHandlerProperties,
-                    @Qualifier("warehouse") AccumuloConnectionPool connectionPool, QueryMetricQueryLogicFactory logicFactory, QueryMetricFactory metricFactory,
+                    @Qualifier("warehouse") AccumuloClientPool accumuloClientPool, QueryMetricQueryLogicFactory logicFactory, QueryMetricFactory metricFactory,
                     MarkingFunctions markingFunctions, QueryMetricCombiner queryMetricCombiner, LuceneToJexlQueryParser luceneToJexlQueryParser,
                     DnUtils dnUtils) {
         super(luceneToJexlQueryParser);
@@ -117,17 +117,17 @@ public abstract class ShardTableQueryMetricHandler<T extends BaseQueryMetric> ex
         this.metricFactory = metricFactory;
         this.markingFunctions = markingFunctions;
         this.dnUtils = dnUtils;
-        this.connectionPool = connectionPool;
+        this.accumuloClientPool = accumuloClientPool;
         this.queryMetricCombiner = queryMetricCombiner;
         
         queryMetricHandlerProperties.getProperties().entrySet().forEach(e -> conf.set(e.getKey(), e.getValue()));
         
-        Connector connector = null;
+        AccumuloClient accumuloClient = null;
         try {
             log.info("creating connector with username:" + queryMetricHandlerProperties.getUsername());
-            Map<String,String> trackingMap = AccumuloConnectionTracking.getTrackingMap(Thread.currentThread().getStackTrace());
-            connector = connectionPool.borrowObject(trackingMap);
-            this.connectorAuthorizations = connector.securityOperations().getUserAuthorizations(connector.whoami()).toString();
+            Map<String,String> trackingMap = AccumuloClientTracking.getTrackingMap(Thread.currentThread().getStackTrace());
+            accumuloClient = accumuloClientPool.borrowObject(trackingMap);
+            this.clientAuthorizations = accumuloClient.securityOperations().getUserAuthorizations(accumuloClient.whoami()).toString();
             reload();
             
             if (this.tablesChecked.compareAndSet(false, true)) {
@@ -137,8 +137,8 @@ public abstract class ShardTableQueryMetricHandler<T extends BaseQueryMetric> ex
             log.error(e.getMessage(), e);
             throw new RuntimeException(e.getMessage(), e);
         } finally {
-            if (connector != null) {
-                this.connectionPool.returnObject(connector);
+            if (accumuloClient != null) {
+                this.accumuloClientPool.returnObject(accumuloClient);
             }
         }
     }
@@ -168,7 +168,7 @@ public abstract class ShardTableQueryMetricHandler<T extends BaseQueryMetric> ex
     }
     
     public void verifyTables() {
-        Connector connector = null;
+        AccumuloClient accumuloClient = null;
         try {
             AbstractColumnBasedHandler<Key> handler = new ContentIndexingColumnBasedHandler() {
                 @Override
@@ -176,14 +176,14 @@ public abstract class ShardTableQueryMetricHandler<T extends BaseQueryMetric> ex
                     return getQueryMetricsIngestHelper(false);
                 }
             };
-            Map<String,String> trackingMap = AccumuloConnectionTracking.getTrackingMap(Thread.currentThread().getStackTrace());
-            connector = connectionPool.borrowObject(trackingMap);
-            createAndConfigureTablesIfNecessary(handler.getTableNames(conf), connector, conf);
+            Map<String,String> trackingMap = AccumuloClientTracking.getTrackingMap(Thread.currentThread().getStackTrace());
+            accumuloClient = accumuloClientPool.borrowObject(trackingMap);
+            createAndConfigureTablesIfNecessary(handler.getTableNames(conf), accumuloClient, conf);
         } catch (Exception e) {
             log.error("Error verifying table configuration", e);
         } finally {
-            if (connector != null) {
-                this.connectionPool.returnObject(connector);
+            if (accumuloClient != null) {
+                this.accumuloClientPool.returnObject(accumuloClient);
             }
         }
     }
@@ -363,7 +363,7 @@ public abstract class ShardTableQueryMetricHandler<T extends BaseQueryMetric> ex
         queryImpl.setQuery(query);
         queryImpl.setQueryName(queryMetricHandlerProperties.getQueryMetricsLogic());
         queryImpl.setColumnVisibility(queryMetricHandlerProperties.getQueryVisibility());
-        queryImpl.setQueryAuthorizations(this.connectorAuthorizations);
+        queryImpl.setQueryAuthorizations(this.clientAuthorizations);
         queryImpl.setExpirationDate(DateUtils.addDays(new Date(), 1));
         queryImpl.setPagesize(1000);
         queryImpl.setId(UUID.randomUUID());
@@ -596,7 +596,7 @@ public abstract class ShardTableQueryMetricHandler<T extends BaseQueryMetric> ex
         }
     }
     
-    protected void createAndConfigureTablesIfNecessary(String[] tableNames, Connector connector, Configuration conf)
+    protected void createAndConfigureTablesIfNecessary(String[] tableNames, AccumuloClient accumuloClient, Configuration conf)
                     throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
         for (String table : tableNames) {
             // If the tables don't exist, then create them.
@@ -604,22 +604,22 @@ public abstract class ShardTableQueryMetricHandler<T extends BaseQueryMetric> ex
                 String[] tableNameSplit = StringUtils.split(table, '.');
                 if (tableNameSplit.length > 1) {
                     String namespace = tableNameSplit[0];
-                    if (!connector.namespaceOperations().exists(namespace)) {
+                    if (!accumuloClient.namespaceOperations().exists(namespace)) {
                         try {
-                            connector.namespaceOperations().create(namespace);
+                            accumuloClient.namespaceOperations().create(namespace);
                         } catch (NamespaceExistsException e) {
                             log.error(e.getMessage());
                         }
                     }
                 }
-                if (!connector.tableOperations().exists(table)) {
-                    connector.tableOperations().create(table);
+                if (!accumuloClient.tableOperations().exists(table)) {
+                    accumuloClient.tableOperations().create(table);
                     Map<String,TableConfigHelper> tableConfigs = getTableConfigs(conf, tableNames);
                     
                     TableConfigHelper tableHelper = tableConfigs.get(table);
                     
                     if (tableHelper != null) {
-                        tableHelper.configure(connector.tableOperations());
+                        tableHelper.configure(accumuloClient.tableOperations());
                     } else {
                         log.info("No configuration supplied for table: " + table);
                     }
@@ -671,7 +671,7 @@ public abstract class ShardTableQueryMetricHandler<T extends BaseQueryMetric> ex
                         // because of an Exception and the writing of the metrics should be re-tried with the new recordWriter.
                         this.recordWriter.returnConnector();
                     }
-                    this.recordWriter = new AccumuloRecordWriter(connectionPool, conf);
+                    this.recordWriter = new AccumuloRecordWriter(accumuloClientPool, conf);
                 } catch (Exception e) {
                     log.error(e.getMessage(), e);
                     throw new RuntimeException(e.getMessage(), e);
@@ -695,9 +695,9 @@ public abstract class ShardTableQueryMetricHandler<T extends BaseQueryMetric> ex
             DatawaveUser datawaveUser = currentUser.getPrimaryUser();
             String datawaveUserShortName = dnUtils.getShortName(datawaveUser.getName());
             Collection<String> userAuths = new ArrayList<>(datawaveUser.getAuths());
-            if (connectorAuthorizations != null) {
+            if (clientAuthorizations != null) {
                 Collection<String> connectorAuths = new ArrayList<>();
-                Arrays.stream(StringUtils.split(connectorAuthorizations, ',')).forEach(a -> {
+                Arrays.stream(StringUtils.split(clientAuthorizations, ',')).forEach(a -> {
                     connectorAuths.add(a);
                 });
                 userAuths.retainAll(connectorAuths);

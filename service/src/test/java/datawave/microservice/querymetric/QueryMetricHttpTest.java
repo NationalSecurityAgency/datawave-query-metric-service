@@ -21,6 +21,9 @@ import org.springframework.web.client.HttpClientErrorException;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
 @ExtendWith(SpringExtension.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles({"QueryMetricHttpTest", "QueryMetricTest", "http", "hazelcast-writebehind"})
@@ -40,7 +43,7 @@ public class QueryMetricHttpTest extends QueryMetricTestBase {
     @Test
     public void RejectNonAdminUserForUpdateMetric() throws Exception {
         // @formatter:off
-        Assertions.assertThrows(HttpClientErrorException.Forbidden.class, () -> client.submit(new QueryMetricClient.Request.Builder()
+        assertThrows(HttpClientErrorException.Forbidden.class, () -> client.submit(new QueryMetricClient.Request.Builder()
                 .withMetric(createMetric())
                 .withMetricType(QueryMetricType.COMPLETE)
                 .withUser(nonAdminUser)
@@ -54,7 +57,7 @@ public class QueryMetricHttpTest extends QueryMetricTestBase {
         metrics.add(createMetric());
         metrics.add(createMetric());
         // @formatter:off
-        Assertions.assertThrows(HttpClientErrorException.Forbidden.class, () -> client.submit(new QueryMetricClient.Request.Builder()
+        assertThrows(HttpClientErrorException.Forbidden.class, () -> client.submit(new QueryMetricClient.Request.Builder()
                 .withMetrics(metrics)
                 .withMetricType(QueryMetricType.COMPLETE)
                 .withUser(nonAdminUser)
@@ -101,7 +104,7 @@ public class QueryMetricHttpTest extends QueryMetricTestBase {
                 .withUser(adminUser)
                 .build());
         // @formatter:on
-        Assertions.assertEquals(2, storedMetricUpdates.size());
+        assertEquals(2, storedMetricUpdates.size());
     }
     
     @Configuration

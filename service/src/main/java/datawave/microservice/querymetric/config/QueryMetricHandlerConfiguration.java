@@ -32,7 +32,7 @@ import datawave.query.util.DateIndexHelper;
 import datawave.query.util.DateIndexHelperFactory;
 import datawave.query.util.TypeMetadataHelper;
 import datawave.security.authorization.JWTTokenHandler;
-import datawave.webservice.common.connection.AccumuloConnectionPool;
+import datawave.webservice.common.connection.AccumuloClientPool;
 import datawave.webservice.query.result.event.DefaultResponseObjectFactory;
 import datawave.webservice.query.result.event.ResponseObjectFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -90,14 +90,14 @@ public class QueryMetricHandlerConfiguration {
     @Bean
     @ConditionalOnMissingBean
     public ShardTableQueryMetricHandler shardTableQueryMetricHandler(QueryMetricHandlerProperties queryMetricHandlerProperties,
-                    @Qualifier("warehouse") AccumuloConnectionPool connectionPool, QueryMetricQueryLogicFactory logicFactory, QueryMetricFactory metricFactory,
+                    @Qualifier("warehouse") AccumuloClientPool accumuloClientPool, QueryMetricQueryLogicFactory logicFactory, QueryMetricFactory metricFactory,
                     MarkingFunctions markingFunctions, QueryMetricCombiner queryMetricCombiner, LuceneToJexlQueryParser luceneToJexlQueryParser,
                     WebClient.Builder webClientBuilder, @Autowired(required = false) JWTTokenHandler jwtTokenHandler, DnUtils dnUtils) {
         if (queryMetricHandlerProperties.isUseRemoteQuery()) {
-            return new RemoteShardTableQueryMetricHandler(queryMetricHandlerProperties, connectionPool, logicFactory, metricFactory, markingFunctions,
+            return new RemoteShardTableQueryMetricHandler(queryMetricHandlerProperties, accumuloClientPool, logicFactory, metricFactory, markingFunctions,
                             queryMetricCombiner, luceneToJexlQueryParser, webClientBuilder, jwtTokenHandler, dnUtils);
         } else {
-            return new LocalShardTableQueryMetricHandler(queryMetricHandlerProperties, connectionPool, logicFactory, metricFactory, markingFunctions,
+            return new LocalShardTableQueryMetricHandler(queryMetricHandlerProperties, accumuloClientPool, logicFactory, metricFactory, markingFunctions,
                             queryMetricCombiner, luceneToJexlQueryParser, dnUtils);
         }
     }

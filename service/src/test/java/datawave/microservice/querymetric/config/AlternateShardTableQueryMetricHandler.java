@@ -8,7 +8,7 @@ import datawave.microservice.querymetric.handler.LocalShardTableQueryMetricHandl
 import datawave.microservice.querymetric.handler.QueryMetricCombiner;
 import datawave.microservice.security.util.DnUtils;
 import datawave.query.language.parser.jexl.LuceneToJexlQueryParser;
-import datawave.webservice.common.connection.AccumuloConnectionPool;
+import datawave.webservice.common.connection.AccumuloClientPool;
 import datawave.webservice.query.result.event.EventBase;
 import datawave.webservice.query.result.event.FieldBase;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -18,10 +18,10 @@ import java.util.List;
 public class AlternateShardTableQueryMetricHandler extends LocalShardTableQueryMetricHandler<AlternateQueryMetric> {
     
     public AlternateShardTableQueryMetricHandler(QueryMetricHandlerProperties queryMetricHandlerProperties,
-                    @Qualifier("warehouse") AccumuloConnectionPool connectionPool, QueryMetricQueryLogicFactory logicFactory, QueryMetricFactory metricFactory,
+                    @Qualifier("warehouse") AccumuloClientPool accumuloClientPool, QueryMetricQueryLogicFactory logicFactory, QueryMetricFactory metricFactory,
                     MarkingFunctions markingFunctions, QueryMetricCombiner queryMetricCombiner, LuceneToJexlQueryParser luceneToJexlQueryParser,
                     DnUtils dnUtils) {
-        super(queryMetricHandlerProperties, connectionPool, logicFactory, metricFactory, markingFunctions, queryMetricCombiner, luceneToJexlQueryParser,
+        super(queryMetricHandlerProperties, accumuloClientPool, logicFactory, metricFactory, markingFunctions, queryMetricCombiner, luceneToJexlQueryParser,
                         dnUtils);
     }
     

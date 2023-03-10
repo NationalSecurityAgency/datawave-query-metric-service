@@ -3,7 +3,7 @@ package datawave.microservice.querymetric.handler;
 import java.util.HashMap;
 import java.util.Map;
 
-public class AccumuloConnectionTracking {
+public class AccumuloClientTracking {
     
     public static Map<String,String> getTrackingMap(StackTraceElement[] stackTrace) {
         HashMap<String,String> trackingMap = new HashMap<>();

@@ -31,6 +31,9 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class QueryMetricTest {
     
@@ -174,14 +177,14 @@ public class QueryMetricTest {
         try {
             o = clazz.getConstructor().newInstance();
         } catch (Exception e) {
-            Assertions.fail(e.getMessage());
+            fail(e.getMessage());
         }
         String className = clazz.getSimpleName();
         Schema schema = null;
         if (o instanceof Message) {
             schema = ((Message) o).cachedSchema();
         } else {
-            Assertions.fail(String.format("%s does not implement Message interface", className));
+            fail(String.format("%s does not implement Message interface", className));
         }
         List<Field> fields = new ArrayList<>();
         Class currentClazz = clazz;
@@ -194,9 +197,9 @@ public class QueryMetricTest {
             if (!Modifier.isStatic(f.getModifiers())) {
                 String fieldName = f.getName();
                 int fieldNumber = schema.getFieldNumber(fieldName);
-                Assertions.assertTrue(fieldNumber > 0, String.format(message, fieldName, className));
+                assertTrue(fieldNumber > 0, String.format(message, fieldName, className));
                 String schemaFieldName = schema.getFieldName(fieldNumber);
-                Assertions.assertNotNull(schemaFieldName, String.format(message, f.getName(), className, fieldName));
+                assertNotNull(schemaFieldName, String.format(message, f.getName(), className, fieldName));
                 assertEquals(f.getName(), schemaFieldName,
                                 String.format("field name [%s] and protobuf field name [%s] should match", f.getName(), schemaFieldName));
             }

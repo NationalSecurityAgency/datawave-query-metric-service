@@ -8,7 +8,7 @@ import datawave.microservice.querymetric.handler.QueryMetricCombiner;
 import datawave.microservice.querymetric.handler.ShardTableQueryMetricHandler;
 import datawave.microservice.security.util.DnUtils;
 import datawave.query.language.parser.jexl.LuceneToJexlQueryParser;
-import datawave.webservice.common.connection.AccumuloConnectionPool;
+import datawave.webservice.common.connection.AccumuloClientPool;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.autoconfigure.cache.CacheType;
@@ -47,10 +47,10 @@ public class AlternateQueryMetricConfiguration {
     
     @Bean
     public ShardTableQueryMetricHandler shardTableQueryMetricHandler(QueryMetricHandlerProperties queryMetricHandlerProperties,
-                    @Qualifier("warehouse") AccumuloConnectionPool connectionPool, QueryMetricQueryLogicFactory logicFactory, QueryMetricFactory metricFactory,
+                    @Qualifier("warehouse") AccumuloClientPool accumuloClientPool, QueryMetricQueryLogicFactory logicFactory, QueryMetricFactory metricFactory,
                     MarkingFunctions markingFunctions, QueryMetricCombiner queryMetricCombiner, LuceneToJexlQueryParser luceneToJexlQueryParser,
                     DnUtils dnUtils) {
-        return new AlternateShardTableQueryMetricHandler(queryMetricHandlerProperties, connectionPool, logicFactory, metricFactory, markingFunctions,
+        return new AlternateShardTableQueryMetricHandler(queryMetricHandlerProperties, accumuloClientPool, logicFactory, metricFactory, markingFunctions,
                         queryMetricCombiner, luceneToJexlQueryParser, dnUtils);
     }
 }

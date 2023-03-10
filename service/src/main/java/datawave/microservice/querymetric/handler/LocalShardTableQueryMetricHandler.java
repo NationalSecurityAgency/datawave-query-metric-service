@@ -11,14 +11,14 @@ import datawave.query.language.parser.jexl.LuceneToJexlQueryParser;
 import datawave.security.authorization.DatawavePrincipal;
 import datawave.security.authorization.DatawaveUser;
 import datawave.security.authorization.SubjectIssuerDNPair;
+import datawave.webservice.common.connection.AccumuloClientPool;
 import datawave.webservice.common.connection.AccumuloConnectionFactory;
-import datawave.webservice.common.connection.AccumuloConnectionPool;
 import datawave.webservice.query.Query;
 import datawave.webservice.query.logic.QueryLogic;
 import datawave.webservice.query.logic.QueryLogicTransformer;
 import datawave.webservice.query.runner.RunningQuery;
 import datawave.webservice.result.BaseQueryResponse;
-import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,18 +48,16 @@ public class LocalShardTableQueryMetricHandler<T extends BaseQueryMetric> extend
     
     protected ExecutorService executorService;
     
-    public LocalShardTableQueryMetricHandler(QueryMetricHandlerProperties queryMetricHandlerProperties,
-                    @Qualifier("warehouse") AccumuloConnectionPool connectionPool, QueryMetricQueryLogicFactory logicFactory, QueryMetricFactory metricFactory,
-                    MarkingFunctions markingFunctions, QueryMetricCombiner queryMetricCombiner, LuceneToJexlQueryParser luceneToJexlQueryParser,
-                    DnUtils dnUtils) {
-        super(queryMetricHandlerProperties, connectionPool, logicFactory, metricFactory, markingFunctions, queryMetricCombiner, luceneToJexlQueryParser,
-                        dnUtils);
+    public LocalShardTableQueryMetricHandler(QueryMetricHandlerProperties queryMetricHandlerProperties, @Qualifier("warehouse") AccumuloClientPool clientPool,
+                    QueryMetricQueryLogicFactory logicFactory, QueryMetricFactory metricFactory, MarkingFunctions markingFunctions,
+                    QueryMetricCombiner queryMetricCombiner, LuceneToJexlQueryParser luceneToJexlQueryParser, DnUtils dnUtils) {
+        super(queryMetricHandlerProperties, clientPool, logicFactory, metricFactory, markingFunctions, queryMetricCombiner, luceneToJexlQueryParser, dnUtils);
         
         this.datawaveQueryMetricFactory = metricFactory;
         
         Collection<String> auths = new ArrayList<>();
-        if (connectorAuthorizations != null) {
-            auths.addAll(Arrays.asList(StringUtils.split(connectorAuthorizations, ',')));
+        if (clientAuthorizations != null) {
+            auths.addAll(Arrays.asList(StringUtils.split(clientAuthorizations, ',')));
         }
         DatawaveUser datawaveUser = new DatawaveUser(SubjectIssuerDNPair.of("admin"), USER, null, auths, null, null, System.currentTimeMillis());
         datawavePrincipal = new DatawavePrincipal(Collections.singletonList(datawaveUser));
@@ -76,18 +74,18 @@ public class LocalShardTableQueryMetricHandler<T extends BaseQueryMetric> extend
         try {
             createAndNextFuture = this.executorService.submit(() -> {
                 RunningQuery runningQuery;
-                Connector connector;
+                AccumuloClient accumuloClient;
                 
                 cachedQueryMap.put(queryId, cachedQuery);
                 
                 QueryLogic<?> queryLogic = logicFactory.getObject();
-                Map<String,String> trackingMap = AccumuloConnectionTracking.getTrackingMap(Thread.currentThread().getStackTrace());
-                connector = connectionPool.borrowObject(trackingMap);
+                Map<String,String> trackingMap = AccumuloClientTracking.getTrackingMap(Thread.currentThread().getStackTrace());
+                accumuloClient = accumuloClientPool.borrowObject(trackingMap);
                 
-                cachedQuery.setConnector(connector);
+                cachedQuery.setAccumuloClient(accumuloClient);
                 
-                runningQuery = new RunningQuery(null, connector, AccumuloConnectionFactory.Priority.ADMIN, queryLogic, query, query.getQueryAuthorizations(),
-                                datawavePrincipal, datawaveQueryMetricFactory);
+                runningQuery = new RunningQuery(null, accumuloClient, AccumuloConnectionFactory.Priority.ADMIN, queryLogic, query,
+                                query.getQueryAuthorizations(), datawavePrincipal, datawaveQueryMetricFactory);
                 
                 cachedQuery.setRunningQuery(runningQuery);
                 
@@ -144,8 +142,8 @@ public class LocalShardTableQueryMetricHandler<T extends BaseQueryMetric> extend
     protected void close(String queryId) {
         try {
             CachedQuery cachedQuery = cachedQueryMap.remove(queryId);
-            if (cachedQuery.getConnector() != null) {
-                this.connectionPool.returnObject(cachedQuery.getConnector());
+            if (cachedQuery.getAccumuloClient() != null) {
+                this.accumuloClientPool.returnObject(cachedQuery.getAccumuloClient());
             }
         } catch (Exception e) {
             log.error(e.getMessage(), e);
@@ -158,7 +156,7 @@ public class LocalShardTableQueryMetricHandler<T extends BaseQueryMetric> extend
         
         private RunningQuery runningQuery;
         private QueryLogicTransformer<?,?> transformer;
-        private Connector connector;
+        private AccumuloClient accumuloClient;
         
         public long getStartTime() {
             return startTime;
@@ -184,12 +182,12 @@ public class LocalShardTableQueryMetricHandler<T extends BaseQueryMetric> extend
             this.transformer = transformer;
         }
         
-        public Connector getConnector() {
-            return connector;
+        public AccumuloClient getAccumuloClient() {
+            return accumuloClient;
         }
         
-        public void setConnector(Connector connector) {
-            this.connector = connector;
+        public void setAccumuloClient(AccumuloClient accumuloClient) {
+            this.accumuloClient = accumuloClient;
         }
     }
 }
