@@ -34,7 +34,6 @@ import org.apache.commons.lang.RandomStringUtils;
 import org.apache.commons.lang.time.DateUtils;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -72,6 +71,9 @@ import java.util.Set;
 import static datawave.microservice.querymetric.config.HazelcastMetricCacheConfiguration.INCOMING_METRICS;
 import static datawave.microservice.querymetric.config.HazelcastMetricCacheConfiguration.LAST_WRITTEN_METRICS;
 import static datawave.security.authorization.DatawaveUser.UserType.USER;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class QueryMetricTestBase {
     
@@ -174,7 +176,7 @@ public class QueryMetricTestBase {
         tables.add(queryMetricHandlerProperties.getReverseIndexTableName());
         tables.add(queryMetricHandlerProperties.getShardTableName());
         deleteAccumuloEntries(connector, tables, this.auths);
-        Assertions.assertTrue(getMetadataEntries().size() > 0, "metadata table empty");
+        assertTrue(getMetadataEntries().size() > 0, "metadata table empty");
         SimpleModule baseQueryMetricDeserializer = new SimpleModule(BaseQueryMetricListResponse.class.getName());
         baseQueryMetricDeserializer.addAbstractTypeMapping(BaseQueryMetricListResponse.class, QueryMetricListResponse.class);
         objectMapper.registerModule(baseQueryMetricDeserializer);
@@ -347,16 +349,16 @@ public class QueryMetricTestBase {
         }
     }
     
-    public static void assertEquals(BaseQueryMetric m1, BaseQueryMetric m2) {
-        assertEquals("", m1, m2);
+    public static void metricAssertEquals(BaseQueryMetric m1, BaseQueryMetric m2) {
+        metricAssertEquals("", m1, m2);
     }
     
     /*
      * This method compares the fields of BaseQueryMetric one by one so that the discrepancy is obvious It also rounds all Date objects to
      */
-    public static void assertEquals(String message, BaseQueryMetric m1, BaseQueryMetric m2) {
+    public static void metricAssertEquals(String message, BaseQueryMetric m1, BaseQueryMetric m2) {
         if (null == m2) {
-            Assertions.fail(message + ": actual metric is null");
+            fail(message + ": actual metric is null");
         } else if (m1 == m2) {
             return;
         } else {
@@ -365,38 +367,38 @@ public class QueryMetricTestBase {
             } else {
                 message = message + ": ";
             }
-            Assertions.assertTrue(assertObjectsEqual(m1.getQueryId(), m2.getQueryId()), message + "queryId");
-            Assertions.assertTrue(assertObjectsEqual(m1.getQueryType(), m2.getQueryType()), message + "queryType");
-            Assertions.assertTrue(assertObjectsEqual(m1.getQueryAuthorizations(), m2.getQueryAuthorizations()), message + "queryAuthorizations");
-            Assertions.assertTrue(assertObjectsEqual(m1.getColumnVisibility(), m2.getColumnVisibility()), message + "columnVisibility");
-            Assertions.assertEquals(m1.getMarkings(), m2.getMarkings(), message + "markings");
-            Assertions.assertTrue(assertObjectsEqual(m1.getBeginDate(), m2.getBeginDate()), message + "beginDate");
-            Assertions.assertTrue(assertObjectsEqual(m1.getEndDate(), m2.getEndDate()), message + "endDate");
-            Assertions.assertEquals(m1.getCreateDate(), m2.getCreateDate(), message + "createDate");
-            Assertions.assertEquals(m1.getSetupTime(), m2.getSetupTime(), message + "setupTime");
-            Assertions.assertEquals(m1.getCreateCallTime(), m2.getCreateCallTime(), message + "createCallTime");
-            Assertions.assertTrue(assertObjectsEqual(m1.getUser(), m2.getUser()), message + "user");
-            Assertions.assertTrue(assertObjectsEqual(m1.getUserDN(), m2.getUserDN()), message + "userDN");
-            Assertions.assertTrue(assertObjectsEqual(m1.getQuery(), m2.getQuery()), message + "query");
-            Assertions.assertTrue(assertObjectsEqual(m1.getQueryLogic(), m2.getQueryLogic()), message + "queryLogic");
-            Assertions.assertTrue(assertObjectsEqual(m1.getQueryName(), m2.getQueryName()), message + "queryName");
-            Assertions.assertTrue(assertObjectsEqual(m1.getParameters(), m2.getParameters()), message + "parameters");
-            Assertions.assertTrue(assertObjectsEqual(m1.getHost(), m2.getHost()), message + "host");
-            Assertions.assertTrue(assertObjectsEqual(m1.getPageTimes(), m2.getPageTimes()), message + "pageTimes");
-            Assertions.assertTrue(assertObjectsEqual(m1.getProxyServers(), m2.getProxyServers()), message + "proxyServers");
-            Assertions.assertTrue(assertObjectsEqual(m1.getLifecycle(), m2.getLifecycle()), message + "lifecycle");
-            Assertions.assertTrue(assertObjectsEqual(m1.getErrorMessage(), m2.getErrorMessage()), message + "errorMessage");
-            Assertions.assertTrue(assertObjectsEqual(m1.getErrorCode(), m2.getErrorCode()), message + "errorCode");
-            Assertions.assertEquals(m1.getSourceCount(), m2.getSourceCount(), message + "sourceCount");
-            Assertions.assertEquals(m1.getNextCount(), m2.getNextCount(), message + "nextCount");
-            Assertions.assertEquals(m1.getSeekCount(), m2.getSeekCount(), message + "seekCount");
-            Assertions.assertEquals(m1.getYieldCount(), m2.getYieldCount(), message + "yieldCount");
-            Assertions.assertEquals(m1.getDocRanges(), m2.getDocRanges(), message + "docRanges");
-            Assertions.assertEquals(m1.getFiRanges(), m2.getFiRanges(), message + "fiRanges");
-            Assertions.assertTrue(assertObjectsEqual(m1.getPlan(), m2.getPlan()), message + "plan");
-            Assertions.assertEquals(m1.getLoginTime(), m2.getLoginTime(), message + "loginTime");
-            Assertions.assertTrue(assertObjectsEqual(m1.getPredictions(), m2.getPredictions()), message + "predictions");
-            Assertions.assertEquals(m1.getVersionMap(), m2.getVersionMap(), message + "versionMap");
+            assertTrue(assertObjectsEqual(m1.getQueryId(), m2.getQueryId()), message + "queryId");
+            assertTrue(assertObjectsEqual(m1.getQueryType(), m2.getQueryType()), message + "queryType");
+            assertTrue(assertObjectsEqual(m1.getQueryAuthorizations(), m2.getQueryAuthorizations()), message + "queryAuthorizations");
+            assertTrue(assertObjectsEqual(m1.getColumnVisibility(), m2.getColumnVisibility()), message + "columnVisibility");
+            assertEquals(m1.getMarkings(), m2.getMarkings(), message + "markings");
+            assertTrue(assertObjectsEqual(m1.getBeginDate(), m2.getBeginDate()), message + "beginDate");
+            assertTrue(assertObjectsEqual(m1.getEndDate(), m2.getEndDate()), message + "endDate");
+            assertEquals(m1.getCreateDate(), m2.getCreateDate(), message + "createDate");
+            assertEquals(m1.getSetupTime(), m2.getSetupTime(), message + "setupTime");
+            assertEquals(m1.getCreateCallTime(), m2.getCreateCallTime(), message + "createCallTime");
+            assertTrue(assertObjectsEqual(m1.getUser(), m2.getUser()), message + "user");
+            assertTrue(assertObjectsEqual(m1.getUserDN(), m2.getUserDN()), message + "userDN");
+            assertTrue(assertObjectsEqual(m1.getQuery(), m2.getQuery()), message + "query");
+            assertTrue(assertObjectsEqual(m1.getQueryLogic(), m2.getQueryLogic()), message + "queryLogic");
+            assertTrue(assertObjectsEqual(m1.getQueryName(), m2.getQueryName()), message + "queryName");
+            assertTrue(assertObjectsEqual(m1.getParameters(), m2.getParameters()), message + "parameters");
+            assertTrue(assertObjectsEqual(m1.getHost(), m2.getHost()), message + "host");
+            assertTrue(assertObjectsEqual(m1.getPageTimes(), m2.getPageTimes()), message + "pageTimes");
+            assertTrue(assertObjectsEqual(m1.getProxyServers(), m2.getProxyServers()), message + "proxyServers");
+            assertTrue(assertObjectsEqual(m1.getLifecycle(), m2.getLifecycle()), message + "lifecycle");
+            assertTrue(assertObjectsEqual(m1.getErrorMessage(), m2.getErrorMessage()), message + "errorMessage");
+            assertTrue(assertObjectsEqual(m1.getErrorCode(), m2.getErrorCode()), message + "errorCode");
+            assertEquals(m1.getSourceCount(), m2.getSourceCount(), message + "sourceCount");
+            assertEquals(m1.getNextCount(), m2.getNextCount(), message + "nextCount");
+            assertEquals(m1.getSeekCount(), m2.getSeekCount(), message + "seekCount");
+            assertEquals(m1.getYieldCount(), m2.getYieldCount(), message + "yieldCount");
+            assertEquals(m1.getDocRanges(), m2.getDocRanges(), message + "docRanges");
+            assertEquals(m1.getFiRanges(), m2.getFiRanges(), message + "fiRanges");
+            assertTrue(assertObjectsEqual(m1.getPlan(), m2.getPlan()), message + "plan");
+            assertEquals(m1.getLoginTime(), m2.getLoginTime(), message + "loginTime");
+            assertTrue(assertObjectsEqual(m1.getPredictions(), m2.getPredictions()), message + "predictions");
+            assertEquals(m1.getVersionMap(), m2.getVersionMap(), message + "versionMap");
         }
     }
     

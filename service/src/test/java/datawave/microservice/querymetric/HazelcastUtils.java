@@ -22,6 +22,8 @@ import java.util.concurrent.TimeUnit;
 import static com.hazelcast.internal.util.ExceptionUtil.rethrow;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class HazelcastUtils {
     
@@ -101,7 +103,7 @@ public class HazelcastUtils {
         for (int i = 0; i < instances.length; i++) {
             int clusterSize = getClusterSize(instances[i]);
             if (expectedSize != clusterSize) {
-                Assertions.fail(String.format("Cluster size is not correct. Expected: %d, actual: %d, instance index: %d", expectedSize, clusterSize, i));
+                fail(String.format("Cluster size is not correct. Expected: %d, actual: %d, instance index: %d", expectedSize, clusterSize, i));
             }
         }
     }
@@ -153,7 +155,7 @@ public class HazelcastUtils {
         if (error != null) {
             throw error;
         }
-        Assertions.fail("assertTrueEventually() failed without AssertionError! " + message);
+        fail("assertTrueEventually() failed without AssertionError! " + message);
     }
     
     public static void assertTrueEventually(AssertTask task, long timeoutSeconds) {
@@ -175,7 +177,7 @@ public class HazelcastUtils {
     public static void assertOpenEventually(Latch latch, long timeoutSeconds) {
         try {
             boolean completed = latch.await(timeoutSeconds, TimeUnit.SECONDS);
-            Assertions.assertTrue(completed, String.format("failed to complete within %d seconds, count left: %d", timeoutSeconds, latch.getCount()));
+            assertTrue(completed, String.format("failed to complete within %d seconds, count left: %d", timeoutSeconds, latch.getCount()));
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }

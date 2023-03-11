@@ -1,7 +1,6 @@
 package datawave.microservice.querymetric;
 
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -14,6 +13,8 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @ExtendWith(SpringExtension.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -51,9 +52,9 @@ public class MessagingTest extends QueryMetricTestBase {
         ResponseEntity<BaseQueryMetricListResponse> metricResponse = restTemplate.exchange(metricUri.toUri(), HttpMethod.GET, metricRequestEntity,
                         BaseQueryMetricListResponse.class);
         
-        Assertions.assertEquals(1, metricResponse.getBody().getNumResults());
+        assertEquals(1, metricResponse.getBody().getNumResults());
         BaseQueryMetric returnedMetric = (BaseQueryMetric) metricResponse.getBody().getResult().get(0);
-        assertEquals(m, returnedMetric);
+        metricAssertEquals(m, returnedMetric);
     }
     
     @Test
@@ -80,9 +81,9 @@ public class MessagingTest extends QueryMetricTestBase {
             ResponseEntity<BaseQueryMetricListResponse> metricResponse = restTemplate.exchange(metricUri.toUri(), HttpMethod.GET, metricRequestEntity,
                             BaseQueryMetricListResponse.class);
             
-            Assertions.assertEquals(1, metricResponse.getBody().getNumResults());
+            assertEquals(1, metricResponse.getBody().getNumResults());
             BaseQueryMetric returnedMetric = (BaseQueryMetric) metricResponse.getBody().getResult().get(0);
-            Assertions.assertEquals(i + 1, returnedMetric.getPageTimes().size());
+            assertEquals(i + 1, returnedMetric.getPageTimes().size());
             assertEquals(m, returnedMetric);
         }
     }

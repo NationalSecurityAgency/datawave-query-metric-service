@@ -2,13 +2,14 @@ package datawave.microservice.querymetric;
 
 import datawave.microservice.querymetric.config.AlternateQueryMetric;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @ExtendWith(SpringExtension.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -39,10 +40,10 @@ public class AlternateQueryMetricTest extends QueryMetricTestBase {
                 .withUser(adminUser)
                 .build());
         // @formatter:on
-        assertEquals("incomingQueryMetricsCache metric wrong", m, incomingQueryMetricsCache.get(queryId, QueryMetricUpdate.class).getMetric());
-        assertEquals("lastWrittenQueryMetricCache metric wrong", m, lastWrittenQueryMetricCache.get(queryId, QueryMetricUpdate.class).getMetric());
+        metricAssertEquals("incomingQueryMetricsCache metric wrong", m, incomingQueryMetricsCache.get(queryId, QueryMetricUpdate.class).getMetric());
+        metricAssertEquals("lastWrittenQueryMetricCache metric wrong", m, lastWrittenQueryMetricCache.get(queryId, QueryMetricUpdate.class).getMetric());
         AlternateQueryMetric metricFromAccumulo = (AlternateQueryMetric) shardTableQueryMetricHandler.getQueryMetric(queryId);
-        assertEquals("accumulo metric wrong", m, metricFromAccumulo);
-        Assertions.assertEquals(m.getExtraField(), metricFromAccumulo.getExtraField(), "extra field missing/incorrect");
+        metricAssertEquals("accumulo metric wrong", m, metricFromAccumulo);
+        assertEquals(m.getExtraField(), metricFromAccumulo.getExtraField(), "extra field missing/incorrect");
     }
 }

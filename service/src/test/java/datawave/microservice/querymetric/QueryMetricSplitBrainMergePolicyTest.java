@@ -23,6 +23,8 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import static com.hazelcast.internal.util.ExceptionUtil.rethrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class QueryMetricSplitBrainMergePolicyTest {
     
@@ -53,8 +55,8 @@ public class QueryMetricSplitBrainMergePolicyTest {
         
         HazelcastUtils.assertClusterSizeEventually(2, h1, h2);
         
-        Assertions.assertEquals(2, h1.getCluster().getMembers().size());
-        Assertions.assertEquals(2, h2.getCluster().getMembers().size());
+        assertEquals(2, h1.getCluster().getMembers().size());
+        assertEquals(2, h2.getCluster().getMembers().size());
         
         HazelcastUtils.closeConnectionBetween(h1, h2);
         
@@ -94,8 +96,8 @@ public class QueryMetricSplitBrainMergePolicyTest {
         HazelcastUtils.assertClusterSizeEventually(2, h1, h2);
         
         IMap<Object,Object> mapTest = h1.getMap(mapName);
-        Assertions.assertEquals(2, ((QueryMetricUpdate) mapTest.get("key1")).getMetric().getNumPages());
-        Assertions.assertEquals(3, ((QueryMetricUpdate) mapTest.get("key2")).getMetric().getNumPages());
+        assertEquals(2, ((QueryMetricUpdate) mapTest.get("key1")).getMetric().getNumPages());
+        assertEquals(3, ((QueryMetricUpdate) mapTest.get("key2")).getMetric().getNumPages());
         
         h1.shutdown();
         h2.shutdown();
@@ -124,8 +126,8 @@ public class QueryMetricSplitBrainMergePolicyTest {
         
         HazelcastUtils.assertClusterSizeEventually(2, h1, h2);
         
-        Assertions.assertEquals(2, h1.getCluster().getMembers().size());
-        Assertions.assertEquals(2, h2.getCluster().getMembers().size());
+        assertEquals(2, h1.getCluster().getMembers().size());
+        assertEquals(2, h2.getCluster().getMembers().size());
         
         HazelcastUtils.closeConnectionBetween(h1, h2);
         
@@ -157,11 +159,11 @@ public class QueryMetricSplitBrainMergePolicyTest {
         HazelcastUtils.assertClusterSizeEventually(2, h1, h2);
         
         IMap<Object,Object> mapTest = h2.getMap(mapName);
-        Assertions.assertNotNull(mapTest.get(key));
+        assertNotNull(mapTest.get(key));
         BaseQueryMetric mergedMetric = ((QueryMetricUpdateHolder) mapTest.get(key)).getMetric();
         
-        Assertions.assertEquals(BaseQueryMetric.Lifecycle.CLOSED, mergedMetric.getLifecycle());
-        Assertions.assertEquals(time2, mergedMetric.getLastUpdated().getTime());
+        assertEquals(BaseQueryMetric.Lifecycle.CLOSED, mergedMetric.getLifecycle());
+        assertEquals(time2, mergedMetric.getLastUpdated().getTime());
         
         h1.shutdown();
         h2.shutdown();

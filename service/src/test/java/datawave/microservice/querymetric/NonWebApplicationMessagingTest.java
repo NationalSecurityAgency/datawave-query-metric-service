@@ -11,9 +11,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.caffeine.CaffeineCacheManager;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Profile;
 import org.springframework.messaging.Message;
@@ -25,6 +23,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import static datawave.microservice.querymetric.QueryMetricTestBase.metricAssertEquals;
 
 /*
  * This class tests that a QueryMetricClient can be created and used with messaging
@@ -69,7 +69,7 @@ public class NonWebApplicationMessagingTest {
                 .withMetricType(QueryMetricType.COMPLETE)
                 .build());
         QueryMetricUpdate metricUpdate = this.storedMetricUpdates.stream().filter(x -> x.getMetric().getQueryId().equals(queryId)).findAny().orElse(null);
-        QueryMetricTestBase.assertEquals("", metricUpdate.getMetric(), m);
+        metricAssertEquals("", metricUpdate.getMetric(), m);
     }
 
     @Configuration
