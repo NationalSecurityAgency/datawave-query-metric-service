@@ -81,7 +81,7 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
             assertEquals(1, metricResponse.getBody().getNumResults());
             BaseQueryMetric returnedMetric = (BaseQueryMetric) metricResponse.getBody().getResult().get(0);
             assertEquals(i + 1, returnedMetric.getPageTimes().size());
-            assertEquals(m, returnedMetric);
+            metricAssertEquals(m, returnedMetric);
         }
     }
     
