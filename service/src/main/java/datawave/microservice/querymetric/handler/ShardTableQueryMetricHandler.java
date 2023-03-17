@@ -30,7 +30,7 @@ import datawave.microservice.security.util.DnUtils;
 import datawave.query.iterator.QueryOptions;
 import datawave.query.language.parser.jexl.LuceneToJexlQueryParser;
 import datawave.security.authorization.DatawaveUser;
-import datawave.security.util.AuthorizationsUtil;
+import datawave.security.util.WSAuthorizationsUtil;
 import datawave.webservice.common.connection.AccumuloClientPool;
 import datawave.webservice.query.Query;
 import datawave.webservice.query.QueryImpl;
@@ -714,7 +714,7 @@ public abstract class ShardTableQueryMetricHandler<T extends BaseQueryMetric> ex
             }
             query.setQueryName(queryMetricHandlerProperties.getQueryMetricsLogic());
             query.setColumnVisibility(queryMetricHandlerProperties.getQueryVisibility());
-            query.setQueryAuthorizations(AuthorizationsUtil.buildAuthorizationString(authorizations));
+            query.setQueryAuthorizations(WSAuthorizationsUtil.buildAuthorizationString(authorizations));
             query.setExpirationDate(DateUtils.addDays(new Date(), 1));
             query.setPagesize(1000);
             query.setUserDN(datawaveUserShortName);
