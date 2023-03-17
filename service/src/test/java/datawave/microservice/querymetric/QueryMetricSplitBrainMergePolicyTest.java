@@ -3,7 +3,9 @@ package datawave.microservice.querymetric;
 import com.hazelcast.cluster.MembershipEvent;
 import com.hazelcast.cluster.MembershipListener;
 import com.hazelcast.config.Config;
+import com.hazelcast.config.JoinConfig;
 import com.hazelcast.config.MergePolicyConfig;
+import com.hazelcast.config.TcpIpConfig;
 import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.LifecycleEvent;
@@ -23,19 +25,13 @@ import java.util.concurrent.TimeUnit;
 import static com.hazelcast.internal.util.ExceptionUtil.rethrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
 public class QueryMetricSplitBrainMergePolicyTest {
-    
-    private Logger log = LoggerFactory.getLogger(TestMemberShipListener.class);
     
     private final static QueryMetricFactory queryMetricFactory = new QueryMetricFactoryImpl();
     
     @Test
     public void testAllPagesMerged() {
-        // This test always fails during github CI (presumably due to resource constraints), so we need to be able to skip it
-        assumeFalse(Boolean.parseBoolean(System.getProperty("skipSplitBrainTest")));
-        
         String mapName = HazelcastUtils.randomMapName();
         Config config = newConfig(QueryMetricSplitBrainMergePolicy.class.getName(), mapName);
         HazelcastInstance h1 = Hazelcast.newHazelcastInstance(config);
@@ -104,9 +100,6 @@ public class QueryMetricSplitBrainMergePolicyTest {
     
     @Test
     public void testFieldsUpdated() {
-        // This test always fails during github CI (presumably due to resource constraints), so we need to be able to skip it
-        assumeFalse(Boolean.parseBoolean(System.getProperty("skipSplitBrainTest")));
-        
         String mapName = HazelcastUtils.randomMapName();
         Config config = newConfig(QueryMetricSplitBrainMergePolicy.class.getName(), mapName);
         HazelcastInstance h1 = Hazelcast.newHazelcastInstance(config);
@@ -182,6 +175,14 @@ public class QueryMetricSplitBrainMergePolicyTest {
                         .setProperty(ClusterProperty.MERGE_NEXT_RUN_DELAY_SECONDS.getName(), "3");
         
         config.setClusterName(HazelcastUtils.generateRandomString(10));
+        
+        // We don't want the test to rely on multicast. Use ip discovery instead.
+        // When omitting the port, Hazelcast will look for members at ports 5701, 5702, etc
+        JoinConfig joinConfig = config.getNetworkConfig().getJoin();
+        TcpIpConfig tcpIpConfig = joinConfig.getTcpIpConfig();
+        joinConfig.getMulticastConfig().setEnabled(false);
+        tcpIpConfig.addMember("127.0.0.1");
+        tcpIpConfig.setEnabled(true);
         
         MergePolicyConfig mergePolicyConfig = new MergePolicyConfig();
         mergePolicyConfig.setPolicy(mergePolicy);
