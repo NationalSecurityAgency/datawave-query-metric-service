@@ -2,7 +2,7 @@ package datawave.microservice.querymetric.factory;
 
 import datawave.accumulo.inmemory.InMemoryAccumuloClient;
 import datawave.accumulo.inmemory.InMemoryInstance;
-import datawave.webservice.common.connection.AccumuloClientPoolFactory;
+import datawave.core.common.connection.AccumuloClientPoolFactory;
 import datawave.webservice.common.connection.WrappedAccumuloClient;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.commons.pool2.PooledObject;

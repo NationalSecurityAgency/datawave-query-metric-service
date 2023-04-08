@@ -1,7 +1,10 @@
 package datawave.microservice.querymetric.handler;
 
+import datawave.core.common.connection.AccumuloClientPool;
 import datawave.marking.MarkingFunctions;
 import datawave.microservice.authorization.user.DatawaveUserDetails;
+import datawave.microservice.query.DefaultQueryParameters;
+import datawave.microservice.query.QueryParameters;
 import datawave.microservice.querymetric.BaseQueryMetric;
 import datawave.microservice.querymetric.QueryMetricFactory;
 import datawave.microservice.querymetric.config.QueryMetricHandlerProperties;
@@ -10,10 +13,7 @@ import datawave.microservice.security.util.DnUtils;
 import datawave.query.language.parser.jexl.LuceneToJexlQueryParser;
 import datawave.security.authorization.DatawaveUser;
 import datawave.security.authorization.JWTTokenHandler;
-import datawave.webservice.common.connection.AccumuloClientPool;
 import datawave.webservice.query.Query;
-import datawave.webservice.query.QueryParameters;
-import datawave.webservice.query.QueryParametersImpl;
 import datawave.webservice.result.BaseQueryResponse;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpHeaders;
@@ -74,9 +74,9 @@ public class RemoteShardTableQueryMetricHandler<T extends BaseQueryMetric> exten
     
     protected BaseQueryResponse createAndNext(Query query) throws Exception {
         String bearerHeader = createBearerHeader();
-        String beginDate = QueryParametersImpl.formatDate(query.getBeginDate());
-        String endDate = QueryParametersImpl.formatDate(query.getEndDate());
-        String expirationDate = QueryParametersImpl.formatDate(query.getExpirationDate());
+        String beginDate = DefaultQueryParameters.formatDate(query.getBeginDate());
+        String endDate = DefaultQueryParameters.formatDate(query.getEndDate());
+        String expirationDate = DefaultQueryParameters.formatDate(query.getExpirationDate());
         
         Collection<String> userAuths = new ArrayList<>(userDetails.getPrimaryUser().getAuths());
         if (clientAuthorizations != null) {
@@ -89,6 +89,7 @@ public class RemoteShardTableQueryMetricHandler<T extends BaseQueryMetric> exten
             return webClient.post()
                     .uri(uriBuilder -> uriBuilder
                             .path("/" + queryMetricHandlerProperties.getQueryMetricsLogic() + "/createAndNext")
+                            .queryParam(QueryParameters.QUERY_POOL, queryMetricHandlerProperties.getQueryPool())
                             .queryParam(QueryParameters.QUERY_BEGIN, beginDate)
                             .queryParam(QueryParameters.QUERY_END, endDate)
                             .queryParam(QueryParameters.QUERY_LOGIC_NAME, query.getQueryLogicName())

@@ -1,6 +1,10 @@
 package datawave.microservice.querymetric.handler;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import datawave.core.common.connection.AccumuloClientPool;
+import datawave.core.common.connection.AccumuloConnectionFactory;
+import datawave.core.query.logic.QueryLogic;
+import datawave.core.query.logic.QueryLogicTransformer;
 import datawave.marking.MarkingFunctions;
 import datawave.microservice.querymetric.BaseQueryMetric;
 import datawave.microservice.querymetric.QueryMetricFactory;
@@ -11,11 +15,7 @@ import datawave.query.language.parser.jexl.LuceneToJexlQueryParser;
 import datawave.security.authorization.DatawavePrincipal;
 import datawave.security.authorization.DatawaveUser;
 import datawave.security.authorization.SubjectIssuerDNPair;
-import datawave.webservice.common.connection.AccumuloClientPool;
-import datawave.webservice.common.connection.AccumuloConnectionFactory;
 import datawave.webservice.query.Query;
-import datawave.webservice.query.logic.QueryLogic;
-import datawave.webservice.query.logic.QueryLogicTransformer;
 import datawave.webservice.query.runner.RunningQuery;
 import datawave.webservice.result.BaseQueryResponse;
 import org.apache.accumulo.core.client.AccumuloClient;
