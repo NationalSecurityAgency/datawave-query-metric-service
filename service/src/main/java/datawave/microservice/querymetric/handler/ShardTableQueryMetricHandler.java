@@ -456,9 +456,9 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
                         
                         EventQueryResponseBase eventQueryResponse = (EventQueryResponseBase) queryResponse;
                         List<EventBase> eventList = eventQueryResponse.getEvents();
-
+                        
                         if (eventList != null) {
-                            for (EventBase<?, ?> event : eventList) {
+                            for (EventBase<?,?> event : eventList) {
                                 T metric = toMetric(event);
                                 queryMetrics.add(metric);
                             }
