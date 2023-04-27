@@ -456,10 +456,12 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
                         
                         EventQueryResponseBase eventQueryResponse = (EventQueryResponseBase) queryResponse;
                         List<EventBase> eventList = eventQueryResponse.getEvents();
-                        
-                        for (EventBase<?,?> event : eventList) {
-                            T metric = toMetric(event);
-                            queryMetrics.add(metric);
+
+                        if (eventList != null) {
+                            for (EventBase<?, ?> event : eventList) {
+                                T metric = toMetric(event);
+                                queryMetrics.add(metric);
+                            }
                         }
                         return null;
                     } catch (Exception e) {
