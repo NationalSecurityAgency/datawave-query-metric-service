@@ -16,7 +16,7 @@
         <url>https://github.com/NationalSecurityAgency/datawave-query-metric-service</url>
     </scm>
     <properties>
-        <datawave.webservice.namespace>http://webservice.datawave/v1</datawave.webservice.namespace>
+        <datawave.webservice.namespace>http://webservice.datawave.nsa/v1</datawave.webservice.namespace>
         <spotbugs.excludes.file>${basedir}/spotbugs-exclude.xml</spotbugs.excludes.file>
         <version.base-rest-responses>2.1.0</version.base-rest-responses>
         <version.commons-lang3>3.12.0</version.commons-lang3>
