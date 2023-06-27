@@ -1,11 +1,12 @@
 package datawave.microservice.querymetric.function;
 
-import datawave.microservice.querymetric.QueryMetricOperations;
-import datawave.microservice.querymetric.QueryMetricUpdate;
+import java.util.function.Consumer;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.function.Consumer;
+import datawave.microservice.querymetric.QueryMetricOperations;
+import datawave.microservice.querymetric.QueryMetricUpdate;
 
 public class QueryMetricConsumer implements Consumer<QueryMetricUpdate> {
     private final Logger log = LoggerFactory.getLogger(this.getClass());

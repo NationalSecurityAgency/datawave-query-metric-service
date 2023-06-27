@@ -1,13 +1,19 @@
 package datawave.microservice.querymetric;
 
-import com.google.common.collect.Multimap;
-import datawave.microservice.querymetric.handler.ContentQueryMetricsIngestHelper;
-import datawave.microservice.querymetric.persistence.AccumuloMapStore;
-import datawave.util.StringUtils;
-import datawave.webservice.query.result.event.DefaultEvent;
-import datawave.webservice.query.result.event.DefaultField;
-import datawave.webservice.query.result.event.EventBase;
-import datawave.webservice.query.result.event.FieldBase;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.fail;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.junit.jupiter.api.AfterEach;
@@ -24,19 +30,15 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import com.google.common.collect.Multimap;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.fail;
+import datawave.microservice.querymetric.handler.ContentQueryMetricsIngestHelper;
+import datawave.microservice.querymetric.persistence.AccumuloMapStore;
+import datawave.util.StringUtils;
+import datawave.webservice.query.result.event.DefaultEvent;
+import datawave.webservice.query.result.event.DefaultField;
+import datawave.webservice.query.result.event.EventBase;
+import datawave.webservice.query.result.event.FieldBase;
 
 @ExtendWith(SpringExtension.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)

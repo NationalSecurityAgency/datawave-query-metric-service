@@ -1,13 +1,15 @@
 package datawave.microservice.querymetric;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.hazelcast.nio.ObjectDataInput;
 import com.hazelcast.nio.ObjectDataOutput;
 import com.hazelcast.spi.merge.MergingLastUpdateTime;
 import com.hazelcast.spi.merge.MergingValue;
 import com.hazelcast.spi.merge.SplitBrainMergePolicy;
+
 import datawave.microservice.querymetric.handler.QueryMetricCombiner;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class QueryMetricSplitBrainMergePolicy<V extends QueryMetricUpdateHolder,T extends MergingValue<V> & MergingLastUpdateTime,R extends QueryMetricUpdateHolder>
                 implements SplitBrainMergePolicy<V,T,R> {

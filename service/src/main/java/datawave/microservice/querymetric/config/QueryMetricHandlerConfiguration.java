@@ -1,5 +1,23 @@
 package datawave.microservice.querymetric.config;
 
+import static datawave.query.util.MetadataHelperFactory.ALL_AUTHS_PROPERTY;
+
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Set;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.cache.caffeine.CaffeineCacheManager;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.web.reactive.function.client.WebClient;
+
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -8,6 +26,7 @@ import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.fasterxml.jackson.module.jaxb.JaxbAnnotationModule;
 import com.github.benmanes.caffeine.cache.CaffeineSpec;
+
 import datawave.core.common.connection.AccumuloClientPool;
 import datawave.core.query.result.event.DefaultResponseObjectFactory;
 import datawave.marking.MarkingFunctions;
@@ -35,23 +54,6 @@ import datawave.query.util.DateIndexHelperFactory;
 import datawave.query.util.TypeMetadataHelper;
 import datawave.security.authorization.JWTTokenHandler;
 import datawave.webservice.query.result.event.ResponseObjectFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.cache.caffeine.CaffeineCacheManager;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.web.reactive.function.client.WebClient;
-
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Set;
-
-import static datawave.query.util.MetadataHelperFactory.ALL_AUTHS_PROPERTY;
 
 @Configuration
 @EnableConfigurationProperties({QueryMetricHandlerProperties.class, TimelyProperties.class})

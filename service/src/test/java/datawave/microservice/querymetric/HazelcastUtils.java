@@ -1,5 +1,20 @@
 package datawave.microservice.querymetric;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.NANOSECONDS;
+
+import static com.hazelcast.internal.util.ExceptionUtil.rethrow;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+
+import java.util.Collection;
+import java.util.Random;
+import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+
+import org.junit.jupiter.api.Assertions;
+
 import com.hazelcast.cluster.Cluster;
 import com.hazelcast.cluster.Member;
 import com.hazelcast.core.HazelcastInstance;
@@ -11,19 +26,6 @@ import com.hazelcast.internal.partition.InternalPartitionService;
 import com.hazelcast.internal.util.UuidUtil;
 import com.hazelcast.partition.Partition;
 import com.hazelcast.partition.PartitionService;
-import org.junit.jupiter.api.Assertions;
-
-import java.util.Collection;
-import java.util.Random;
-import java.util.Set;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-
-import static com.hazelcast.internal.util.ExceptionUtil.rethrow;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.concurrent.TimeUnit.NANOSECONDS;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 
 public class HazelcastUtils {
     

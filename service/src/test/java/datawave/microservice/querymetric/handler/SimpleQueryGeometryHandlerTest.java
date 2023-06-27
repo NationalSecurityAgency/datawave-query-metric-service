@@ -1,23 +1,24 @@
 package datawave.microservice.querymetric.handler;
 
-import datawave.microservice.querymetric.QueryMetric;
-import datawave.microservice.querymetric.config.QueryMetricHandlerProperties;
-import datawave.webservice.query.QueryImpl;
-import datawave.webservice.query.exception.QueryExceptionType;
-import datawave.webservice.query.map.QueryGeometry;
-import datawave.webservice.query.map.QueryGeometryResponse;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import static datawave.query.QueryParameters.QUERY_SYNTAX;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import static datawave.query.QueryParameters.QUERY_SYNTAX;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import datawave.microservice.querymetric.QueryMetric;
+import datawave.microservice.querymetric.config.QueryMetricHandlerProperties;
+import datawave.webservice.query.QueryImpl;
+import datawave.webservice.query.exception.QueryExceptionType;
+import datawave.webservice.query.map.QueryGeometry;
+import datawave.webservice.query.map.QueryGeometryResponse;
 
 public class SimpleQueryGeometryHandlerTest {
     
