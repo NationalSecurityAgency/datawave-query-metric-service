@@ -1,8 +1,8 @@
 package datawave.microservice.querymetric.config;
 
-import datawave.microservice.querymetric.QueryMetric;
-
 import javax.xml.bind.annotation.XmlElement;
+
+import datawave.microservice.querymetric.QueryMetric;
 
 public class AlternateQueryMetric extends QueryMetric {
     

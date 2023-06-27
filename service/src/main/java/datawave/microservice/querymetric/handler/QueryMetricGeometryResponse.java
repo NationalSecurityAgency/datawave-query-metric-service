@@ -1,9 +1,9 @@
 package datawave.microservice.querymetric.handler;
 
+import java.util.stream.Collectors;
+
 import datawave.webservice.query.map.QueryGeometry;
 import datawave.webservice.query.map.QueryGeometryResponse;
-
-import java.util.stream.Collectors;
 
 public class QueryMetricGeometryResponse extends QueryGeometryResponse {
     

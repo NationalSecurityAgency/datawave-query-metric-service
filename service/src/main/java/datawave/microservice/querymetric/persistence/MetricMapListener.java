@@ -1,5 +1,10 @@
 package datawave.microservice.querymetric.persistence;
 
+import java.text.SimpleDateFormat;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.hazelcast.core.EntryEvent;
 import com.hazelcast.map.MapEvent;
 import com.hazelcast.map.listener.EntryAddedListener;
@@ -9,12 +14,9 @@ import com.hazelcast.map.listener.EntryMergedListener;
 import com.hazelcast.map.listener.EntryRemovedListener;
 import com.hazelcast.map.listener.EntryUpdatedListener;
 import com.hazelcast.map.listener.MapEvictedListener;
+
 import datawave.microservice.querymetric.BaseQueryMetric;
 import datawave.microservice.querymetric.QueryMetricUpdate;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.text.SimpleDateFormat;
 
 /*
  * @see MapClearedListener

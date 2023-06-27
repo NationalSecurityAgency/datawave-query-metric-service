@@ -1,19 +1,5 @@
 package datawave.microservice.querymetric.config;
 
-import datawave.data.type.LcNoDiacriticsType;
-import datawave.data.type.NumberType;
-import datawave.ingest.table.config.MetadataTableConfigHelper;
-import datawave.ingest.table.config.ShardTableConfigHelper;
-import datawave.microservice.querymetric.handler.ContentQueryMetricsIngestHelper;
-import org.apache.commons.codec.binary.Base64;
-import org.apache.commons.lang.StringUtils;
-import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.validation.annotation.Validated;
-
-import javax.validation.constraints.Min;
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotEmpty;
-import javax.validation.constraints.Positive;
 import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Collections;
@@ -23,6 +9,22 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
+
+import javax.validation.constraints.Min;
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotEmpty;
+import javax.validation.constraints.Positive;
+
+import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.lang.StringUtils;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.validation.annotation.Validated;
+
+import datawave.data.type.LcNoDiacriticsType;
+import datawave.data.type.NumberType;
+import datawave.ingest.table.config.MetadataTableConfigHelper;
+import datawave.ingest.table.config.ShardTableConfigHelper;
+import datawave.microservice.querymetric.handler.ContentQueryMetricsIngestHelper;
 
 @Validated
 @ConfigurationProperties(prefix = "datawave.query.metric.handler")

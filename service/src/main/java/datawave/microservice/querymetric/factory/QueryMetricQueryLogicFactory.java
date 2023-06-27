@@ -1,5 +1,9 @@
 package datawave.microservice.querymetric.factory;
 
+import org.springframework.beans.factory.FactoryBean;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
 import datawave.marking.MarkingFunctions;
 import datawave.microservice.querymetric.config.QueryMetricHandlerProperties;
 import datawave.query.tables.ShardQueryLogic;
@@ -7,9 +11,6 @@ import datawave.query.util.DateIndexHelperFactory;
 import datawave.query.util.MetadataHelperFactory;
 import datawave.webservice.common.audit.Auditor;
 import datawave.webservice.query.result.event.ResponseObjectFactory;
-import org.springframework.beans.factory.FactoryBean;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 
 @Component
 public class QueryMetricQueryLogicFactory implements FactoryBean<ShardQueryLogic> {

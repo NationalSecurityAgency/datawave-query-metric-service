@@ -1,16 +1,16 @@
 package datawave.microservice.querymetric;
 
+import static com.hazelcast.internal.util.EmptyStatement.ignore;
+
+import java.io.IOException;
+import java.net.ServerSocket;
+
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.web.servlet.error.ErrorMvcAutoConfiguration;
 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 import org.springframework.cloud.commons.util.InetUtils;
 import org.springframework.cloud.commons.util.InetUtilsProperties;
-
-import java.io.IOException;
-import java.net.ServerSocket;
-
-import static com.hazelcast.internal.util.EmptyStatement.ignore;
 
 /**
  * Launcher for the query metric service.

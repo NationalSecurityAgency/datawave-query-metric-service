@@ -1,29 +1,26 @@
 package datawave.microservice.querymetric;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.module.SimpleModule;
-import com.hazelcast.config.Config;
-import com.hazelcast.config.MapStoreConfig;
-import com.hazelcast.map.IMap;
-import com.hazelcast.spring.cache.HazelcastCacheManager;
-import datawave.core.common.connection.AccumuloClientPool;
-import datawave.marking.MarkingFunctions;
-import datawave.microservice.authorization.preauth.ProxiedEntityX509Filter;
-import datawave.microservice.authorization.user.DatawaveUserDetails;
-import datawave.microservice.querymetric.config.QueryMetricClientProperties;
-import datawave.microservice.querymetric.config.QueryMetricHandlerProperties;
-import datawave.microservice.querymetric.function.QueryMetricSupplier;
-import datawave.microservice.querymetric.handler.AccumuloClientTracking;
-import datawave.microservice.querymetric.handler.QueryMetricCombiner;
-import datawave.microservice.querymetric.handler.ShardTableQueryMetricHandler;
-import datawave.microservice.security.util.DnUtils;
-import datawave.security.authorization.DatawaveUser;
-import datawave.security.authorization.JWTTokenHandler;
-import datawave.security.authorization.SubjectIssuerDNPair;
-import datawave.webservice.query.result.event.DefaultEvent;
-import datawave.webservice.query.result.event.DefaultField;
-import datawave.webservice.query.result.event.EventBase;
+import static datawave.microservice.querymetric.config.HazelcastMetricCacheConfiguration.INCOMING_METRICS;
+import static datawave.microservice.querymetric.config.HazelcastMetricCacheConfiguration.LAST_WRITTEN_METRICS;
+import static datawave.security.authorization.DatawaveUser.UserType.USER;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import javax.inject.Named;
+
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchDeleter;
 import org.apache.accumulo.core.client.BatchScanner;
@@ -57,25 +54,31 @@ import org.springframework.http.MediaType;
 import org.springframework.messaging.Message;
 import org.springframework.web.client.RestTemplate;
 
-import javax.inject.Named;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.hazelcast.config.Config;
+import com.hazelcast.config.MapStoreConfig;
+import com.hazelcast.map.IMap;
+import com.hazelcast.spring.cache.HazelcastCacheManager;
 
-import static datawave.microservice.querymetric.config.HazelcastMetricCacheConfiguration.INCOMING_METRICS;
-import static datawave.microservice.querymetric.config.HazelcastMetricCacheConfiguration.LAST_WRITTEN_METRICS;
-import static datawave.security.authorization.DatawaveUser.UserType.USER;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
+import datawave.core.common.connection.AccumuloClientPool;
+import datawave.marking.MarkingFunctions;
+import datawave.microservice.authorization.preauth.ProxiedEntityX509Filter;
+import datawave.microservice.authorization.user.DatawaveUserDetails;
+import datawave.microservice.querymetric.config.QueryMetricClientProperties;
+import datawave.microservice.querymetric.config.QueryMetricHandlerProperties;
+import datawave.microservice.querymetric.function.QueryMetricSupplier;
+import datawave.microservice.querymetric.handler.AccumuloClientTracking;
+import datawave.microservice.querymetric.handler.QueryMetricCombiner;
+import datawave.microservice.querymetric.handler.ShardTableQueryMetricHandler;
+import datawave.microservice.security.util.DnUtils;
+import datawave.security.authorization.DatawaveUser;
+import datawave.security.authorization.JWTTokenHandler;
+import datawave.security.authorization.SubjectIssuerDNPair;
+import datawave.webservice.query.result.event.DefaultEvent;
+import datawave.webservice.query.result.event.DefaultField;
+import datawave.webservice.query.result.event.EventBase;
 
 public class QueryMetricTestBase {
     

@@ -1,5 +1,16 @@
 package datawave.microservice.querymetric.handler;
 
+import static datawave.query.QueryParameters.QUERY_SYNTAX;
+
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
+
+import org.apache.commons.jexl2.parser.JexlNode;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import datawave.microservice.querymetric.BaseQueryMetric;
 import datawave.microservice.querymetric.config.QueryMetricHandlerProperties;
 import datawave.query.jexl.JexlASTHelper;
@@ -9,16 +20,6 @@ import datawave.query.language.parser.jexl.LuceneToJexlQueryParser;
 import datawave.webservice.query.QueryImpl;
 import datawave.webservice.query.map.QueryGeometry;
 import datawave.webservice.query.map.QueryGeometryResponse;
-import org.apache.commons.jexl2.parser.JexlNode;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.ArrayList;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
-
-import static datawave.query.QueryParameters.QUERY_SYNTAX;
 
 /**
  * This class is used to extract query geometries from the query metrics in an effort to provide those geometries for subsequent display to the user.

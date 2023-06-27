@@ -1,8 +1,12 @@
 package datawave.microservice.querymetric;
 
-import datawave.marking.MarkingFunctions;
-import datawave.microservice.querymetric.config.TimelyProperties;
-import datawave.microservice.querymetric.function.QueryMetricSupplier;
+import static datawave.microservice.querymetric.QueryMetricTestBase.metricAssertEquals;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -19,12 +23,9 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import static datawave.microservice.querymetric.QueryMetricTestBase.metricAssertEquals;
+import datawave.marking.MarkingFunctions;
+import datawave.microservice.querymetric.config.TimelyProperties;
+import datawave.microservice.querymetric.function.QueryMetricSupplier;
 
 /*
  * This class tests that a QueryMetricClient can be created and used with messaging

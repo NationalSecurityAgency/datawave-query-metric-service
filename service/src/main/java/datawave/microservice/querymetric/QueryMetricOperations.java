@@ -1,28 +1,25 @@
 package datawave.microservice.querymetric;
 
-import com.codahale.metrics.Timer;
-import com.hazelcast.core.HazelcastInstanceNotActiveException;
-import com.hazelcast.map.EntryProcessor;
-import com.hazelcast.map.IMap;
-import com.hazelcast.spring.cache.HazelcastCacheManager;
-import datawave.marking.MarkingFunctions;
-import datawave.microservice.authorization.user.DatawaveUserDetails;
-import datawave.microservice.querymetric.factory.BaseQueryMetricListResponseFactory;
-import datawave.microservice.querymetric.function.QueryMetricSupplier;
-import datawave.microservice.querymetric.handler.QueryGeometryHandler;
-import datawave.microservice.querymetric.handler.ShardTableQueryMetricHandler;
-import datawave.microservice.querymetric.handler.SimpleQueryGeometryHandler;
-import datawave.microservice.security.util.DnUtils;
-import datawave.query.jexl.visitors.JexlFormattedStringBuildingVisitor;
-import datawave.security.authorization.DatawaveUser;
-import datawave.webservice.query.exception.DatawaveErrorCode;
-import datawave.webservice.query.exception.QueryException;
-import datawave.webservice.query.map.QueryGeometryResponse;
-import datawave.webservice.result.VoidResponse;
-import io.swagger.v3.oas.annotations.ExternalDocumentation;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.tags.Tag;
+import static datawave.microservice.querymetric.QueryMetricOperations.DEFAULT_DATETIME.BEGIN;
+import static datawave.microservice.querymetric.QueryMetricOperations.DEFAULT_DATETIME.END;
+import static datawave.microservice.querymetric.QueryMetricOperationsStats.METERS;
+import static datawave.microservice.querymetric.QueryMetricOperationsStats.TIMERS;
+import static datawave.microservice.querymetric.config.HazelcastMetricCacheConfiguration.INCOMING_METRICS;
+import static datawave.microservice.querymetric.config.HazelcastMetricCacheConfiguration.LAST_WRITTEN_METRICS;
+
+import java.net.InetAddress;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.List;
+import java.util.TimeZone;
+
+import javax.annotation.PreDestroy;
+import javax.annotation.security.PermitAll;
+import javax.inject.Named;
+
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.security.VisibilityEvaluator;
@@ -45,24 +42,30 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import javax.annotation.PreDestroy;
-import javax.annotation.security.PermitAll;
-import javax.inject.Named;
-import java.net.InetAddress;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.List;
-import java.util.TimeZone;
+import com.codahale.metrics.Timer;
+import com.hazelcast.core.HazelcastInstanceNotActiveException;
+import com.hazelcast.map.EntryProcessor;
+import com.hazelcast.map.IMap;
+import com.hazelcast.spring.cache.HazelcastCacheManager;
 
-import static datawave.microservice.querymetric.QueryMetricOperations.DEFAULT_DATETIME.BEGIN;
-import static datawave.microservice.querymetric.QueryMetricOperations.DEFAULT_DATETIME.END;
-import static datawave.microservice.querymetric.QueryMetricOperationsStats.METERS;
-import static datawave.microservice.querymetric.QueryMetricOperationsStats.TIMERS;
-import static datawave.microservice.querymetric.config.HazelcastMetricCacheConfiguration.INCOMING_METRICS;
-import static datawave.microservice.querymetric.config.HazelcastMetricCacheConfiguration.LAST_WRITTEN_METRICS;
+import datawave.marking.MarkingFunctions;
+import datawave.microservice.authorization.user.DatawaveUserDetails;
+import datawave.microservice.querymetric.factory.BaseQueryMetricListResponseFactory;
+import datawave.microservice.querymetric.function.QueryMetricSupplier;
+import datawave.microservice.querymetric.handler.QueryGeometryHandler;
+import datawave.microservice.querymetric.handler.ShardTableQueryMetricHandler;
+import datawave.microservice.querymetric.handler.SimpleQueryGeometryHandler;
+import datawave.microservice.security.util.DnUtils;
+import datawave.query.jexl.visitors.JexlFormattedStringBuildingVisitor;
+import datawave.security.authorization.DatawaveUser;
+import datawave.webservice.query.exception.DatawaveErrorCode;
+import datawave.webservice.query.exception.QueryException;
+import datawave.webservice.query.map.QueryGeometryResponse;
+import datawave.webservice.result.VoidResponse;
+import io.swagger.v3.oas.annotations.ExternalDocumentation;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 /**
  * The type Query metric operations.
