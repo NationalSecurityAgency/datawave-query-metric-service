@@ -1,5 +1,19 @@
 package datawave.microservice.querymetric.handler;
 
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.stream.Collectors;
+
+import org.apache.commons.lang.StringUtils;
+import org.apache.http.HttpHeaders;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.http.MediaType;
+import org.springframework.web.reactive.function.client.WebClient;
+
 import datawave.marking.MarkingFunctions;
 import datawave.microservice.authorization.user.DatawaveUserDetails;
 import datawave.microservice.querymetric.BaseQueryMetric;
@@ -15,19 +29,6 @@ import datawave.webservice.query.Query;
 import datawave.webservice.query.QueryParameters;
 import datawave.webservice.query.QueryParametersImpl;
 import datawave.webservice.result.BaseQueryResponse;
-import org.apache.commons.lang.StringUtils;
-import org.apache.http.HttpHeaders;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.http.MediaType;
-import org.springframework.web.reactive.function.client.WebClient;
-
-import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.stream.Collectors;
 
 public class RemoteShardTableQueryMetricHandler<T extends BaseQueryMetric> extends ShardTableQueryMetricHandler<T> {
     private static final Logger log = LoggerFactory.getLogger(RemoteShardTableQueryMetricHandler.class);

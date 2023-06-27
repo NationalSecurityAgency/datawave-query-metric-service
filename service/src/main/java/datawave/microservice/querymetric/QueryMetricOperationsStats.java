@@ -1,21 +1,9 @@
 package datawave.microservice.querymetric;
 
-import com.codahale.metrics.Meter;
-import com.codahale.metrics.Metered;
-import com.codahale.metrics.SlidingTimeWindowArrayReservoir;
-import com.codahale.metrics.Snapshot;
-import com.codahale.metrics.Timer;
-import com.hazelcast.map.IMap;
-import com.hazelcast.map.LocalMapStats;
-import datawave.microservice.querymetric.config.TimelyProperties;
-import datawave.microservice.querymetric.handler.ShardTableQueryMetricHandler;
-import datawave.microservice.querymetric.persistence.AccumuloMapStore;
-import datawave.util.timely.TcpClient;
-import datawave.util.timely.UdpClient;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.cache.Cache;
-import org.springframework.cache.CacheManager;
+import static java.util.concurrent.TimeUnit.MINUTES;
+
+import static datawave.microservice.querymetric.config.HazelcastMetricCacheConfiguration.INCOMING_METRICS;
+import static datawave.microservice.querymetric.config.HazelcastMetricCacheConfiguration.LAST_WRITTEN_METRICS;
 
 import java.net.InetAddress;
 import java.text.DecimalFormat;
@@ -30,9 +18,24 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static datawave.microservice.querymetric.config.HazelcastMetricCacheConfiguration.INCOMING_METRICS;
-import static datawave.microservice.querymetric.config.HazelcastMetricCacheConfiguration.LAST_WRITTEN_METRICS;
-import static java.util.concurrent.TimeUnit.MINUTES;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
+
+import com.codahale.metrics.Meter;
+import com.codahale.metrics.Metered;
+import com.codahale.metrics.SlidingTimeWindowArrayReservoir;
+import com.codahale.metrics.Snapshot;
+import com.codahale.metrics.Timer;
+import com.hazelcast.map.IMap;
+import com.hazelcast.map.LocalMapStats;
+
+import datawave.microservice.querymetric.config.TimelyProperties;
+import datawave.microservice.querymetric.handler.ShardTableQueryMetricHandler;
+import datawave.microservice.querymetric.persistence.AccumuloMapStore;
+import datawave.util.timely.TcpClient;
+import datawave.util.timely.UdpClient;
 
 public class QueryMetricOperationsStats {
     

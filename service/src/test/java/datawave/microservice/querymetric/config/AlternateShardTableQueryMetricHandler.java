@@ -1,5 +1,9 @@
 package datawave.microservice.querymetric.config;
 
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Qualifier;
+
 import datawave.marking.MarkingFunctions;
 import datawave.microservice.querymetric.QueryMetricFactory;
 import datawave.microservice.querymetric.factory.QueryMetricQueryLogicFactory;
@@ -11,9 +15,6 @@ import datawave.query.language.parser.jexl.LuceneToJexlQueryParser;
 import datawave.webservice.common.connection.AccumuloClientPool;
 import datawave.webservice.query.result.event.EventBase;
 import datawave.webservice.query.result.event.FieldBase;
-import org.springframework.beans.factory.annotation.Qualifier;
-
-import java.util.List;
 
 public class AlternateShardTableQueryMetricHandler extends LocalShardTableQueryMetricHandler<AlternateQueryMetric> {
     

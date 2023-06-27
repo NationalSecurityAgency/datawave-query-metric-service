@@ -1,5 +1,23 @@
 package datawave.microservice.querymetric.config;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.util.Collection;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.cloud.consul.discovery.ConsulDiscoveryProperties;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
+
 import com.hazelcast.config.Config;
 import com.hazelcast.config.DiscoveryStrategyConfig;
 import com.hazelcast.config.JoinConfig;
@@ -15,28 +33,12 @@ import com.hazelcast.kubernetes.KubernetesProperties;
 import com.hazelcast.spi.discovery.integration.DiscoveryServiceProvider;
 import com.hazelcast.spring.cache.HazelcastCache;
 import com.hazelcast.spring.cache.HazelcastCacheManager;
+
 import datawave.microservice.querymetric.ClusterMembershipListener;
 import datawave.microservice.querymetric.MergeLockLifecycleListener;
 import datawave.microservice.querymetric.persistence.AccumuloMapLoader;
 import datawave.microservice.querymetric.persistence.AccumuloMapStore;
 import datawave.microservice.querymetric.persistence.MetricMapListener;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.cloud.consul.discovery.ConsulDiscoveryProperties;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Profile;
-
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.util.Collection;
-
-import static java.nio.charset.StandardCharsets.UTF_8;
 
 @Configuration
 @ConditionalOnProperty(name = "hazelcast.server.enabled", havingValue = "true")

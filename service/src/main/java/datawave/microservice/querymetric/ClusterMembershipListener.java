@@ -1,11 +1,12 @@
 package datawave.microservice.querymetric;
 
+import java.util.Set;
+
+import org.apache.log4j.Logger;
+
 import com.hazelcast.cluster.Member;
 import com.hazelcast.cluster.MembershipEvent;
 import com.hazelcast.cluster.MembershipListener;
-import org.apache.log4j.Logger;
-
-import java.util.Set;
 
 public class ClusterMembershipListener implements MembershipListener {
     
