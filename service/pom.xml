@@ -21,18 +21,18 @@
         <start-class>datawave.microservice.querymetric.QueryMetricService</start-class>
         <version.base-rest-responses>2.1.0</version.base-rest-responses>
         <version.cache-api>1.1.1</version.cache-api>
-        <version.datawave>5.1.0</version.datawave>
+        <version.datawave>5.9.1</version.datawave>
         <version.hazelcast-kubernetes>1.4</version.hazelcast-kubernetes>
         <version.in-memory-accumulo>2.1.0</version.in-memory-accumulo>
         <version.log4j12>2.17.1</version.log4j12>
-        <version.microservice.accumulo-api>2.1.1</version.microservice.accumulo-api>
+        <version.microservice.accumulo-api>2.1.2</version.microservice.accumulo-api>
         <version.microservice.accumulo-utils>2.1.2</version.microservice.accumulo-utils>
         <version.microservice.hazelcast>2.1.1</version.microservice.hazelcast>
-        <version.microservice.metadata-utils>2.1.1</version.microservice.metadata-utils>
+        <version.microservice.metadata-utils>2.1.7</version.microservice.metadata-utils>
         <version.microservice.query-metric-api>${project.version}</version.microservice.query-metric-api>
         <version.microservice.starter>2.1.1</version.microservice.starter>
         <version.microservice.starter-datawave-query-metric>1.5.5</version.microservice.starter-datawave-query-metric>
-        <version.microservice.type-utils>1.11</version.microservice.type-utils>
+        <version.microservice.type-utils>1.15</version.microservice.type-utils>
         <version.protobuf-java>3.7.1</version.protobuf-java>
         <version.spring.cloud.stream>2.1.4.RELEASE</version.spring.cloud.stream>
         <version.validation-api>2.0.2</version.validation-api>
