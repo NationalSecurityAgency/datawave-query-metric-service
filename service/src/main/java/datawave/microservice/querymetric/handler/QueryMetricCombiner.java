@@ -36,11 +36,10 @@ public class QueryMetricCombiner<T extends BaseQueryMetric> implements Serializa
             if (combinedMetric.getUserDN() == null && updatedQueryMetric.getUserDN() != null) {
                 combinedMetric.setUserDN(updatedQueryMetric.getUserDN());
             }
-            // keep the earliest create date
-            long cachedCreate = combinedMetric.getCreateDate() == null ? Long.MAX_VALUE : combinedMetric.getCreateDate().getTime();
-            long updatedCreate = updatedQueryMetric.getCreateDate() == null ? Long.MAX_VALUE : updatedQueryMetric.getCreateDate().getTime();
-            if (updatedCreate < cachedCreate) {
-                combinedMetric.setCreateDate(updatedQueryMetric.getCreateDate());
+            
+            // keep the original createDate
+            if (cachedQueryMetric.getCreateDate() != null) {
+                combinedMetric.setCreateDate(cachedQueryMetric.getCreateDate());
             }
             
             // Do not update queryId -- shouldn't change anyway

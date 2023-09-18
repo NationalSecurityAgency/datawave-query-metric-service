@@ -7,6 +7,7 @@ import com.hazelcast.config.Config;
 import com.hazelcast.config.MapStoreConfig;
 import com.hazelcast.core.IMap;
 import com.hazelcast.spring.cache.HazelcastCacheManager;
+import datawave.ingest.protobuf.Uid;
 import datawave.marking.MarkingFunctions;
 import datawave.microservice.authorization.preauth.ProxiedEntityX509Filter;
 import datawave.microservice.authorization.user.ProxiedUserDetails;
@@ -30,6 +31,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.commons.lang.RandomStringUtils;
 import org.apache.commons.lang.time.DateUtils;
+import org.apache.hadoop.io.Text;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -55,9 +57,11 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static datawave.microservice.querymetric.config.HazelcastMetricCacheConfiguration.INCOMING_METRICS;
 import static datawave.microservice.querymetric.config.HazelcastMetricCacheConfiguration.LAST_WRITTEN_METRICS;
@@ -146,7 +150,7 @@ public class QueryMetricTestBase {
         // this is to ensure that the QueryMetrics_m table
         // is populated so that queries work properly
         try {
-            this.shardTableQueryMetricHandler.writeMetric(m, Collections.singletonList(m), m.getLastUpdated(), false);
+            this.shardTableQueryMetricHandler.writeMetric(m, Collections.emptyList(), m.getCreateDate().getTime(), false);
             this.shardTableQueryMetricHandler.flush();
         } catch (Exception e) {
             e.printStackTrace();
@@ -416,6 +420,80 @@ public class QueryMetricTestBase {
                     Thread.sleep(250);
                 } catch (InterruptedException e) {}
             }
+        }
+    }
+    
+    public Collection<Map.Entry<Key,Value>> getEventEntriesFromAccumulo(String queryId) {
+        Collection<Map.Entry<Key,Value>> entries = new ArrayList<>();
+        try {
+            String indexTable = this.queryMetricHandlerProperties.getIndexTableName();
+            String shardTable = this.queryMetricHandlerProperties.getShardTableName();
+            Collection<Map.Entry<Key,Value>> indexEntries = getAccumuloEntries(this.accumuloClient, indexTable, this.auths);
+            Key key = null;
+            Value value = null;
+            for (Map.Entry<Key,Value> e : indexEntries) {
+                Key k = e.getKey();
+                if (k.getRow().toString().equals(queryId) && k.getColumnFamily().toString().equals("QUERY_ID")) {
+                    key = k;
+                    value = e.getValue();
+                    break;
+                }
+            }
+            String uid = null;
+            if (value != null) {
+                Uid.List l = Uid.List.parseFrom(value.get());
+                if (l.getUIDCount() > 0) {
+                    uid = l.getUID(0);
+                }
+                if (uid != null) {
+                    String[] split = key.getColumnQualifier().toString().split("\0");
+                    if (split.length > 0) {
+                        Text eventRow = new Text(split[0]);
+                        Text eventColFam = new Text("querymetrics\0" + uid);
+                        Collection<Map.Entry<Key,Value>> shardEntries = getAccumuloEntries(this.accumuloClient, shardTable, this.auths);
+                        for (Map.Entry<Key,Value> e : shardEntries) {
+                            if (e.getKey().getRow().equals(eventRow) && e.getKey().getColumnFamily().equals(eventColFam)) {
+                                entries.add(e);
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.error(e.getMessage(), e);
+        }
+        return entries;
+    }
+    
+    public void printEventEntriesFromAccumulo(String queryId) {
+        Collection<Map.Entry<Key,Value>> entries = getEventEntriesFromAccumulo(queryId);
+        for (Map.Entry<Key,Value> e : entries) {
+            System.out.println(e.getKey().toString());
+        }
+    }
+    
+    public void assertNoDuplicateFields(String queryId) {
+        Collection<Map.Entry<Key,Value>> entries = getEventEntriesFromAccumulo(queryId);
+        Set<String> fields = new HashSet<>();
+        Set<String> duplicateFields = new HashSet<>();
+        for (Map.Entry<Key,Value> e : entries) {
+            Key k = e.getKey();
+            String[] split = k.getColumnQualifier().toString().split("\0");
+            if (split.length > 0) {
+                String f = split[0];
+                if (!fields.contains(f)) {
+                    fields.add(f);
+                } else {
+                    duplicateFields.add(f);
+                }
+            }
+        }
+        
+        if (!duplicateFields.isEmpty()) {
+            for (Map.Entry<Key,Value> e : entries) {
+                System.out.println(e.getKey().toString());
+            }
+            Assert.fail("Duplicate field values found for:" + duplicateFields);
         }
     }
 }

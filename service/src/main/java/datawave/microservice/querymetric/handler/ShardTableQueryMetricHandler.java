@@ -211,31 +211,39 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
         }
     }
     
-    public void writeMetric(T updatedQueryMetric, List<T> storedQueryMetrics, Date lastUpdated, boolean delete) throws Exception {
+    private void writeMetric(T updated, T stored, long timestamp, boolean delete, ContentIndexingColumnBasedHandler handler) throws Exception {
+        Multimap<BulkIngestKey,Value> r = getEntries(handler, updated, stored, timestamp);
+        if (r != null) {
+            for (Entry<BulkIngestKey,Value> e : r.entries()) {
+                recordWriter.write(e.getKey().getTableName(), getMutation(e.getKey().getKey(), e.getValue()));
+            }
+        }
+        if (!delete && handler.getMetadata() != null) {
+            for (Entry<BulkIngestKey,Value> e : handler.getMetadata().getBulkMetadata().entries()) {
+                recordWriter.write(e.getKey().getTableName(), getMutation(e.getKey().getKey(), e.getValue()));
+            }
+        }
+    }
+    
+    public void writeMetric(T updatedQueryMetric, List<T> storedQueryMetrics, long timestamp, boolean delete) throws Exception {
         try {
             TaskAttemptID taskId = new TaskAttemptID(new TaskID(new JobID(JOB_ID, 1), TaskType.MAP, 1), 1);
-            
             this.accumuloRecordWriterLock.readLock().lock();
+            
             try {
                 MapContext<Text,RawRecordContainer,Text,Mutation> context = new MapContextImpl<>(conf, taskId, null, this.recordWriter, null, reporter, null);
-                for (T storedQueryMetric : storedQueryMetrics) {
-                    ContentIndexingColumnBasedHandler handler = new ContentIndexingColumnBasedHandler() {
-                        @Override
-                        public AbstractContentIngestHelper getContentIndexingDataTypeHelper() {
-                            return getQueryMetricsIngestHelper(delete);
-                        }
-                    };
-                    handler.setup(context);
-                    Multimap<BulkIngestKey,Value> r = getEntries(handler, updatedQueryMetric, storedQueryMetric, lastUpdated);
-                    if (r != null) {
-                        for (Entry<BulkIngestKey,Value> e : r.entries()) {
-                            recordWriter.write(e.getKey().getTableName(), getMutation(e.getKey().getKey(), e.getValue()));
-                        }
+                ContentIndexingColumnBasedHandler handler = new ContentIndexingColumnBasedHandler() {
+                    @Override
+                    public AbstractContentIngestHelper getContentIndexingDataTypeHelper() {
+                        return getQueryMetricsIngestHelper(delete);
                     }
-                    if (!delete && handler.getMetadata() != null) {
-                        for (Entry<BulkIngestKey,Value> e : handler.getMetadata().getBulkMetadata().entries()) {
-                            recordWriter.write(e.getKey().getTableName(), getMutation(e.getKey().getKey(), e.getValue()));
-                        }
+                };
+                handler.setup(context);
+                if (storedQueryMetrics.isEmpty()) {
+                    writeMetric(updatedQueryMetric, null, timestamp, delete, handler);
+                } else {
+                    for (T storedQueryMetric : storedQueryMetrics) {
+                        writeMetric(updatedQueryMetric, storedQueryMetric, timestamp, delete, handler);
                     }
                 }
             } finally {
@@ -269,14 +277,14 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
         Map<String,String> eventFields = new HashMap<>();
         ContentQueryMetricsIngestHelper ingestHelper = getQueryMetricsIngestHelper(false);
         ingestHelper.setup(conf);
-        Multimap<String,NormalizedContentInterface> fieldsToWrite = ingestHelper.getEventFieldsToWrite(queryMetric);
+        Multimap<String,NormalizedContentInterface> fieldsToWrite = ingestHelper.getEventFieldsToWrite(queryMetric, null);
         for (Entry<String,NormalizedContentInterface> entry : fieldsToWrite.entries()) {
             eventFields.put(entry.getKey(), entry.getValue().getEventFieldValue());
         }
         return eventFields;
     }
     
-    private Multimap<BulkIngestKey,Value> getEntries(ContentIndexingColumnBasedHandler handler, T updatedQueryMetric, T storedQueryMetric, Date lastUpdated) {
+    private Multimap<BulkIngestKey,Value> getEntries(ContentIndexingColumnBasedHandler handler, T updatedQueryMetric, T storedQueryMetric, long timestamp) {
         Type type = TypeRegistry.getType("querymetrics");
         ContentQueryMetricsIngestHelper ingestHelper = (ContentQueryMetricsIngestHelper) handler.getContentIndexingDataTypeHelper();
         boolean deleteMode = ingestHelper.getDeleteMode();
@@ -285,7 +293,7 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
         RawRecordContainerImpl event = new RawRecordContainerImpl();
         event.setConf(this.conf);
         event.setDataType(type);
-        event.setDate(storedQueryMetric.getCreateDate().getTime());
+        event.setDate(updatedQueryMetric.getCreateDate().getTime());
         // get markings from metric, otherwise use the default markings
         Map<String,String> markings = updatedQueryMetric.getMarkings();
         if (markings != null && !markings.isEmpty()) {
@@ -298,18 +306,18 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
         } else {
             event.setVisibility(this.queryMetricHandlerProperties.getDefaultMetricVisibility());
         }
-        event.setAuxData(storedQueryMetric);
+        event.setAuxData(updatedQueryMetric);
         event.setRawRecordNumber(1000L);
-        event.addAltId(storedQueryMetric.getQueryId());
+        event.addAltId(updatedQueryMetric.getQueryId());
         
-        event.setId(uidBuilder.newId(storedQueryMetric.getQueryId().getBytes(Charset.forName("UTF-8")), (Date) null));
+        event.setId(uidBuilder.newId(updatedQueryMetric.getQueryId().getBytes(Charset.forName("UTF-8")), (Date) null));
         
         final Multimap<String,NormalizedContentInterface> fields;
         
         if (deleteMode) {
             fields = ingestHelper.getEventFieldsToDelete(updatedQueryMetric, storedQueryMetric);
         } else {
-            fields = ingestHelper.getEventFieldsToWrite(updatedQueryMetric);
+            fields = ingestHelper.getEventFieldsToWrite(updatedQueryMetric, storedQueryMetric);
         }
         
         Key key = new Key();
@@ -342,19 +350,14 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
             r.removeAll(b);
         }
         
-        // replace the longest of the keys from fields that get parse
-        // d as content
+        // replace the longest of the keys from
+        // fields that get parsed as content
         for (Entry<String,BulkIngestKey> l : tfFields.entrySet()) {
             r.put(l.getValue(), new Value(new byte[0]));
         }
         
         for (Entry<BulkIngestKey,Collection<Value>> entry : r.asMap().entrySet()) {
-            if (deleteMode) {
-                entry.getKey().getKey().setTimestamp(lastUpdated.getTime());
-            } else {
-                // this will ensure that the QueryMetrics can be found within second precision in most cases
-                entry.getKey().getKey().setTimestamp(storedQueryMetric.getCreateDate().getTime() + storedQueryMetric.getNumUpdates());
-            }
+            entry.getKey().getKey().setTimestamp(timestamp);
             entry.getKey().getKey().setDeleted(deleteMode);
         }
         
@@ -511,7 +514,7 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
                             Date d = sdf_date_time1.parse(fieldValue);
                             m.setBeginDate(d);
                         } catch (Exception e) {
-                            log.error(e.getMessage());
+                            log.error(fieldName + ":" + fieldValue + ":" + e.getMessage());
                         }
                     } else if (fieldName.equals("CREATE_CALL_TIME")) {
                         m.setCreateCallTime(Long.parseLong(fieldValue));
@@ -521,34 +524,55 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
                             m.setCreateDate(d);
                             createDateSet = true;
                         } catch (Exception e) {
-                            log.error(e.getMessage());
+                            log.error(fieldName + ":" + fieldValue + ":" + e.getMessage());
                         }
                     } else if (fieldName.equals("DOC_RANGES")) {
-                        m.setDocRanges(Long.parseLong(fieldValue));
+                        try {
+                            long l = Long.parseLong(fieldValue);
+                            if (l > m.getDocRanges()) {
+                                m.setDocRanges(l);
+                            }
+                        } catch (Exception e) {
+                            log.error(fieldName + ":" + fieldValue + ":" + e.getMessage());
+                        }
                     } else if (fieldName.equals("END_DATE")) {
                         try {
                             Date d = sdf_date_time1.parse(fieldValue);
                             m.setEndDate(d);
                         } catch (Exception e) {
-                            log.error(e.getMessage());
+                            log.error(fieldName + ":" + fieldValue + ":" + e.getMessage());
                         }
                     } else if (fieldName.equals("ERROR_CODE")) {
                         m.setErrorCode(fieldValue);
                     } else if (fieldName.equals("ERROR_MESSAGE")) {
                         m.setErrorMessage(fieldValue);
                     } else if (fieldName.equals("FI_RANGES")) {
-                        m.setFiRanges(Long.parseLong(fieldValue));
+                        try {
+                            long l = Long.parseLong(fieldValue);
+                            if (l > m.getFiRanges()) {
+                                m.setFiRanges(l);
+                            }
+                        } catch (Exception e) {
+                            log.error(fieldName + ":" + fieldValue + ":" + e.getMessage());
+                        }
                     } else if (fieldName.equals("HOST")) {
                         m.setHost(fieldValue);
                     } else if (fieldName.equals("LAST_UPDATED")) {
                         try {
                             Date d = sdf_date_time2.parse(fieldValue);
-                            m.setLastUpdated(d);
+                            // protect against multiple values by coosing the latest
+                            if (m.getLastUpdated() == null || d.after(m.getLastUpdated())) {
+                                m.setLastUpdated(d);
+                            }
                         } catch (Exception e) {
-                            log.error(e.getMessage());
+                            log.error(fieldName + ":" + fieldValue + ":" + e.getMessage());
                         }
                     } else if (fieldName.equals("LIFECYCLE")) {
-                        m.setLifecycle(Lifecycle.valueOf(fieldValue));
+                        Lifecycle l = Lifecycle.valueOf(fieldValue);
+                        // protect against multiple values by choosing the last by ordinal
+                        if (m.getLifecycle() == null || l.ordinal() > m.getLifecycle().ordinal()) {
+                            m.setLifecycle(Lifecycle.valueOf(fieldValue));
+                        }
                     } else if (fieldName.equals("LOGIN_TIME")) {
                         m.setLoginTime(Long.parseLong(fieldValue));
                     } else if (fieldName.equals("NEGATIVE_SELECTORS")) {
@@ -559,13 +583,22 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
                         negativeSelectors.add(fieldValue);
                         m.setNegativeSelectors(negativeSelectors);
                     } else if (fieldName.equals("NEXT_COUNT")) {
-                        m.setNextCount(Long.parseLong(fieldValue));
+                        try {
+                            long l = Long.parseLong(fieldValue);
+                            if (l > m.getNextCount()) {
+                                m.setNextCount(l);
+                            }
+                        } catch (Exception e) {
+                            log.error(fieldName + ":" + fieldValue + ":" + e.getMessage());
+                        }
                     } else if (fieldName.equals("NUM_UPDATES")) {
                         try {
-                            long numUpdates = Long.parseLong(fieldValue);
-                            m.setNumUpdates(numUpdates);
+                            long l = Long.parseLong(fieldValue);
+                            if (l > m.getNumUpdates()) {
+                                m.setNumUpdates(l);
+                            }
                         } catch (Exception e) {
-                            log.error(e.getMessage());
+                            log.error(fieldName + ":" + fieldValue + ":" + e.getMessage());
                         }
                     } else if (fieldName.startsWith("PAGE_METRICS")) {
                         int index = fieldName.indexOf(".");
@@ -622,11 +655,25 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
                     } else if (fieldName.equals("QUERY_TYPE")) {
                         m.setQueryType(fieldValue);
                     } else if (fieldName.equals("SEEK_COUNT")) {
-                        m.setSeekCount(Long.parseLong(fieldValue));
+                        try {
+                            long l = Long.parseLong(fieldValue);
+                            if (l > m.getSeekCount()) {
+                                m.setSeekCount(l);
+                            }
+                        } catch (Exception e) {
+                            log.error(fieldName + ":" + fieldValue + ":" + e.getMessage());
+                        }
                     } else if (fieldName.equals("SETUP_TIME")) {
                         m.setSetupTime(Long.parseLong(fieldValue));
                     } else if (fieldName.equals("SOURCE_COUNT")) {
-                        m.setSourceCount(Long.parseLong(fieldValue));
+                        try {
+                            long l = Long.parseLong(fieldValue);
+                            if (l > m.getSourceCount()) {
+                                m.setSourceCount(l);
+                            }
+                        } catch (Exception e) {
+                            log.error(fieldName + ":" + fieldValue + ":" + e.getMessage());
+                        }
                     } else if (fieldName.equals("USER")) {
                         m.setUser(fieldValue);
                     } else if (fieldName.equals("USER_DN")) {
@@ -636,7 +683,14 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
                     } else if (fieldName.startsWith("VERSION.")) {
                         m.addVersion(fieldName.substring(8), fieldValue);
                     } else if (fieldName.equals("YIELD_COUNT")) {
-                        m.setYieldCount(Long.parseLong(fieldValue));
+                        try {
+                            long l = Long.parseLong(fieldValue);
+                            if (l > m.getYieldCount()) {
+                                m.setYieldCount(l);
+                            }
+                        } catch (Exception e) {
+                            log.error(fieldName + ":" + fieldValue + ":" + e.getMessage());
+                        }
                     }
                 }
             }

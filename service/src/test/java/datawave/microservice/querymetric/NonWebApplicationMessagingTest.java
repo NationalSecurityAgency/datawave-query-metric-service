@@ -76,7 +76,7 @@ public class NonWebApplicationMessagingTest {
         // this is to ensure that the QueryMetrics_m table
         // is populated so that queries work properly
         try {
-            this.shardTableQueryMetricHandler.writeMetric(m, Collections.singletonList(m), m.getLastUpdated(), false);
+            this.shardTableQueryMetricHandler.writeMetric(m, Collections.emptyList(), m.getCreateDate().getTime(), false);
             this.shardTableQueryMetricHandler.flush();
         } catch (Exception e) {
             log.error(e.getMessage(), e);
