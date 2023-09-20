@@ -116,7 +116,8 @@ public class QueryMetricHandlerProperties {
             "SEEK_COUNT",
             "SETUP_TIME",
             "SOURCE_COUNT",
-            "USER");
+            "USER",
+            "YIELD_COUNT");
 
     protected List<String> additionalIndexFields = Collections.EMPTY_LIST;
 
@@ -140,12 +141,18 @@ public class QueryMetricHandlerProperties {
 
     protected List<String> numericFields = Arrays.asList(
             "CREATE_CALL_TIME",
+            "DOC_RANGES",
             "ELAPSED_TIME",
+            "FI_RANGES",
             "LOGIN_TIME",
+            "NEXT_COUNT",
+            "SEEK_COUNT",
             "SETUP_TIME",
+            "SOURCE_COUNT",
             "NUM_PAGES",
             "NUM_RESULTS",
-            "NUM_UPDATES");
+            "NUM_UPDATES",
+            "YIELD_COUNT");
 
     protected List<String> additionalNumericFields = Collections.EMPTY_LIST;
     //@formatter:on
