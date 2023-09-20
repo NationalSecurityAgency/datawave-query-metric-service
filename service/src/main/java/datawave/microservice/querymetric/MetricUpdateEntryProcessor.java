@@ -18,22 +18,33 @@ public class MetricUpdateEntryProcessor implements EntryProcessor<String,QueryMe
     
     @Override
     public Long process(Map.Entry<String,QueryMetricUpdateHolder> entry) {
+        QueryMetricUpdateHolder updatedHolder;
+        QueryMetricType metricType = this.metricUpdate.getMetricType();
+        BaseQueryMetric updatedMetric = this.metricUpdate.getMetric();
         long start = System.currentTimeMillis();
-        BaseQueryMetric combinedMetric;
         if (entry.getValue() == null) {
-            entry.setValue(this.metricUpdate);
+            updatedHolder = this.metricUpdate;
         } else {
-            QueryMetricType metricType = this.metricUpdate.getMetricType();
+            updatedHolder = entry.getValue();
             BaseQueryMetric storedMetric = entry.getValue().getMetric();
-            BaseQueryMetric updatedMetric = this.metricUpdate.getMetric();
+            BaseQueryMetric combinedMetric;
             combinedMetric = this.combiner.combineMetrics(updatedMetric, storedMetric, metricType);
-            combinedMetric.setNumUpdates(storedMetric.getNumUpdates() + updatedMetric.getNumUpdates());
-            boolean isNewMetric = entry.getValue().isNewMetric();
-            if (isNewMetric == false) {
-                isNewMetric = QueryMetricUpdateHolder.isNewMetric(storedMetric) || QueryMetricUpdateHolder.isNewMetric(updatedMetric);
-            }
-            entry.setValue(new QueryMetricUpdateHolder(combinedMetric, metricType, isNewMetric));
+            updatedHolder.setMetric(combinedMetric);
+            updatedHolder.setMetricType(metricType);
         }
+        
+        if (metricType.equals(QueryMetricType.DISTRIBUTED) && updatedMetric != null) {
+            // these values are added incrementally in a distributed update. Because we can not be sure
+            // exactly when the incomingQueryMetricCache value is stored, it would otherwise be possible
+            // for updates to be included twice. These values are reset after being used in the AccumuloMapStore
+            updatedHolder.addValue("sourceCount", updatedMetric.getSourceCount());
+            updatedHolder.addValue("nextCount", updatedMetric.getNextCount());
+            updatedHolder.addValue("seekCount", updatedMetric.getSeekCount());
+            updatedHolder.addValue("yieldCount", updatedMetric.getYieldCount());
+            updatedHolder.addValue("docRanges", updatedMetric.getDocRanges());
+            updatedHolder.addValue("fiRanges", updatedMetric.getFiRanges());
+        }
+        entry.setValue(updatedHolder);
         return Long.valueOf(System.currentTimeMillis() - start);
     }
 }

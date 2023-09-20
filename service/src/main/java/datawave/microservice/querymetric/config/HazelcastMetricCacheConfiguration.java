@@ -5,6 +5,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,8 +21,10 @@ import org.springframework.context.annotation.Profile;
 
 import com.hazelcast.config.Config;
 import com.hazelcast.config.DiscoveryStrategyConfig;
+import com.hazelcast.config.InMemoryFormat;
 import com.hazelcast.config.JoinConfig;
 import com.hazelcast.config.ListenerConfig;
+import com.hazelcast.config.MapConfig;
 import com.hazelcast.config.MapStoreConfig;
 import com.hazelcast.config.TcpIpConfig;
 import com.hazelcast.config.XmlConfigBuilder;
@@ -193,6 +196,15 @@ public class HazelcastMetricCacheConfiguration {
         ListenerConfig membershipListenerConfig = new ListenerConfig();
         membershipListenerConfig.setImplementation(new ClusterMembershipListener());
         config.addListenerConfig(membershipListenerConfig);
+        
+        Map<String,MapConfig> mapConfigs = config.getMapConfigs();
+        for (Map.Entry<String,MapConfig> e : mapConfigs.entrySet()) {
+            InMemoryFormat inMemoryFormat = e.getValue().getInMemoryFormat();
+            if (!inMemoryFormat.equals(InMemoryFormat.OBJECT)) {
+                log.info("overriding in-memory-format:" + inMemoryFormat + " for map " + e.getKey() + " to OBJECT");
+                e.getValue().setInMemoryFormat(InMemoryFormat.OBJECT);
+            }
+        }
         return config;
     }
 }

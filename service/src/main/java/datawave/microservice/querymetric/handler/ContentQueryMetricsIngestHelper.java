@@ -1,6 +1,8 @@
 package datawave.microservice.querymetric.handler;
 
 import java.text.SimpleDateFormat;
+import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -21,7 +23,6 @@ import datawave.ingest.data.config.ingest.TermFrequencyIngestHelperInterface;
 import datawave.microservice.querymetric.BaseQueryMetric;
 import datawave.microservice.querymetric.BaseQueryMetric.PageMetric;
 import datawave.microservice.querymetric.BaseQueryMetric.Prediction;
-import datawave.webservice.query.QueryImpl;
 import datawave.webservice.query.util.QueryUtil;
 
 public class ContentQueryMetricsIngestHelper extends CSVIngestHelper implements TermFrequencyIngestHelperInterface {
@@ -68,8 +69,8 @@ public class ContentQueryMetricsIngestHelper extends CSVIngestHelper implements 
         return results;
     }
     
-    public Multimap<String,NormalizedContentInterface> getEventFieldsToWrite(BaseQueryMetric updatedQueryMetric) {
-        return normalize(delegate.getEventFieldsToWrite(updatedQueryMetric));
+    public Multimap<String,NormalizedContentInterface> getEventFieldsToWrite(BaseQueryMetric updatedQueryMetric, BaseQueryMetric storedQueryMetric) {
+        return normalize(delegate.getEventFieldsToWrite(updatedQueryMetric, storedQueryMetric));
     }
     
     @Override
@@ -93,201 +94,230 @@ public class ContentQueryMetricsIngestHelper extends CSVIngestHelper implements 
     
     public static class HelperDelegate<T extends BaseQueryMetric> {
         
-        public Multimap<String,String> getEventFieldsToWrite(T updatedQueryMetric) {
+        protected boolean isChanged(String updated, String stored) {
+            if ((StringUtils.isBlank(stored) && StringUtils.isNotBlank(updated)) || (stored != null && updated != null && !stored.equals(updated))) {
+                return true;
+            } else {
+                return false;
+            }
+        }
+        
+        protected boolean isChanged(long updated, long stored) {
+            if (updated != stored) {
+                return true;
+            } else {
+                return false;
+            }
+        }
+        
+        protected boolean isChanged(BaseQueryMetric.Lifecycle updated, BaseQueryMetric.Lifecycle stored) {
+            if ((stored == null && updated != null) || (stored != null && updated != null && (stored.ordinal() != updated.ordinal()))) {
+                return true;
+            } else {
+                return false;
+            }
+        }
+        
+        protected boolean isFirstWrite(Collection<?> updated, Collection<?> stored) {
+            if ((stored == null || stored.isEmpty()) && (updated != null && !updated.isEmpty())) {
+                return true;
+            } else {
+                return false;
+            }
+        }
+        
+        protected boolean isFirstWrite(Map<?,?> updated, Map<?,?> stored) {
+            if ((stored == null || stored.isEmpty()) && (updated != null && !updated.isEmpty())) {
+                return true;
+            } else {
+                return false;
+            }
+        }
+        
+        protected boolean isFirstWrite(String updated, String stored) {
+            if (stored == null && StringUtils.isNotBlank(updated)) {
+                return true;
+            } else {
+                return false;
+            }
+        }
+        
+        protected boolean isFirstWrite(Object updated, Object stored) {
+            if (stored == null && updated != null) {
+                return true;
+            } else {
+                return false;
+            }
+        }
+        
+        protected boolean isFirstWrite(long updated, long stored, long initValue) {
+            if (stored == initValue && updated != initValue) {
+                return true;
+            } else {
+                return false;
+            }
+        }
+        
+        public Multimap<String,String> getEventFieldsToWrite(T updated, T stored) {
             
             HashMultimap<String,String> fields = HashMultimap.create();
             
             SimpleDateFormat sdf_date_time1 = new SimpleDateFormat("yyyyMMdd HHmmss");
             SimpleDateFormat sdf_date_time2 = new SimpleDateFormat("yyyyMMdd HHmmss");
             
-            if (updatedQueryMetric.getPositiveSelectors() != null) {
-                fields.putAll("POSITIVE_SELECTORS", updatedQueryMetric.getPositiveSelectors());
+            if (isFirstWrite(updated.getPositiveSelectors(), stored == null ? null : stored.getPositiveSelectors())) {
+                fields.putAll("POSITIVE_SELECTORS", updated.getPositiveSelectors());
             }
-            if (updatedQueryMetric.getNegativeSelectors() != null) {
-                fields.putAll("NEGATIVE_SELECTORS", updatedQueryMetric.getNegativeSelectors());
+            if (isFirstWrite(updated.getNegativeSelectors(), stored == null ? null : stored.getNegativeSelectors())) {
+                fields.putAll("NEGATIVE_SELECTORS", updated.getNegativeSelectors());
             }
-            if (updatedQueryMetric.getQueryAuthorizations() != null) {
-                fields.put("AUTHORIZATIONS", updatedQueryMetric.getQueryAuthorizations());
+            if (isFirstWrite(updated.getQueryAuthorizations(), stored == null ? null : stored.getQueryAuthorizations())) {
+                fields.put("AUTHORIZATIONS", updated.getQueryAuthorizations());
             }
-            if (updatedQueryMetric.getBeginDate() != null) {
-                fields.put("BEGIN_DATE", sdf_date_time1.format(updatedQueryMetric.getBeginDate()));
+            if (isFirstWrite(updated.getBeginDate(), stored == null ? null : stored.getBeginDate())) {
+                fields.put("BEGIN_DATE", sdf_date_time1.format(updated.getBeginDate()));
             }
-            fields.put("CREATE_CALL_TIME", Long.toString(updatedQueryMetric.getCreateCallTime()));
-            if (updatedQueryMetric.getCreateDate() != null) {
-                fields.put("CREATE_DATE", sdf_date_time2.format(updatedQueryMetric.getCreateDate()));
+            if (isChanged(updated.getCreateCallTime(), stored == null ? -1 : stored.getCreateCallTime())) {
+                fields.put("CREATE_CALL_TIME", Long.toString(updated.getCreateCallTime()));
             }
-            fields.put("DOC_RANGES", Long.toString(updatedQueryMetric.getDocRanges()));
-            fields.put("ELAPSED_TIME", Long.toString(updatedQueryMetric.getElapsedTime()));
-            if (updatedQueryMetric.getEndDate() != null) {
-                fields.put("END_DATE", sdf_date_time1.format(updatedQueryMetric.getEndDate()));
+            if (isFirstWrite(updated.getCreateDate(), stored == null ? null : stored.getCreateDate())) {
+                fields.put("CREATE_DATE", sdf_date_time2.format(updated.getCreateDate()));
             }
-            if (updatedQueryMetric.getErrorCode() != null) {
-                fields.put("ERROR_CODE", updatedQueryMetric.getErrorCode());
+            if (isChanged(updated.getDocRanges(), stored == null ? -1 : stored.getDocRanges())) {
+                fields.put("DOC_RANGES", Long.toString(updated.getDocRanges()));
             }
-            if (updatedQueryMetric.getErrorMessage() != null) {
-                fields.put("ERROR_MESSAGE", updatedQueryMetric.getErrorMessage());
+            if (isChanged(updated.getElapsedTime(), stored == null ? -1 : stored.getElapsedTime())) {
+                fields.put("ELAPSED_TIME", Long.toString(updated.getElapsedTime()));
             }
-            fields.put("FI_RANGES", Long.toString(updatedQueryMetric.getFiRanges()));
-            if (updatedQueryMetric.getHost() != null) {
-                fields.put("HOST", updatedQueryMetric.getHost());
+            if (isFirstWrite(updated.getEndDate(), stored == null ? null : stored.getEndDate())) {
+                fields.put("END_DATE", sdf_date_time1.format(updated.getEndDate()));
             }
-            if (updatedQueryMetric.getLastUpdated() != null) {
-                fields.put("LAST_UPDATED", sdf_date_time2.format(updatedQueryMetric.getLastUpdated()));
+            if (isChanged(updated.getErrorCode(), stored == null ? null : stored.getErrorCode())) {
+                fields.put("ERROR_CODE", updated.getErrorCode());
             }
-            if (updatedQueryMetric.getLifecycle() != null) {
-                fields.put("LIFECYCLE", updatedQueryMetric.getLifecycle().toString());
+            if (isChanged(updated.getErrorMessage(), stored == null ? null : stored.getErrorMessage())) {
+                fields.put("ERROR_MESSAGE", updated.getErrorMessage());
             }
-            fields.put("LOGIN_TIME", Long.toString(updatedQueryMetric.getLoginTime()));
-            fields.put("NEXT_COUNT", Long.toString(updatedQueryMetric.getNextCount()));
-            fields.put("NUM_RESULTS", Long.toString(updatedQueryMetric.getNumResults()));
-            fields.put("NUM_PAGES", Long.toString(updatedQueryMetric.getNumPages()));
-            fields.put("NUM_UPDATES", Long.toString(updatedQueryMetric.getNumUpdates()));
-            Set<QueryImpl.Parameter> parameters = updatedQueryMetric.getParameters();
-            if (parameters != null && !parameters.isEmpty()) {
-                fields.put("PARAMETERS", QueryUtil.toParametersString(parameters));
+            if (isChanged(updated.getFiRanges(), stored == null ? -1 : stored.getFiRanges())) {
+                fields.put("FI_RANGES", Long.toString(updated.getFiRanges()));
             }
-            if (updatedQueryMetric.getPlan() != null) {
-                fields.put("PLAN", updatedQueryMetric.getPlan());
+            if (isFirstWrite(updated.getHost(), stored == null ? null : stored.getHost())) {
+                fields.put("HOST", updated.getHost());
             }
-            if (updatedQueryMetric.getProxyServers() != null) {
-                fields.put("PROXY_SERVERS", StringUtils.join(updatedQueryMetric.getProxyServers(), ","));
-            }
-            List<PageMetric> pageMetrics = updatedQueryMetric.getPageTimes();
-            if (pageMetrics != null && !pageMetrics.isEmpty()) {
-                for (PageMetric p : pageMetrics) {
-                    fields.put("PAGE_METRICS." + p.getPageNumber(), p.toEventString());
+            if (updated.getLastUpdated() != null) {
+                try {
+                    String storedValue = "";
+                    if (stored != null && stored.getLastUpdated() != null) {
+                        storedValue = sdf_date_time2.format(stored.getLastUpdated());
+                    }
+                    String updatedValue = sdf_date_time2.format(updated.getLastUpdated());
+                    if (!updatedValue.isEmpty() && !updatedValue.equals(storedValue)) {
+                        fields.put("LAST_UPDATED", updatedValue);
+                    }
+                } catch (Exception e) {
+                    log.error("lastUpdated:" + e.getMessage());
                 }
             }
-            Set<Prediction> predictions = updatedQueryMetric.getPredictions();
-            if (predictions != null && !predictions.isEmpty()) {
-                for (Prediction prediction : predictions) {
-                    fields.put("PREDICTION", prediction.getName() + ":" + prediction.getPrediction());
-                }
+            if (isChanged(updated.getLifecycle(), stored == null ? null : stored.getLifecycle())) {
+                fields.put("LIFECYCLE", updated.getLifecycle().toString());
             }
-            if (updatedQueryMetric.getQuery() != null) {
-                fields.put("QUERY", updatedQueryMetric.getQuery());
+            if (isChanged(updated.getLoginTime(), stored == null ? -1 : stored.getLoginTime())) {
+                fields.put("LOGIN_TIME", Long.toString(updated.getLoginTime()));
             }
-            if (updatedQueryMetric.getQueryId() != null) {
-                fields.put("QUERY_ID", updatedQueryMetric.getQueryId());
+            if (isChanged(updated.getNextCount(), stored == null ? -1 : stored.getNextCount())) {
+                fields.put("NEXT_COUNT", Long.toString(updated.getNextCount()));
             }
-            if (updatedQueryMetric.getQueryLogic() != null) {
-                fields.put("QUERY_LOGIC", updatedQueryMetric.getQueryLogic());
+            if (isChanged(updated.getNumResults(), stored == null ? -1 : stored.getNumResults())) {
+                fields.put("NUM_RESULTS", Long.toString(updated.getNumResults()));
             }
-            if (updatedQueryMetric.getQueryName() != null) {
-                fields.put("QUERY_NAME", updatedQueryMetric.getQueryName());
+            if (isChanged(updated.getNumPages(), stored == null ? -1 : stored.getNumPages())) {
+                fields.put("NUM_PAGES", Long.toString(updated.getNumPages()));
             }
-            if (updatedQueryMetric.getQueryType() != null) {
-                fields.put("QUERY_TYPE", updatedQueryMetric.getQueryType());
+            if (isChanged(updated.getNumUpdates(), stored == null ? -1 : stored.getNumUpdates())) {
+                fields.put("NUM_UPDATES", Long.toString(updated.getNumUpdates()));
             }
-            fields.put("SETUP_TIME", Long.toString(updatedQueryMetric.getSetupTime()));
-            fields.put("SEEK_COUNT", Long.toString(updatedQueryMetric.getSeekCount()));
-            fields.put("SOURCE_COUNT", Long.toString(updatedQueryMetric.getSourceCount()));
-            if (updatedQueryMetric.getUser() != null) {
-                fields.put("USER", updatedQueryMetric.getUser());
+            if (isFirstWrite(updated.getParameters(), stored == null ? null : stored.getParameters())) {
+                fields.put("PARAMETERS", QueryUtil.toParametersString(updated.getParameters()));
             }
-            if (updatedQueryMetric.getUserDN() != null) {
-                fields.put("USER_DN", updatedQueryMetric.getUserDN());
+            if (isFirstWrite(updated.getPlan(), stored == null ? null : stored.getPlan())) {
+                fields.put("PLAN", updated.getPlan());
             }
-            Map<String,String> versionMap = updatedQueryMetric.getVersionMap();
-            if (versionMap != null) {
-                versionMap.entrySet().stream().forEach(e -> {
-                    fields.put("VERSION." + e.getKey().toUpperCase(), e.getValue());
-                });
+            if (isFirstWrite(updated.getProxyServers(), stored == null ? null : stored.getProxyServers())) {
+                fields.put("PROXY_SERVERS", StringUtils.join(updated.getProxyServers(), ","));
             }
-            fields.put("YIELD_COUNT", Long.toString(updatedQueryMetric.getYieldCount()));
             
-            putExtendedFieldsToWrite(updatedQueryMetric, fields);
-            
-            HashMultimap<String,String> truncatedFields = HashMultimap.create();
-            fields.entries().forEach(e -> {
-                if (e.getValue().length() > MAX_FIELD_VALUE_LENGTH) {
-                    truncatedFields.put(e.getKey(), e.getValue().substring(0, MAX_FIELD_VALUE_LENGTH) + "<truncated>");
-                } else {
-                    truncatedFields.put(e.getKey(), e.getValue());
-                }
-            });
-            return truncatedFields;
-        }
-        
-        protected void putExtendedFieldsToWrite(T updatedQueryMetric, Multimap<String,String> fields) {
-            
-        }
-        
-        public Multimap<String,String> getEventFieldsToDelete(T updatedQueryMetric, T storedQueryMetric) {
-            
-            HashMultimap<String,String> fields = HashMultimap.create();
-            
-            SimpleDateFormat sdf_date_time2 = new SimpleDateFormat("yyyyMMdd HHmmss");
-            
-            if (updatedQueryMetric.getCreateCallTime() != storedQueryMetric.getCreateCallTime()) {
-                fields.put("CREATE_CALL_TIME", Long.toString(storedQueryMetric.getCreateCallTime()));
-            }
-            if (updatedQueryMetric.getDocRanges() != storedQueryMetric.getDocRanges()) {
-                fields.put("DOC_RANGES", Long.toString(storedQueryMetric.getDocRanges()));
-            }
-            if (updatedQueryMetric.getElapsedTime() != storedQueryMetric.getElapsedTime()) {
-                fields.put("ELAPSED_TIME", Long.toString(storedQueryMetric.getElapsedTime()));
-            }
-            if (updatedQueryMetric.getFiRanges() != storedQueryMetric.getFiRanges()) {
-                fields.put("FI_RANGES", Long.toString(storedQueryMetric.getFiRanges()));
-            }
-            if (storedQueryMetric.getLastUpdated() != null && updatedQueryMetric.getLastUpdated() != null) {
-                String storedValue = sdf_date_time2.format(storedQueryMetric.getLastUpdated());
-                String updatedValue = sdf_date_time2.format(updatedQueryMetric.getLastUpdated());
-                if (!updatedValue.equals(storedValue)) {
-                    fields.put("LAST_UPDATED", storedValue);
-                }
-            }
-            if (!updatedQueryMetric.getLifecycle().equals(storedQueryMetric.getLifecycle())) {
-                if (storedQueryMetric.getLifecycle() != null) {
-                    fields.put("LIFECYCLE", storedQueryMetric.getLifecycle().toString());
-                }
-            }
-            if (updatedQueryMetric.getLoginTime() != storedQueryMetric.getLoginTime()) {
-                fields.put("LOGIN_TIME", Long.toString(storedQueryMetric.getLoginTime()));
-            }
-            if (updatedQueryMetric.getNumUpdates() != storedQueryMetric.getNumUpdates()) {
-                fields.put("NUM_UPDATES", Long.toString(storedQueryMetric.getNumUpdates()));
-            }
-            if (updatedQueryMetric.getNextCount() != storedQueryMetric.getNextCount()) {
-                fields.put("NEXT_COUNT", Long.toString(storedQueryMetric.getNextCount()));
-            }
-            if (updatedQueryMetric.getNumPages() != storedQueryMetric.getNumPages()) {
-                fields.put("NUM_PAGES", Long.toString(storedQueryMetric.getNumPages()));
-            }
-            if (updatedQueryMetric.getNumResults() != storedQueryMetric.getNumResults()) {
-                fields.put("NUM_RESULTS", Long.toString(storedQueryMetric.getNumResults()));
-            }
             Map<Long,PageMetric> storedPageMetricMap = new HashMap<>();
-            List<PageMetric> storedPageMetrics = storedQueryMetric.getPageTimes();
-            if (storedPageMetrics != null) {
-                for (PageMetric p : storedPageMetrics) {
-                    storedPageMetricMap.put(p.getPageNumber(), p);
-                }
-            }
-            List<PageMetric> updatedPageMetrics = updatedQueryMetric.getPageTimes();
-            if (updatedPageMetrics != null) {
-                for (PageMetric p : updatedPageMetrics) {
-                    long pageNum = p.getPageNumber();
-                    PageMetric storedPageMetric = storedPageMetricMap.get(pageNum);
-                    if (storedPageMetric != null && !storedPageMetric.equals(p)) {
-                        fields.put("PAGE_METRICS." + storedPageMetric.getPageNumber(), storedPageMetric.toEventString());
+            if (stored != null) {
+                List<PageMetric> storedPageMetrics = stored.getPageTimes();
+                if (storedPageMetrics != null) {
+                    for (PageMetric p : storedPageMetrics) {
+                        storedPageMetricMap.put(p.getPageNumber(), p);
                     }
                 }
             }
-            if (updatedQueryMetric.getSeekCount() != storedQueryMetric.getSeekCount()) {
-                fields.put("SEEK_COUNT", Long.toString(storedQueryMetric.getSeekCount()));
+            if (updated != null) {
+                List<PageMetric> updatedPageMetrics = updated.getPageTimes();
+                if (updatedPageMetrics != null) {
+                    for (PageMetric p : updatedPageMetrics) {
+                        long pageNum = p.getPageNumber();
+                        PageMetric storedPageMetric = storedPageMetricMap.get(pageNum);
+                        if (storedPageMetric == null || !storedPageMetric.equals(p)) {
+                            fields.put("PAGE_METRICS." + p.getPageNumber(), p.toEventString());
+                        }
+                    }
+                }
             }
-            if (updatedQueryMetric.getSetupTime() != storedQueryMetric.getSetupTime()) {
-                fields.put("SETUP_TIME", Long.toString(storedQueryMetric.getSetupTime()));
+            if (isFirstWrite(updated.getPredictions(), stored == null ? null : stored.getPredictions())) {
+                Set<Prediction> predictions = updated.getPredictions();
+                if (predictions != null && !predictions.isEmpty()) {
+                    for (Prediction prediction : predictions) {
+                        fields.put("PREDICTION", prediction.getName() + ":" + prediction.getPrediction());
+                    }
+                }
             }
-            if (updatedQueryMetric.getSourceCount() != storedQueryMetric.getSourceCount()) {
-                fields.put("SOURCE_COUNT", Long.toString(storedQueryMetric.getSourceCount()));
+            if (isFirstWrite(updated.getQuery(), stored == null ? null : stored.getQuery())) {
+                fields.put("QUERY", updated.getQuery());
             }
-            if (updatedQueryMetric.getYieldCount() != storedQueryMetric.getYieldCount()) {
-                fields.put("YIELD_COUNT", Long.toString(storedQueryMetric.getYieldCount()));
+            if (isFirstWrite(updated.getQueryId(), stored == null ? null : stored.getQueryId())) {
+                fields.put("QUERY_ID", updated.getQueryId());
             }
-            putExtendedFieldsToDelete(updatedQueryMetric, fields);
+            if (isFirstWrite(updated.getQueryLogic(), stored == null ? null : stored.getQueryLogic())) {
+                fields.put("QUERY_LOGIC", updated.getQueryLogic());
+            }
+            if (isFirstWrite(updated.getQueryName(), stored == null ? null : stored.getQueryName())) {
+                fields.put("QUERY_NAME", updated.getQueryName());
+            }
+            if (isFirstWrite(updated.getQueryType(), stored == null ? null : stored.getQueryType())) {
+                fields.put("QUERY_TYPE", updated.getQueryType());
+            }
+            if (isFirstWrite(updated.getSetupTime(), stored == null ? 0 : stored.getSetupTime(), 0)) {
+                fields.put("SETUP_TIME", Long.toString(updated.getSetupTime()));
+            }
+            if (isChanged(updated.getSeekCount(), stored == null ? -1 : stored.getSeekCount())) {
+                fields.put("SEEK_COUNT", Long.toString(updated.getSeekCount()));
+            }
+            if (isChanged(updated.getSourceCount(), stored == null ? -1 : stored.getSourceCount())) {
+                fields.put("SOURCE_COUNT", Long.toString(updated.getSourceCount()));
+            }
+            if (isFirstWrite(updated.getUser(), stored == null ? null : stored.getUser())) {
+                fields.put("USER", updated.getUser());
+            }
+            if (isFirstWrite(updated.getUserDN(), stored == null ? null : stored.getUserDN())) {
+                fields.put("USER_DN", updated.getUserDN());
+            }
+            if (isFirstWrite(updated.getVersionMap(), stored == null ? null : stored.getVersionMap())) {
+                Map<String,String> versionMap = updated.getVersionMap();
+                if (versionMap != null) {
+                    versionMap.entrySet().stream().forEach(e -> {
+                        fields.put("VERSION." + e.getKey().toUpperCase(), e.getValue());
+                    });
+                }
+            }
+            if (isChanged(updated.getYieldCount(), stored == null ? -1 : stored.getYieldCount())) {
+                fields.put("YIELD_COUNT", Long.toString(updated.getYieldCount()));
+            }
+            
+            putExtendedFieldsToWrite(updated, stored, fields);
             
             HashMultimap<String,String> truncatedFields = HashMultimap.create();
             fields.entries().forEach(e -> {
@@ -300,7 +330,105 @@ public class ContentQueryMetricsIngestHelper extends CSVIngestHelper implements 
             return truncatedFields;
         }
         
-        protected void putExtendedFieldsToDelete(T updatedQueryMetric, Multimap<String,String> fields) {
+        protected void putExtendedFieldsToWrite(T updated, T stored, Multimap<String,String> fields) {
+            
+        }
+        
+        public Multimap<String,String> getEventFieldsToDelete(T updated, T stored) {
+            
+            HashMultimap<String,String> fields = HashMultimap.create();
+            if (updated != null && stored != null) {
+                
+                SimpleDateFormat sdf_date_time2 = new SimpleDateFormat("yyyyMMdd HHmmss");
+                
+                if (isChanged(updated.getCreateCallTime(), stored.getCreateCallTime())) {
+                    fields.put("CREATE_CALL_TIME", Long.toString(stored.getCreateCallTime()));
+                }
+                if (isChanged(updated.getDocRanges(), stored.getDocRanges())) {
+                    fields.put("DOC_RANGES", Long.toString(stored.getDocRanges()));
+                }
+                if (isChanged(updated.getElapsedTime(), stored.getElapsedTime())) {
+                    fields.put("ELAPSED_TIME", Long.toString(stored.getElapsedTime()));
+                }
+                if (isChanged(updated.getFiRanges(), stored.getFiRanges())) {
+                    fields.put("FI_RANGES", Long.toString(stored.getFiRanges()));
+                }
+                if (stored.getLastUpdated() != null && updated.getLastUpdated() != null) {
+                    try {
+                        String storedValue = sdf_date_time2.format(stored.getLastUpdated());
+                        String updatedValue = sdf_date_time2.format(updated.getLastUpdated());
+                        if (!updatedValue.equals(storedValue)) {
+                            fields.put("LAST_UPDATED", storedValue);
+                        }
+                    } catch (Exception e) {
+                        log.error("lastUpdated:" + e.getMessage());
+                    }
+                }
+                if (isChanged(updated.getLifecycle(), stored.getLifecycle())) {
+                    fields.put("LIFECYCLE", stored.getLifecycle().toString());
+                }
+                if (isChanged(updated.getLoginTime(), stored.getLoginTime())) {
+                    fields.put("LOGIN_TIME", Long.toString(stored.getLoginTime()));
+                }
+                if (isChanged(updated.getNumUpdates(), stored.getNumUpdates())) {
+                    fields.put("NUM_UPDATES", Long.toString(stored.getNumUpdates()));
+                }
+                if (isChanged(updated.getNextCount(), stored.getNextCount())) {
+                    fields.put("NEXT_COUNT", Long.toString(stored.getNextCount()));
+                }
+                if (isChanged(updated.getNumPages(), stored.getNumPages())) {
+                    fields.put("NUM_PAGES", Long.toString(stored.getNumPages()));
+                }
+                if (isChanged(updated.getNumResults(), stored.getNumResults())) {
+                    fields.put("NUM_RESULTS", Long.toString(stored.getNumResults()));
+                }
+                Map<Long,PageMetric> storedPageMetricMap = new HashMap<>();
+                if (stored != null) {
+                    List<PageMetric> storedPageMetrics = stored.getPageTimes();
+                    if (storedPageMetrics != null) {
+                        for (PageMetric p : storedPageMetrics) {
+                            storedPageMetricMap.put(p.getPageNumber(), p);
+                        }
+                    }
+                }
+                if (updated != null) {
+                    List<PageMetric> updatedPageMetrics = updated.getPageTimes();
+                    if (updatedPageMetrics != null) {
+                        for (PageMetric p : updatedPageMetrics) {
+                            long pageNum = p.getPageNumber();
+                            PageMetric storedPageMetric = storedPageMetricMap.get(pageNum);
+                            if (storedPageMetric != null && !storedPageMetric.equals(p)) {
+                                fields.put("PAGE_METRICS." + storedPageMetric.getPageNumber(), storedPageMetric.toEventString());
+                            }
+                        }
+                    }
+                }
+                if (isChanged(updated.getSeekCount(), stored.getSeekCount())) {
+                    fields.put("SEEK_COUNT", Long.toString(stored.getSeekCount()));
+                }
+                if (isChanged(updated.getSetupTime(), stored.getSetupTime())) {
+                    fields.put("SETUP_TIME", Long.toString(stored.getSetupTime()));
+                }
+                if (isChanged(updated.getSourceCount(), stored.getSourceCount())) {
+                    fields.put("SOURCE_COUNT", Long.toString(stored.getSourceCount()));
+                }
+                if (isChanged(updated.getYieldCount(), stored.getYieldCount())) {
+                    fields.put("YIELD_COUNT", Long.toString(stored.getYieldCount()));
+                }
+                putExtendedFieldsToDelete(updated, stored, fields);
+            }
+            HashMultimap<String,String> truncatedFields = HashMultimap.create();
+            fields.entries().forEach(e -> {
+                if (e.getValue().length() > MAX_FIELD_VALUE_LENGTH) {
+                    truncatedFields.put(e.getKey(), e.getValue().substring(0, MAX_FIELD_VALUE_LENGTH) + "<truncated>");
+                } else {
+                    truncatedFields.put(e.getKey(), e.getValue());
+                }
+            });
+            return truncatedFields;
+        }
+        
+        protected void putExtendedFieldsToDelete(T updated, T stored, Multimap<String,String> fields) {
             
         }
     }

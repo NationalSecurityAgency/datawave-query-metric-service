@@ -188,24 +188,53 @@ public class AccumuloMapStore<T extends BaseQueryMetric> extends AccumuloMapLoad
     
     public void store(QueryMetricUpdateHolder<T> queryMetricUpdate) throws Exception {
         String queryId = queryMetricUpdate.getMetric().getQueryId();
-        T updatedMetric;
+        T updatedMetric = null;
         this.mergeLock.lock();
         try {
             updatedMetric = queryMetricUpdate.getMetric();
             QueryMetricType metricType = queryMetricUpdate.getMetricType();
             QueryMetricUpdateHolder<T> lastQueryMetricUpdate = null;
+            
             if (!queryMetricUpdate.isNewMetric()) {
                 lastQueryMetricUpdate = (QueryMetricUpdateHolder<T>) lastWrittenQueryMetricCache.get(queryId);
             }
             
             if (lastQueryMetricUpdate != null) {
                 T lastQueryMetric = lastQueryMetricUpdate.getMetric();
-                updatedMetric = handler.combineMetrics(updatedMetric, lastQueryMetric, metricType);
-                // if for some reason, lastQueryMetric doesn't have lastUpdated set,
-                // we can not delete the previous entries and will cause an NPE if we try
-                if (lastQueryMetric.getLastUpdated() != null) {
-                    handler.writeMetric(updatedMetric, Collections.singletonList(lastQueryMetric), lastQueryMetric.getLastUpdated(), true);
+                if (metricType.equals(QueryMetricType.DISTRIBUTED)) {
+                    // these values are added incrementally in a distributed update. Because we can not be sure
+                    // exactly when the incomingQueryMetricCache value is stored, it would otherwise be possible
+                    // for updates to be included twice.
+                    updatedMetric.setSourceCount(queryMetricUpdate.getValue("sourceCount"));
+                    updatedMetric.setNextCount(queryMetricUpdate.getValue("nextCount"));
+                    updatedMetric.setSeekCount(queryMetricUpdate.getValue("seekCount"));
+                    updatedMetric.setYieldCount(queryMetricUpdate.getValue("yieldCount"));
+                    updatedMetric.setDocRanges(queryMetricUpdate.getValue("docRanges"));
+                    updatedMetric.setFiRanges(queryMetricUpdate.getValue("fiRanges"));
                 }
+                
+                updatedMetric = handler.combineMetrics(updatedMetric, lastQueryMetric, metricType);
+                long numUpdates = updatedMetric.getNumUpdates();
+                // The createDate shouldn't change once it is set, so this is just insurance
+                // We use the higher timestamp to ensure that the deletes and successive writes persist
+                // As long as this timestamp is greater than when it was written, then the delete will be effective
+                long deleteTimestamp;
+                if (lastQueryMetric.getCreateDate().after(updatedMetric.getCreateDate())) {
+                    deleteTimestamp = updatedMetric.getCreateDate().getTime() + numUpdates;
+                } else {
+                    deleteTimestamp = lastQueryMetric.getCreateDate().getTime() + numUpdates;
+                }
+                long writeTimestamp = deleteTimestamp + 1;
+                updatedMetric.setNumUpdates(numUpdates + 1);
+                updatedMetric.setLastUpdated(new Date(updatedMetric.getLastUpdated().getTime() + 1));
+                
+                if (lastQueryMetric.getLastUpdated() != null) {
+                    handler.writeMetric(updatedMetric, Collections.singletonList(lastQueryMetric), deleteTimestamp, true);
+                }
+                handler.writeMetric(updatedMetric, Collections.singletonList(lastQueryMetric), writeTimestamp, false);
+            } else {
+                updatedMetric.setLastUpdated(updatedMetric.getCreateDate());
+                handler.writeMetric(updatedMetric, Collections.emptyList(), updatedMetric.getCreateDate().getTime(), false);
             }
             if (log.isTraceEnabled()) {
                 log.trace("writing metric to accumulo: " + queryId + " - " + queryMetricUpdate.getMetric());
@@ -213,14 +242,22 @@ public class AccumuloMapStore<T extends BaseQueryMetric> extends AccumuloMapLoad
                 log.debug("writing metric to accumulo: " + queryId);
             }
             
-            if (updatedMetric.getLastUpdated() == null) {
-                updatedMetric.setLastUpdated(new Date());
-            }
-            
-            handler.writeMetric(updatedMetric, Collections.singletonList(updatedMetric), updatedMetric.getLastUpdated(), false);
             lastWrittenQueryMetricCache.set(queryId, new QueryMetricUpdateHolder(updatedMetric));
+            queryMetricUpdate.persisted();
             failures.invalidate(queryId);
         } finally {
+            if (queryMetricUpdate.getMetricType().equals(QueryMetricType.DISTRIBUTED)) {
+                // we've added the accumulated updates, so they can be reset
+                if (updatedMetric != null) {
+                    // this ensures that the incomingQueryMetricsCache has the latest values
+                    queryMetricUpdate.getMetric().setSourceCount(updatedMetric.getSourceCount());
+                    queryMetricUpdate.getMetric().setNextCount(updatedMetric.getNextCount());
+                    queryMetricUpdate.getMetric().setSeekCount(updatedMetric.getSeekCount());
+                    queryMetricUpdate.getMetric().setYieldCount(updatedMetric.getYieldCount());
+                    queryMetricUpdate.getMetric().setDocRanges(updatedMetric.getDocRanges());
+                    queryMetricUpdate.getMetric().setFiRanges(updatedMetric.getFiRanges());
+                }
+            }
             this.mergeLock.unlock();
         }
     }
