@@ -181,8 +181,6 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
         Assert.assertEquals("create date should be the first received of the two values", formatDate(new Date(now)),
                         formatDate(returnedMetric.getCreateDate()));
         Assert.assertEquals("last updated should only increase", formatDate(new Date(now)), formatDate(returnedMetric.getLastUpdated()));
-        printAllAccumuloEntries();
-        
         Assert.assertEquals("source count should be additive", 200, returnedMetric.getSourceCount());
         Assert.assertEquals("next count should be additive", 200, returnedMetric.getNextCount());
         Assert.assertEquals("seek count should be additive", 200, returnedMetric.getSeekCount());
@@ -206,20 +204,11 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
                 .withUser(this.adminUser)
                 .build());
         // @formatter:on
-        
-        ensureDataWritten(incomingQueryMetricsCache, lastWrittenQueryMetricCache, queryId);
         metricRequestEntity = createRequestEntity(null, this.adminUser, null);
         metricResponse = restTemplate.exchange(metricUri.toUri(), HttpMethod.GET, metricRequestEntity, BaseQueryMetricListResponse.class);
         
-        if (metricResponse.getBody().getNumResults() != 1) {
-            String obj = objectMapper.writeValueAsString(metricResponse);
-            System.out.println(obj);
-        }
         Assert.assertEquals(1, metricResponse.getBody().getNumResults());
-        
         returnedMetric = (BaseQueryMetric) metricResponse.getBody().getResult().get(0);
-        System.out.println(returnedMetric.getLastUpdated());
-        printAllAccumuloEntries();
         Assert.assertEquals("last updated should only increase", formatDate(new Date(now + 1000)), formatDate(returnedMetric.getLastUpdated()));
         Assert.assertEquals("latest source count should be used", 1000, returnedMetric.getSourceCount());
         Assert.assertEquals("latest next count should be used", 1000, returnedMetric.getNextCount());

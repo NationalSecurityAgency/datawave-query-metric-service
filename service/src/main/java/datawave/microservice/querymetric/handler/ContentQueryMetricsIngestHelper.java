@@ -140,7 +140,7 @@ public class ContentQueryMetricsIngestHelper extends CSVIngestHelper implements 
             }
         }
         
-        protected boolean isFirstWrite(Date updated, Date stored) {
+        protected boolean isFirstWrite(Object updated, Object stored) {
             if (stored == null && updated != null) {
                 return true;
             } else {
@@ -315,7 +315,7 @@ public class ContentQueryMetricsIngestHelper extends CSVIngestHelper implements 
                 fields.put("YIELD_COUNT", Long.toString(updated.getYieldCount()));
             }
             
-            putExtendedFieldsToWrite(updated, fields);
+            putExtendedFieldsToWrite(updated, stored, fields);
             
             HashMultimap<String,String> truncatedFields = HashMultimap.create();
             fields.entries().forEach(e -> {
@@ -328,7 +328,7 @@ public class ContentQueryMetricsIngestHelper extends CSVIngestHelper implements 
             return truncatedFields;
         }
         
-        protected void putExtendedFieldsToWrite(T updatedQueryMetric, Multimap<String,String> fields) {
+        protected void putExtendedFieldsToWrite(T updated, T stored, Multimap<String,String> fields) {
             
         }
         
@@ -413,7 +413,7 @@ public class ContentQueryMetricsIngestHelper extends CSVIngestHelper implements 
                 if (isChanged(updated.getYieldCount(), stored.getYieldCount())) {
                     fields.put("YIELD_COUNT", Long.toString(stored.getYieldCount()));
                 }
-                putExtendedFieldsToDelete(updated, fields);
+                putExtendedFieldsToDelete(updated, stored, fields);
             }
             HashMultimap<String,String> truncatedFields = HashMultimap.create();
             fields.entries().forEach(e -> {
@@ -426,7 +426,7 @@ public class ContentQueryMetricsIngestHelper extends CSVIngestHelper implements 
             return truncatedFields;
         }
         
-        protected void putExtendedFieldsToDelete(T updatedQueryMetric, Multimap<String,String> fields) {
+        protected void putExtendedFieldsToDelete(T updated, T stored, Multimap<String,String> fields) {
             
         }
     }

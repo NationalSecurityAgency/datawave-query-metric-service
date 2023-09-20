@@ -11,9 +11,9 @@ public class AlternateContentQueryMetricsIngestHelper extends ContentQueryMetric
     
     private static class HelperDelegate<T extends AlternateQueryMetric> extends ContentQueryMetricsIngestHelper.HelperDelegate<AlternateQueryMetric> {
         @Override
-        protected void putExtendedFieldsToWrite(AlternateQueryMetric updatedQueryMetric, Multimap<String,String> fields) {
-            if (updatedQueryMetric.getExtraField() != null) {
-                fields.put("EXTRA_FIELD", updatedQueryMetric.getExtraField());
+        protected void putExtendedFieldsToWrite(AlternateQueryMetric updated, AlternateQueryMetric stored, Multimap<String,String> fields) {
+            if (isFirstWrite(updated.getExtraField(), stored == null ? null : stored.getExtraField())) {
+                fields.put("EXTRA_FIELD", updated.getExtraField());
             }
         }
     }
