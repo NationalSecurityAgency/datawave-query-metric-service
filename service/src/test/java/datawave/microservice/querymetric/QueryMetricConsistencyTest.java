@@ -259,11 +259,11 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
     
     @Test
     public void MetricUpdateTest() throws Exception {
-        QueryMetric storedQueryMetric = (QueryMetric) createMetric();
+        String queryId = createQueryId();
+        QueryMetric storedQueryMetric = (QueryMetric) createMetric(queryId);
         QueryMetric updatedQueryMetric = (QueryMetric) storedQueryMetric.duplicate();
         updatedQueryMetric.setLifecycle(BaseQueryMetric.Lifecycle.CLOSED);
         updatedQueryMetric.setNumResults(2000);
-        updatedQueryMetric.setNumUpdates(200);
         updatedQueryMetric.setDocRanges(400);
         updatedQueryMetric.setNextCount(400);
         updatedQueryMetric.setSeekCount(400);
@@ -272,10 +272,8 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
         this.shardTableQueryMetricHandler.writeMetric(storedQueryMetric, Collections.emptyList(), now.getTime(), false);
         this.shardTableQueryMetricHandler.writeMetric(updatedQueryMetric, Collections.singletonList(storedQueryMetric), now.getTime(), true);
         
-        Collection<Map.Entry<Key,Value>> entries = QueryMetricTestBase.getAccumuloEntries(this.accumuloClient,
-                        this.queryMetricHandlerProperties.getShardTableName(), this.auths);
+        Collection<Map.Entry<Key,Value>> entries = getEventEntriesFromAccumulo(queryId);
         Map<String,String> updatedFields = new HashMap();
-        updatedFields.put("NUM_UPDATES", "200");
         updatedFields.put("NUM_RESULTS", "2000");
         updatedFields.put("LIFECYCLE", "CLOSED");
         updatedFields.put("DOC_RANGES", "400");
@@ -292,7 +290,7 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
         }
         
         shardTableQueryMetricHandler.writeMetric(updatedQueryMetric, Collections.singletonList(storedQueryMetric), now.getTime(), false);
-        entries = QueryMetricTestBase.getAccumuloEntries(this.accumuloClient, this.queryMetricHandlerProperties.getShardTableName(), this.auths);
+        entries = getEventEntriesFromAccumulo(queryId);
         Assert.assertFalse("There should be entries in Accumulo", entries.isEmpty());
         for (Map.Entry<Key,Value> e : entries) {
             if (e.getKey().getColumnFamily().toString().startsWith("querymetrics")) {
@@ -313,7 +311,6 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
         QueryMetric updatedQueryMetric = (QueryMetric) storedQueryMetric.duplicate();
         updatedQueryMetric.setLifecycle(BaseQueryMetric.Lifecycle.CLOSED);
         updatedQueryMetric.setNumResults(2000);
-        updatedQueryMetric.setNumUpdates(200);
         updatedQueryMetric.setDocRanges(400);
         updatedQueryMetric.setNextCount(400);
         updatedQueryMetric.setSeekCount(400);
@@ -329,8 +326,7 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
         // all fields that were changed should be reflected in the updated metric
         assertEquals(updatedQueryMetric, lastWrittenMetricUpdate.getMetric());
         
-        Collection<Map.Entry<Key,Value>> entries = QueryMetricTestBase.getAccumuloEntries(this.accumuloClient,
-                        this.queryMetricHandlerProperties.getShardTableName(), this.auths);
+        Collection<Map.Entry<Key,Value>> entries = getEventEntriesFromAccumulo(queryId);
         Assert.assertFalse("There should be entries in Accumulo", entries.isEmpty());
         
         assertNoDuplicateFields(queryId);
