@@ -102,7 +102,7 @@ public class ContentQueryMetricsIngestHelper extends CSVIngestHelper implements 
                 return false;
             }
         }
-
+        
         protected boolean isChanged(long updated, long stored) {
             if (updated != stored) {
                 return true;
@@ -110,7 +110,7 @@ public class ContentQueryMetricsIngestHelper extends CSVIngestHelper implements 
                 return false;
             }
         }
-
+        
         protected boolean isChanged(BaseQueryMetric.Lifecycle updated, BaseQueryMetric.Lifecycle stored) {
             if ((stored == null && updated != null) || (stored != null && updated != null && (stored.ordinal() != updated.ordinal()))) {
                 return true;
@@ -118,7 +118,7 @@ public class ContentQueryMetricsIngestHelper extends CSVIngestHelper implements 
                 return false;
             }
         }
-
+        
         protected boolean isFirstWrite(Collection<?> updated, Collection<?> stored) {
             if ((stored == null || stored.isEmpty()) && (updated != null && !updated.isEmpty())) {
                 return true;
@@ -126,7 +126,7 @@ public class ContentQueryMetricsIngestHelper extends CSVIngestHelper implements 
                 return false;
             }
         }
-
+        
         protected boolean isFirstWrite(Map<?,?> updated, Map<?,?> stored) {
             if ((stored == null || stored.isEmpty()) && (updated != null && !updated.isEmpty())) {
                 return true;
@@ -134,7 +134,7 @@ public class ContentQueryMetricsIngestHelper extends CSVIngestHelper implements 
                 return false;
             }
         }
-
+        
         protected boolean isFirstWrite(String updated, String stored) {
             if (stored == null && StringUtils.isNotBlank(updated)) {
                 return true;
@@ -142,7 +142,7 @@ public class ContentQueryMetricsIngestHelper extends CSVIngestHelper implements 
                 return false;
             }
         }
-
+        
         protected boolean isFirstWrite(Object updated, Object stored) {
             if (stored == null && updated != null) {
                 return true;
@@ -150,7 +150,7 @@ public class ContentQueryMetricsIngestHelper extends CSVIngestHelper implements 
                 return false;
             }
         }
-
+        
         protected boolean isFirstWrite(long updated, long stored, long initValue) {
             if (stored == initValue && updated != initValue) {
                 return true;
@@ -158,7 +158,7 @@ public class ContentQueryMetricsIngestHelper extends CSVIngestHelper implements 
                 return false;
             }
         }
-
+        
         public Multimap<String,String> getEventFieldsToWrite(T updated, T stored) {
             
             HashMultimap<String,String> fields = HashMultimap.create();
@@ -246,7 +246,7 @@ public class ContentQueryMetricsIngestHelper extends CSVIngestHelper implements 
             if (isFirstWrite(updated.getProxyServers(), stored == null ? null : stored.getProxyServers())) {
                 fields.put("PROXY_SERVERS", StringUtils.join(updated.getProxyServers(), ","));
             }
-
+            
             Map<Long,PageMetric> storedPageMetricMap = new HashMap<>();
             if (stored != null) {
                 List<PageMetric> storedPageMetrics = stored.getPageTimes();
@@ -339,9 +339,9 @@ public class ContentQueryMetricsIngestHelper extends CSVIngestHelper implements 
             
             HashMultimap<String,String> fields = HashMultimap.create();
             if (updated != null && stored != null) {
-
+                
                 SimpleDateFormat sdf_date_time2 = new SimpleDateFormat("yyyyMMdd HHmmss");
-
+                
                 if (isChanged(updated.getCreateCallTime(), stored.getCreateCallTime())) {
                     fields.put("CREATE_CALL_TIME", Long.toString(stored.getCreateCallTime()));
                 }

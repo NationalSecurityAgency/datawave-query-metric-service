@@ -584,14 +584,14 @@ public class QueryMetricTestBase {
         }
         return entries;
     }
-
+    
     public void printEventEntriesFromAccumulo(String queryId) {
         Collection<Map.Entry<Key,Value>> entries = getEventEntriesFromAccumulo(queryId);
         for (Map.Entry<Key,Value> e : entries) {
             System.out.println(e.getKey().toString());
         }
     }
-
+    
     public void assertNoDuplicateFields(String queryId) {
         Collection<Map.Entry<Key,Value>> entries = getEventEntriesFromAccumulo(queryId);
         Set<String> fields = new HashSet<>();
@@ -608,7 +608,7 @@ public class QueryMetricTestBase {
                 }
             }
         }
-
+        
         if (!duplicateFields.isEmpty()) {
             for (Map.Entry<Key,Value> e : entries) {
                 System.out.println(e.getKey().toString());
@@ -616,7 +616,7 @@ public class QueryMetricTestBase {
             fail("Duplicate field values found for:" + duplicateFields);
         }
     }
-
+    
     @Configuration
     @Profile("MessageRouting")
     @ComponentScan(basePackages = "datawave.microservice")
