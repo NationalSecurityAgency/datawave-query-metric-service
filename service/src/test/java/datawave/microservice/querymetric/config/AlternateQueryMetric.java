@@ -1,5 +1,6 @@
 package datawave.microservice.querymetric.config;
 
+import datawave.microservice.querymetric.BaseQueryMetric;
 import datawave.microservice.querymetric.QueryMetric;
 
 import javax.xml.bind.annotation.XmlElement;
@@ -11,6 +12,16 @@ public class AlternateQueryMetric extends QueryMetric {
     
     public AlternateQueryMetric() {
         super();
+    }
+    
+    public AlternateQueryMetric(AlternateQueryMetric other) {
+        super(other);
+        this.extraField = other.extraField;
+    }
+    
+    @Override
+    public BaseQueryMetric duplicate() {
+        return new AlternateQueryMetric(this);
     }
     
     public void setExtraField(String extraField) {

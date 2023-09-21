@@ -39,7 +39,6 @@ public class QueryMetricHandlerProperties {
     @NotBlank
     protected String password;
     protected int accumuloClientPoolSize = 16;
-    protected int mapStoreWriteThreads = 16;
     protected int numShards = 10;
     protected String shardTableName = "QueryMetrics_e";
     protected String indexTableName = "QueryMetrics_i";
@@ -247,14 +246,6 @@ public class QueryMetricHandlerProperties {
     
     public void setAccumuloClientPoolSize(int accumuloClientPoolSize) {
         this.accumuloClientPoolSize = accumuloClientPoolSize;
-    }
-    
-    public int getMapStoreWriteThreads() {
-        return mapStoreWriteThreads;
-    }
-    
-    public void setMapStoreWriteThreads(int mapStoreWriteThreads) {
-        this.mapStoreWriteThreads = mapStoreWriteThreads;
     }
     
     public int getNumShards() {
