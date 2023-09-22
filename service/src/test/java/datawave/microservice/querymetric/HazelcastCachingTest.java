@@ -36,7 +36,7 @@ public class HazelcastCachingTest extends QueryMetricTestBase {
         try {
             String queryId = createQueryId();
             BaseQueryMetric m = createMetric(queryId);
-            shardTableQueryMetricHandler.writeMetric(m, Collections.singletonList(m), m.getLastUpdated(), false);
+            shardTableQueryMetricHandler.writeMetric(m, Collections.emptyList(), m.getCreateDate().getTime(), false);
             BaseQueryMetric metricFromReadThroughCache = lastWrittenQueryMetricCache.get(queryId, QueryMetricUpdate.class).getMetric();
             metricAssertEquals("read through cache failed", m, metricFromReadThroughCache);
         } catch (Exception e) {

@@ -4,11 +4,11 @@
     <parent>
         <groupId>gov.nsa.datawave.microservice</groupId>
         <artifactId>datawave-microservice-parent</artifactId>
-        <version>2.1-SNAPSHOT</version>
+        <version>3.0-SNAPSHOT</version>
         <relativePath>../../../microservice-parent/pom.xml</relativePath>
     </parent>
     <artifactId>query-metric-api</artifactId>
-    <version>3.0-SNAPSHOT</version>
+    <version>4.0-SNAPSHOT</version>
     <url>https://code.nsa.gov/datawave-query-metric-service</url>
     <scm>
         <connection>scm:git:https://github.com/NationalSecurityAgency/datawave-query-metric-service.git</connection>
@@ -18,16 +18,17 @@
     <properties>
         <datawave.webservice.namespace>http://webservice.datawave.nsa/v1</datawave.webservice.namespace>
         <spotbugs.excludes.file>${basedir}/spotbugs-exclude.xml</spotbugs.excludes.file>
-        <version.accumulo-utils>3.0-SNAPSHOT</version.accumulo-utils>
-        <version.base-rest-responses>3.0-SNAPSHOT</version.base-rest-responses>
+        <version.accumulo-utils>4.0-SNAPSHOT</version.accumulo-utils>
+        <version.base-rest-responses>4.0-SNAPSHOT</version.base-rest-responses>
         <version.commons-lang3>3.12.0</version.commons-lang3>
         <version.commons-text>1.9</version.commons-text>
-        <version.datawave>5.9.0-SNAPSHOT</version.datawave>
+        <version.datawave>7.0.0-SNAPSHOT</version.datawave>
         <version.glassfish>2.3.6</version.glassfish>
         <version.guava>31.1-jre</version.guava>
         <version.jackson>2.12.5</version.jackson>
         <version.jaxb-api>2.3.1</version.jaxb-api>
         <version.microservice.accumulo-utils>2.1.2</version.microservice.accumulo-utils>
+        <version.microservice.query-api>1.0-SNAPSHOT</version.microservice.query-api>
         <version.protobuf-java>3.7.1</version.protobuf-java>
         <version.protostuff>1.6.2</version.protostuff>
         <version.slf4j>1.7.36</version.slf4j>
@@ -59,6 +60,17 @@
                 <groupId>gov.nsa.datawave.microservice</groupId>
                 <artifactId>base-rest-responses</artifactId>
                 <version>${version.base-rest-responses}</version>
+                <exclusions>
+                    <exclusion>
+                        <artifactId>*</artifactId>
+                        <groupId>*</groupId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>gov.nsa.datawave.microservice</groupId>
+                <artifactId>query-api</artifactId>
+                <version>${version.microservice.query-api}</version>
                 <exclusions>
                     <exclusion>
                         <artifactId>*</artifactId>
@@ -104,7 +116,7 @@
             </dependency>
             <dependency>
                 <groupId>org.slf4j</groupId>
-                <artifactId>slf4j-reload4j</artifactId>
+                <artifactId>slf4j-api</artifactId>
                 <version>${version.slf4j}</version>
             </dependency>
             <dependency>
@@ -158,6 +170,10 @@
             <artifactId>base-rest-responses</artifactId>
         </dependency>
         <dependency>
+            <groupId>gov.nsa.datawave.microservice</groupId>
+            <artifactId>query-api</artifactId>
+        </dependency>
+        <dependency>
             <groupId>gov.nsa.datawave.webservices</groupId>
             <artifactId>datawave-ws-client</artifactId>
         </dependency>
@@ -187,7 +203,7 @@
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-reload4j</artifactId>
+            <artifactId>slf4j-api</artifactId>
         </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
@@ -222,6 +238,39 @@
             </resource>
         </resources>
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <version>3.0.0</version>
+                <executions>
+                    <execution>
+                        <id>enforce-banned-dependencies</id>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <bannedDependencies>
+                                    <excludes>
+                                        <!-- spring boot microservices do not use the following slf4j binders -->
+                                        <exclude>ch.qos.reload4j:reload4j</exclude>
+                                        <exclude>org.slf4j:slf4j-reload4j</exclude>
+                                        <!-- spring boot microservices do not use 1.x versions of log4j -->
+                                        <exclude>log4j:log4j</exclude>
+                                        <!-- spring boot microservices do not use 1.x versions of junit -->
+                                        <exclude>junit:junit</exclude>
+                                    </excludes>
+                                    <includes>
+                                        <!-- some spring boot microservices include test dependencies which use 1.x versions of junit -->
+                                        <include>junit:junit:*:*:test</include>
+                                    </includes>
+                                </bannedDependencies>
+                            </rules>
+                            <fail>true</fail>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <artifactId>maven-resources-plugin</artifactId>
                 <executions>

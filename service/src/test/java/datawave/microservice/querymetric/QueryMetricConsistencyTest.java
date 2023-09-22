@@ -9,10 +9,8 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
@@ -85,6 +83,7 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
             assertEquals(i + 1, returnedMetric.getPageTimes().size());
             metricAssertEquals(m, returnedMetric);
         }
+        assertNoDuplicateFields(queryId);
     }
     
     @Test
@@ -128,6 +127,7 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
         returnedMetric = (BaseQueryMetric) metricResponse.getBody().getResult().get(0);
         // metric should have been updated without backtracking on the lifecycle
         assertEquals(BaseQueryMetric.Lifecycle.CLOSED, returnedMetric.getLifecycle(), "lifecycle incorrect");
+        assertNoDuplicateFields(queryId);
     }
     
     @Test
@@ -183,7 +183,7 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
         
         assertEquals(1, metricResponse.getBody().getNumResults());
         BaseQueryMetric returnedMetric = (BaseQueryMetric) metricResponse.getBody().getResult().get(0);
-        assertEquals(formatDate(new Date(now - 1000)), formatDate(returnedMetric.getCreateDate()), "create date should be the earlier of the two values");
+        assertEquals(formatDate(new Date(now)), formatDate(returnedMetric.getCreateDate()), "create date should be the first received of the two values");
         assertEquals(formatDate(new Date(now)), formatDate(returnedMetric.getLastUpdated()), "last updated should only increase");
         assertEquals(200, returnedMetric.getSourceCount(), "source count should be additive");
         assertEquals(200, returnedMetric.getNextCount(), "next count should be additive");
@@ -220,6 +220,7 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
         assertEquals(1000, returnedMetric.getYieldCount(), "latest yield count should be used");
         assertEquals(1000, returnedMetric.getDocRanges(), "latest doc ranges count should be used");
         assertEquals(1000, returnedMetric.getFiRanges(), "latest fi ranges should be used");
+        assertNoDuplicateFields(queryId);
     }
     
     @Test
@@ -227,7 +228,7 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
         
         ContentQueryMetricsIngestHelper.HelperDelegate<QueryMetric> helper = new ContentQueryMetricsIngestHelper.HelperDelegate<>();
         QueryMetric queryMetric = (QueryMetric) createMetric();
-        Multimap<String,String> fieldsToWrite = helper.getEventFieldsToWrite(queryMetric);
+        Multimap<String,String> fieldsToWrite = helper.getEventFieldsToWrite(queryMetric, null);
         
         EventBase event = new DefaultEvent();
         long now = System.currentTimeMillis();
@@ -262,23 +263,21 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
     
     @Test
     public void MetricUpdateTest() throws Exception {
-        QueryMetric storedQueryMetric = (QueryMetric) createMetric();
+        String queryId = createQueryId();
+        QueryMetric storedQueryMetric = (QueryMetric) createMetric(queryId);
         QueryMetric updatedQueryMetric = (QueryMetric) storedQueryMetric.duplicate();
         updatedQueryMetric.setLifecycle(BaseQueryMetric.Lifecycle.CLOSED);
         updatedQueryMetric.setNumResults(2000);
-        updatedQueryMetric.setNumUpdates(200);
         updatedQueryMetric.setDocRanges(400);
         updatedQueryMetric.setNextCount(400);
         updatedQueryMetric.setSeekCount(400);
         
         Date now = new Date();
-        this.shardTableQueryMetricHandler.writeMetric(storedQueryMetric, Collections.singletonList(storedQueryMetric), now, false);
-        this.shardTableQueryMetricHandler.writeMetric(updatedQueryMetric, Collections.singletonList(storedQueryMetric), now, true);
+        this.shardTableQueryMetricHandler.writeMetric(storedQueryMetric, Collections.emptyList(), now.getTime(), false);
+        this.shardTableQueryMetricHandler.writeMetric(updatedQueryMetric, Collections.singletonList(storedQueryMetric), now.getTime(), true);
         
-        Collection<Map.Entry<Key,Value>> entries = QueryMetricTestBase.getAccumuloEntries(this.accumuloClient,
-                        this.queryMetricHandlerProperties.getShardTableName(), this.auths);
+        Collection<Map.Entry<Key,Value>> entries = getEventEntriesFromAccumulo(queryId);
         Map<String,String> updatedFields = new HashMap();
-        updatedFields.put("NUM_UPDATES", "200");
         updatedFields.put("NUM_RESULTS", "2000");
         updatedFields.put("LIFECYCLE", "CLOSED");
         updatedFields.put("DOC_RANGES", "400");
@@ -294,8 +293,8 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
             }
         }
         
-        shardTableQueryMetricHandler.writeMetric(updatedQueryMetric, Collections.singletonList(storedQueryMetric), now, false);
-        entries = QueryMetricTestBase.getAccumuloEntries(this.accumuloClient, queryMetricHandlerProperties.getShardTableName(), this.auths);
+        shardTableQueryMetricHandler.writeMetric(updatedQueryMetric, Collections.singletonList(storedQueryMetric), now.getTime(), false);
+        entries = getEventEntriesFromAccumulo(queryId);
         assertFalse(entries.isEmpty(), "There should be entries in Accumulo");
         for (Map.Entry<Key,Value> e : entries) {
             if (e.getKey().getColumnFamily().toString().startsWith("querymetrics")) {
@@ -306,6 +305,7 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
                 }
             }
         }
+        assertNoDuplicateFields(storedQueryMetric.getQueryId());
     }
     
     @Test
@@ -315,35 +315,25 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
         QueryMetric updatedQueryMetric = (QueryMetric) storedQueryMetric.duplicate();
         updatedQueryMetric.setLifecycle(BaseQueryMetric.Lifecycle.CLOSED);
         updatedQueryMetric.setNumResults(2000);
-        updatedQueryMetric.setNumUpdates(200);
         updatedQueryMetric.setDocRanges(400);
         updatedQueryMetric.setNextCount(400);
         updatedQueryMetric.setSeekCount(400);
         
-        mapStore.store(queryId, new QueryMetricUpdateHolder(storedQueryMetric, QueryMetricType.COMPLETE));
+        QueryMetricUpdateHolder holder = new QueryMetricUpdateHolder(storedQueryMetric, QueryMetricType.COMPLETE);
+        mapStore.store(queryId, holder);
         QueryMetricUpdateHolder lastWrittenMetricUpdate = this.lastWrittenQueryMetricCache.get(queryId, QueryMetricUpdateHolder.class);
-        assertEquals(storedQueryMetric, lastWrittenMetricUpdate.getMetric());
+        metricAssertEquals(storedQueryMetric, lastWrittenMetricUpdate.getMetric());
         
-        mapStore.store(queryId, new QueryMetricUpdateHolder(updatedQueryMetric, QueryMetricType.COMPLETE));
+        holder.setMetric(updatedQueryMetric);
+        mapStore.store(queryId, holder);
         lastWrittenMetricUpdate = this.lastWrittenQueryMetricCache.get(queryId, QueryMetricUpdateHolder.class);
         // all fields that were changed should be reflected in the updated metric
-        assertEquals(updatedQueryMetric, lastWrittenMetricUpdate.getMetric());
+        metricAssertEquals(updatedQueryMetric, lastWrittenMetricUpdate.getMetric());
         
-        Collection<Map.Entry<Key,Value>> entries = QueryMetricTestBase.getAccumuloEntries(this.accumuloClient,
-                        this.queryMetricHandlerProperties.getShardTableName(), this.auths);
-        
+        Collection<Map.Entry<Key,Value>> entries = getEventEntriesFromAccumulo(queryId);
         assertFalse(entries.isEmpty(), "There should be entries in Accumulo");
-        Set<String> foundFields = new HashSet<>();
-        for (Map.Entry<Key,Value> e : entries) {
-            if (e.getKey().getColumnFamily().toString().startsWith("querymetrics")) {
-                String fieldName = fieldSplit(e, 0);
-                if (foundFields.contains(fieldName)) {
-                    fail("duplicate field " + fieldName + " found in Accumulo");
-                } else {
-                    foundFields.add(fieldName);
-                }
-            }
-        }
+        
+        assertNoDuplicateFields(queryId);
     }
     
     private String fieldSplit(Map.Entry<Key,Value> entry, int part) {
