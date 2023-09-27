@@ -207,11 +207,11 @@ public class AccumuloRecordWriter extends RecordWriter<Text,Mutation> {
                 log.error("Constraint violations : " + e.getConstraintViolationSummaries());
             }
         } finally {
-            returnConnector();
+            returnClient();
         }
     }
     
-    public void returnConnector() {
+    public void returnClient() {
         try {
             if (this.accumuloClient != null) {
                 this.accumuloClientPool.returnObject(accumuloClient);
