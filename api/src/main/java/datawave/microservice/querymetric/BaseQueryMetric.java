@@ -34,8 +34,8 @@ import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import datawave.marking.MarkingFunctions;
-import datawave.webservice.query.Query;
-import datawave.webservice.query.QueryImpl.Parameter;
+import datawave.microservice.query.Query;
+import datawave.microservice.query.QueryImpl.Parameter;
 import datawave.webservice.query.exception.QueryException;
 import datawave.webservice.query.result.event.HasMarkings;
 import io.protostuff.Input;

@@ -10,10 +10,10 @@ import javax.xml.bind.annotation.XmlElement;
 public class QueryMetricUpdate<T extends BaseQueryMetric> implements Serializable {
     
     @XmlElement
-    private T metric;
+    protected T metric;
     
     @XmlElement
-    private QueryMetricType metricType;
+    protected QueryMetricType metricType;
     
     /* constructor for deserializing JSON messages */
     public QueryMetricUpdate() {

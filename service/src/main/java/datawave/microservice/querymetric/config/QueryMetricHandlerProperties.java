@@ -43,7 +43,6 @@ public class QueryMetricHandlerProperties {
     @NotBlank
     protected String password;
     protected int accumuloClientPoolSize = 16;
-    protected int mapStoreWriteThreads = 16;
     protected int numShards = 10;
     protected String shardTableName = "QueryMetrics_e";
     protected String indexTableName = "QueryMetrics_i";
@@ -116,7 +115,8 @@ public class QueryMetricHandlerProperties {
             "SEEK_COUNT",
             "SETUP_TIME",
             "SOURCE_COUNT",
-            "USER");
+            "USER",
+            "YIELD_COUNT");
 
     protected List<String> additionalIndexFields = Collections.EMPTY_LIST;
 
@@ -140,12 +140,18 @@ public class QueryMetricHandlerProperties {
 
     protected List<String> numericFields = Arrays.asList(
             "CREATE_CALL_TIME",
+            "DOC_RANGES",
             "ELAPSED_TIME",
+            "FI_RANGES",
             "LOGIN_TIME",
+            "NEXT_COUNT",
+            "SEEK_COUNT",
             "SETUP_TIME",
+            "SOURCE_COUNT",
             "NUM_PAGES",
             "NUM_RESULTS",
-            "NUM_UPDATES");
+            "NUM_UPDATES",
+            "YIELD_COUNT");
 
     protected List<String> additionalNumericFields = Collections.EMPTY_LIST;
     //@formatter:on
@@ -258,14 +264,6 @@ public class QueryMetricHandlerProperties {
     
     public void setAccumuloClientPoolSize(int accumuloClientPoolSize) {
         this.accumuloClientPoolSize = accumuloClientPoolSize;
-    }
-    
-    public int getMapStoreWriteThreads() {
-        return mapStoreWriteThreads;
-    }
-    
-    public void setMapStoreWriteThreads(int mapStoreWriteThreads) {
-        this.mapStoreWriteThreads = mapStoreWriteThreads;
     }
     
     public int getNumShards() {
