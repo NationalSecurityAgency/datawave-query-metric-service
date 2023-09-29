@@ -410,7 +410,7 @@ public class QueryMetric extends BaseQueryMetric implements Serializable, Messag
             }
             
             if (message.subPlans != null) {
-                for (Map.Entry<String,String> entry : message.subPlans.entrySet()) {
+                for (Map.Entry<String,int[]> entry : message.subPlans.entrySet()) {
                     output.writeString(39, StringUtils.join(Arrays.asList(entry.getKey(), entry.getValue()), "\0"), true);
                 }
             }
@@ -570,7 +570,13 @@ public class QueryMetric extends BaseQueryMetric implements Serializable, Messag
                         String encodedPlans = input.readString();
                         String[] splitPlans = StringUtils.split(encodedPlans, "\0");
                         if (splitPlans.length == 2) {
-                            message.subPlans.put(splitPlans[0], splitPlans[1]);
+                            int[] rangeCounts = new int[2];
+                            int index = 0;
+                            for (String count : splitPlans[1].substring(1, splitPlans[1].length() - 1).split(", ")) {
+                                rangeCounts[index] = Integer.parseInt(count);
+                                index++;
+                            }
+                            message.subPlans.put(splitPlans[0], rangeCounts);
                         }
                         break;
                     default:

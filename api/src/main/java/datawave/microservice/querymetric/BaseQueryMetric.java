@@ -685,7 +685,7 @@ public abstract class BaseQueryMetric implements HasMarkings, Serializable {
     
     @XmlElement(name = "subplans")
     @XmlJavaTypeAdapter(StringMapAdapter.class)
-    protected Map<String,String> subPlans = new HashMap<>();
+    protected Map<String,int[]> subPlans = new HashMap<>();
     
     public static final String DATAWAVE = "DATAWAVE";
     protected static final Map<String,String> discoveredVersionMap = BaseQueryMetric.getVersionsFromClasspath();
@@ -696,15 +696,15 @@ public abstract class BaseQueryMetric implements HasMarkings, Serializable {
         NONE, DEFINED, INITIALIZED, RESULTS, CLOSED, CANCELLED, MAXRESULTS, NEXTTIMEOUT, TIMEOUT, SHUTDOWN, MAXWORK
     }
     
-    public void addSubPlan(String range, String plan) {
-        subPlans.put(range, plan);
+    public void addSubPlan(String plan, int[] rangeCounts) {
+        subPlans.put(plan, rangeCounts);
     }
     
-    public Map<String,String> getSubPlans() {
+    public Map<String,int[]> getSubPlans() {
         return subPlans;
     }
     
-    public void setSubPlans(Map<String,String> subPlans) {
+    public void setSubPlans(Map<String,int[]> subPlans) {
         this.subPlans = subPlans;
     }
     

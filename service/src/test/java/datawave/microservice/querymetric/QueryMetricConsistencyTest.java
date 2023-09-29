@@ -36,6 +36,9 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
+import java.util.Set;
+import java.util.TreeSet;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -85,23 +88,39 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
         assertNoDuplicateFields(queryId);
     }
     
-    public String getRangeKey(Range range) {
+    public void updateRangeCounts(Map<String, Integer> shardCounts, Map<String, Integer> documentCounts,
+                                  String subplan, Range range) {
         Key key = range.getStartKey();
-        StringBuilder builder = new StringBuilder();
-        builder.append(key.getRow());
         String cf = key.getColumnFamily().toString();
         if (cf.length() > 0) {
-            String[] parts = StringUtils.split(cf, '\0');
-            builder.append('/').append(parts[0]).append('/').append(parts[1]);
+            if (documentCounts.containsKey(subplan)) {
+                documentCounts.put(subplan, documentCounts.get(subplan) + 1);
+            } else {
+                documentCounts.put(subplan, 1);
+            }
+        } else {
+            if (shardCounts.containsKey(subplan)) {
+                shardCounts.put(subplan, shardCounts.get(subplan) + 1);
+            } else {
+                shardCounts.put(subplan, 1);
+            }
         }
-        return builder.toString();
     }
-    
+
     @Test
     public void SubPlanTest() throws Exception {
         String queryId = createQueryId();
         BaseQueryMetric m = createMetric(queryId);
-        
+        Map<String, Integer> shardCounts = new HashMap<>();
+        Map<String, Integer> documentCounts = new HashMap<>();
+        List<String> plans = new ArrayList<>();
+        plans.add("F1 == 'value1' || F2 == 'value2'");
+        plans.add("F3 == 'value3' || F4 == 'value4'");
+        plans.add("F2 == 'value2' || F3 == 'value3'");
+        plans.add("F1 == 'value1' || F6 == 'value6'");
+        plans.add("F1 == 'value1' || F5 == 'value5'");
+        Random r = new Random(System.currentTimeMillis());
+
         Date now = new Date();
         SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd");
         String date = sdf.format(now);
@@ -110,7 +129,8 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
             String shard = date + "_" + i;
             Key begin = new Key(shard);
             Key end = begin.followingKey(PartialKey.ROW);
-            m.addSubPlan(getRangeKey(new Range(begin, end)), "shardSubplan_" + i);
+            String subplan = plans.get(r.nextInt(plans.size()));
+            updateRangeCounts(shardCounts, documentCounts, subplan, new Range(begin, end));
         }
         int numDocSubplans = 10;
         for (int i = 0; i < numDocSubplans; i++) {
@@ -118,10 +138,15 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
             String uid = UID.builder().newId().toString();
             Key begin = new Key(shard, "datatype\0" + uid);
             Key end = begin.followingKey(PartialKey.ROW_COLFAM);
-            m.addSubPlan(getRangeKey(new Range(begin, end)), "documentSubplan_" + i);
+            String subplan = plans.get(r.nextInt(plans.size()));
+            updateRangeCounts(shardCounts, documentCounts, subplan, new Range(begin, end));
         }
-        int numSubplans = numShardSubplans + numDocSubplans;
-        
+        for (String p : plans) {
+            Integer shardCount = shardCounts.getOrDefault(p, 0);
+            Integer documentCount = documentCounts.getOrDefault(p, 0);
+            m.addSubPlan(p, new int[] {shardCount, documentCount});
+        }
+
         // @formatter:off
         client.submit(new QueryMetricClient.Request.Builder()
                 .withMetric(m)
@@ -131,7 +156,7 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
         // @formatter:on
         this.ensureDataWritten(incomingQueryMetricsCache, lastWrittenQueryMetricCache, queryId);
         BaseQueryMetric storedMetric = shardTableQueryMetricHandler.getQueryMetric(queryId);
-        Assert.assertEquals(numSubplans, storedMetric.getSubPlans().size());
+        Assert.assertEquals(m.getSubPlans().size(), storedMetric.getSubPlans().size());
         assertEquals(m, storedMetric);
     }
     
