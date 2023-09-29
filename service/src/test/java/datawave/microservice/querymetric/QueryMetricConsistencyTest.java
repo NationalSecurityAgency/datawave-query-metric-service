@@ -30,6 +30,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
@@ -88,8 +89,7 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
         assertNoDuplicateFields(queryId);
     }
     
-    public void updateRangeCounts(Map<String, Integer> shardCounts, Map<String, Integer> documentCounts,
-                                  String subplan, Range range) {
+    public void updateRangeCounts(Map<String,Integer> shardCounts, Map<String,Integer> documentCounts, String subplan, Range range) {
         Key key = range.getStartKey();
         String cf = key.getColumnFamily().toString();
         if (cf.length() > 0) {
@@ -106,13 +106,13 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
             }
         }
     }
-
+    
     @Test
     public void SubPlanTest() throws Exception {
         String queryId = createQueryId();
         BaseQueryMetric m = createMetric(queryId);
-        Map<String, Integer> shardCounts = new HashMap<>();
-        Map<String, Integer> documentCounts = new HashMap<>();
+        Map<String,Integer> shardCounts = new HashMap<>();
+        Map<String,Integer> documentCounts = new HashMap<>();
         List<String> plans = new ArrayList<>();
         plans.add("F1 == 'value1' || F2 == 'value2'");
         plans.add("F3 == 'value3' || F4 == 'value4'");
@@ -120,7 +120,7 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
         plans.add("F1 == 'value1' || F6 == 'value6'");
         plans.add("F1 == 'value1' || F5 == 'value5'");
         Random r = new Random(System.currentTimeMillis());
-
+        
         Date now = new Date();
         SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd");
         String date = sdf.format(now);
@@ -144,9 +144,9 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
         for (String p : plans) {
             Integer shardCount = shardCounts.getOrDefault(p, 0);
             Integer documentCount = documentCounts.getOrDefault(p, 0);
-            m.addSubPlan(p, new int[] {shardCount, documentCount});
+            m.addSubPlan(p, Arrays.asList(shardCount, documentCount));
         }
-
+        
         // @formatter:off
         client.submit(new QueryMetricClient.Request.Builder()
                 .withMetric(m)

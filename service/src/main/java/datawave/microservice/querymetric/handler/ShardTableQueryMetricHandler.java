@@ -509,7 +509,7 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
             List<FieldBase> field = event.getFields();
             m.setMarkings(event.getMarkings());
             TreeMap<Long,PageMetric> pageMetrics = Maps.newTreeMap();
-            Map<String,int[]> subplans = new HashMap<>();
+            Map<String,List<Integer>> subplans = new HashMap<>();
             
             boolean createDateSet = false;
             for (FieldBase f : field) {
@@ -635,13 +635,12 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
                     } else if (fieldName.equals("SUBPLAN")) {
                         if (fieldValue != null) {
                             String[] arr = fieldValue.split(" : ", 2);
-                            int[] rangeCounts = new int[2];
-                            int index = 0;
-                            for (String count : arr[1].substring(1, arr[1].length() - 1).split(", ")) {
-                                rangeCounts[index] = Integer.parseInt(count);
-                                index++;
-                            }
-                            if (arr.length >= 2) {
+                            if (arr.length == 2) {
+                                List<Integer> rangeCounts = new ArrayList<>();
+                                String[] rangeCountSplit = StringUtils.split(arr[1], ",");
+                                for (String count : rangeCountSplit) {
+                                    rangeCounts.add(Integer.parseInt(count));
+                                }
                                 subplans.put(arr[0], rangeCounts);
                             }
                         }

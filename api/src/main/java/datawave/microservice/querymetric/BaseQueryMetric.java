@@ -1,7 +1,6 @@
 package datawave.microservice.querymetric;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.google.protobuf.Internal;
 import datawave.marking.MarkingFunctions;
 import datawave.webservice.query.Query;
 import datawave.webservice.query.QueryImpl.Parameter;
@@ -684,8 +683,8 @@ public abstract class BaseQueryMetric implements HasMarkings, Serializable {
     protected Set<Prediction> predictions = new HashSet<>();
     
     @XmlElement(name = "subplans")
-    @XmlJavaTypeAdapter(StringMapAdapter.class)
-    protected Map<String,int[]> subPlans = new HashMap<>();
+    @XmlJavaTypeAdapter(StringIntegerListMapAdapter.class)
+    protected Map<String,List<Integer>> subPlans = new HashMap<>();
     
     public static final String DATAWAVE = "DATAWAVE";
     protected static final Map<String,String> discoveredVersionMap = BaseQueryMetric.getVersionsFromClasspath();
@@ -696,15 +695,15 @@ public abstract class BaseQueryMetric implements HasMarkings, Serializable {
         NONE, DEFINED, INITIALIZED, RESULTS, CLOSED, CANCELLED, MAXRESULTS, NEXTTIMEOUT, TIMEOUT, SHUTDOWN, MAXWORK
     }
     
-    public void addSubPlan(String plan, int[] rangeCounts) {
+    public void addSubPlan(String plan, List<Integer> rangeCounts) {
         subPlans.put(plan, rangeCounts);
     }
     
-    public Map<String,int[]> getSubPlans() {
+    public Map<String,List<Integer>> getSubPlans() {
         return subPlans;
     }
     
-    public void setSubPlans(Map<String,int[]> subPlans) {
+    public void setSubPlans(Map<String,List<Integer>> subPlans) {
         this.subPlans = subPlans;
     }
     

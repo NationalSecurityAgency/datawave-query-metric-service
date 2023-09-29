@@ -297,12 +297,12 @@ public class ContentQueryMetricsIngestHelper extends CSVIngestHelper implements 
             if (isChanged(updated.getSourceCount(), stored == null ? -1 : stored.getSourceCount())) {
                 fields.put("SOURCE_COUNT", Long.toString(updated.getSourceCount()));
             }
-            Map<String,int[]> updatedSubPlans = updated.getSubPlans();
+            Map<String,List<Integer>> updatedSubPlans = updated.getSubPlans();
             if (updatedSubPlans != null && !updatedSubPlans.isEmpty()) {
-                Map<String,int[]> storedSubPlans = stored == null ? null : stored.getSubPlans();
-                for (Map.Entry<String,int[]> entry : updatedSubPlans.entrySet()) {
+                Map<String,List<Integer>> storedSubPlans = stored == null ? null : stored.getSubPlans();
+                for (Map.Entry<String,List<Integer>> entry : updatedSubPlans.entrySet()) {
                     if (storedSubPlans == null || !storedSubPlans.containsKey(entry.getKey())) {
-                        fields.put("SUBPLAN", entry.getKey() + " : " + Arrays.toString(entry.getValue()));
+                        fields.put("SUBPLAN", entry.getKey() + " : " + StringUtils.join(entry.getValue(), ","));
                     }
                 }
             }
