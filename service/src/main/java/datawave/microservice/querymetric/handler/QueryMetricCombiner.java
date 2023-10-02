@@ -3,13 +3,18 @@ package datawave.microservice.querymetric.handler;
 import datawave.microservice.querymetric.BaseQueryMetric;
 import datawave.microservice.querymetric.BaseQueryMetric.PageMetric;
 import datawave.microservice.querymetric.QueryMetricType;
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 
 public class QueryMetricCombiner<T extends BaseQueryMetric> implements Serializable {
@@ -183,15 +188,32 @@ public class QueryMetricCombiner<T extends BaseQueryMetric> implements Serializa
                 combinedMetric.setDocRanges(updatedQueryMetric.getDocRanges());
                 combinedMetric.setFiRanges(updatedQueryMetric.getFiRanges());
             }
-            // only update once
-            if (combinedMetric.getPlan() == null && updatedQueryMetric.getPlan() != null) {
-                combinedMetric.setPlan(updatedQueryMetric.getPlan());
+            Map<String,List<Integer>> newPlanMap = new HashMap<>();
+            Map<String,List<Integer>> storedSubPlans = new HashMap<>();
+            Map<String,List<Integer>> updatedSubPlans = new HashMap<>();
+            if (combinedMetric.getSubPlans() != null) {
+                storedSubPlans.putAll(combinedMetric.getSubPlans());
             }
-            // only update once
-            if ((combinedMetric.getSubPlans() == null || combinedMetric.getSubPlans().isEmpty()) && updatedQueryMetric.getSubPlans() != null
-                            && !updatedQueryMetric.getSubPlans().isEmpty()) {
-                combinedMetric.setSubPlans(updatedQueryMetric.getSubPlans());
+            if (updatedQueryMetric.getSubPlans() != null) {
+                updatedSubPlans.putAll(updatedQueryMetric.getSubPlans());
             }
+            Set<String> allSubPlanKeys = new HashSet<>();
+            allSubPlanKeys.addAll(storedSubPlans.keySet());
+            allSubPlanKeys.addAll(updatedSubPlans.keySet());
+            for (String subplan : allSubPlanKeys) {
+                List<Integer> storedCounts = storedSubPlans.getOrDefault(subplan, Collections.emptyList());
+                List<Integer> updatedCounts = updatedSubPlans.getOrDefault(subplan, Collections.emptyList());
+                int maxSize = Math.max(storedCounts.size(), updatedCounts.size());
+                List<Integer> newCounts = new ArrayList<>();
+                for (int i = 0; i < maxSize; i++) {
+                    int stored = (i < storedCounts.size()) ? storedCounts.get(i) : 0;
+                    int updated = (i < updatedCounts.size()) ? updatedCounts.get(i) : 0;
+                    newCounts.add(Math.max(stored, updated));
+                }
+                newPlanMap.put(subplan, newCounts);
+            }
+            combinedMetric.setSubPlans(newPlanMap);
+            
             // only update once
             if ((combinedMetric.getPredictions() == null || combinedMetric.getPredictions().isEmpty()) && updatedQueryMetric.getPredictions() != null
                             && !updatedQueryMetric.getPredictions().isEmpty()) {

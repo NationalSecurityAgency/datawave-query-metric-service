@@ -301,8 +301,10 @@ public class ContentQueryMetricsIngestHelper extends CSVIngestHelper implements 
             if (updatedSubPlans != null && !updatedSubPlans.isEmpty()) {
                 Map<String,List<Integer>> storedSubPlans = stored == null ? null : stored.getSubPlans();
                 for (Map.Entry<String,List<Integer>> entry : updatedSubPlans.entrySet()) {
-                    if (storedSubPlans == null || !storedSubPlans.containsKey(entry.getKey())) {
-                        fields.put("SUBPLAN", entry.getKey() + " : " + StringUtils.join(entry.getValue(), ","));
+                    String subPlan = entry.getKey();
+                    List<Integer> updatedRangeCounts = entry.getValue();
+                    if (storedSubPlans == null || !storedSubPlans.containsKey(subPlan) || !storedSubPlans.get(subPlan).equals(updatedRangeCounts)) {
+                        fields.put("SUBPLAN", subPlan + " : " + StringUtils.join(updatedRangeCounts, ","));
                     }
                 }
             }
@@ -418,6 +420,17 @@ public class ContentQueryMetricsIngestHelper extends CSVIngestHelper implements 
                 }
                 if (isChanged(updated.getSourceCount(), stored.getSourceCount())) {
                     fields.put("SOURCE_COUNT", Long.toString(stored.getSourceCount()));
+                }
+                Map<String,List<Integer>> updatedSubPlans = updated.getSubPlans();
+                if (updatedSubPlans != null && !updatedSubPlans.isEmpty()) {
+                    Map<String,List<Integer>> storedSubPlans = stored.getSubPlans();
+                    for (Map.Entry<String,List<Integer>> entry : updatedSubPlans.entrySet()) {
+                        String subPlan = entry.getKey();
+                        List<Integer> updatedRangeCounts = entry.getValue();
+                        if (storedSubPlans != null && storedSubPlans.containsKey(subPlan) && !storedSubPlans.get(subPlan).equals(updatedRangeCounts)) {
+                            fields.put("SUBPLAN", subPlan + " : " + StringUtils.join(storedSubPlans.get(subPlan), ","));
+                        }
+                    }
                 }
                 if (isChanged(updated.getYieldCount(), stored.getYieldCount())) {
                     fields.put("YIELD_COUNT", Long.toString(stored.getYieldCount()));
