@@ -232,6 +232,10 @@
                         <artifactId>reload4j</artifactId>
                         <groupId>ch.qos.reload4j</groupId>
                     </exclusion>
+                    <exclusion>
+                        <artifactId>avro</artifactId>
+                        <groupId>org.apache.avro</groupId>
+                    </exclusion>
                 </exclusions>
             </dependency>
             <dependency>
