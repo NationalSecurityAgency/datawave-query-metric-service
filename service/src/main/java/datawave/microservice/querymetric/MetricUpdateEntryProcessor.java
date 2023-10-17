@@ -39,6 +39,7 @@ public class MetricUpdateEntryProcessor extends AbstractEntryProcessor<String,Qu
             updatedHolder.addValue("sourceCount", updatedMetric.getSourceCount());
             updatedHolder.addValue("nextCount", updatedMetric.getNextCount());
             updatedHolder.addValue("seekCount", updatedMetric.getSeekCount());
+            updatedHolder.addValue("evaluatedCount", updatedMetric.getEvaluatedCount());
             updatedHolder.addValue("yieldCount", updatedMetric.getYieldCount());
             updatedHolder.addValue("docRanges", updatedMetric.getDocRanges());
             updatedHolder.addValue("fiRanges", updatedMetric.getFiRanges());

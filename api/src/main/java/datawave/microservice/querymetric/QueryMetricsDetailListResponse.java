@@ -41,7 +41,7 @@ public class QueryMetricsDetailListResponse extends QueryMetricListResponse {
         builder.append("<th>Query Setup Time (ms)</th><th>Query Setup Call Time (ms)</th><th>Number Pages</th><th>Number Results</th>");
         
         builder.append("<th>Doc Ranges</th><th>FI Ranges</th>");
-        builder.append("<th>Sources</th><th>Next Calls</th><th>Seek Calls</th><th>Yield Count</th><th>Versions</th>");
+        builder.append("<th>Sources</th><th>Next Calls</th><th>Seek Calls</th><th>Evaluated Calls</th><th>Yield Count</th><th>Versions</th>");
         
         builder.append("<th>Total Page Time (ms)</th><th>Total Page Call Time (ms)</th><th>Total Page Serialization Time (ms)</th>");
         builder.append("<th>Total Page Bytes Sent (uncompressed)</th><th>Lifecycle</th><th>Elapsed Time</th><th>Error Code</th><th>Error Message</th>");
@@ -120,6 +120,7 @@ public class QueryMetricsDetailListResponse extends QueryMetricListResponse {
             builder.append("<td>").append(metric.getSourceCount()).append("</td>");
             builder.append("<td>").append(metric.getNextCount()).append("</td>");
             builder.append("<td>").append(metric.getSeekCount()).append("</td>");
+            builder.append("<td>").append(metric.getEvaluatedCount()).append("</td>");
             builder.append("<td>").append(metric.getYieldCount()).append("</td>");
             String versions = metric.getVersionMap().entrySet().stream().map(e -> e.getKey() + "=" + e.getValue()).collect(Collectors.joining("<br/>"));
             builder.append("<td style=\"min-width:250px !important;\">").append(versions).append("</td>");
