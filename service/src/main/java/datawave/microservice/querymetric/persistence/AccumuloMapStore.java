@@ -80,7 +80,12 @@ public class AccumuloMapStore<T extends BaseQueryMetric> extends AccumuloMapLoad
     
     @Override
     public void store(String queryId, QueryMetricUpdateHolder<T> queryMetricUpdate) {
-        storeWithRetry(queryMetricUpdate);
+        Timer.Context writeTimerContext = writeTimer.time();
+        try {
+            storeWithRetry(queryMetricUpdate);
+        } finally {
+            writeTimerContext.stop();
+        }
     }
     
     public void storeWithRetry(QueryMetricUpdateHolder<T> queryMetricUpdate) {
