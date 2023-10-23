@@ -49,7 +49,7 @@
             <dependency>
                 <groupId>gov.nsa.datawave.microservice</groupId>
                 <artifactId>accumulo-utils</artifactId>
-                <version>${version.microservice.accumulo-utils}</version>
+                <version>${version.accumulo-utils}</version>
                 <exclusions>
                     <exclusion>
                         <artifactId>*</artifactId>
