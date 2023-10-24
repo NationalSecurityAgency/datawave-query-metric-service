@@ -19,7 +19,7 @@
     <properties>
         <datawave.webservice.namespace>http://webservice.datawave.nsa/v1</datawave.webservice.namespace>
         <spotbugs.excludes.file>${basedir}/spotbugs-exclude.xml</spotbugs.excludes.file>
-        <version.accumulo-utils>3.0.0</version.accumulo-utils>
+        <version.accumulo-utils>3.0.1</version.accumulo-utils>
         <version.base-rest-responses>3.0.0</version.base-rest-responses>
         <version.commons-lang3>3.12.0</version.commons-lang3>
         <version.commons-text>1.9</version.commons-text>
