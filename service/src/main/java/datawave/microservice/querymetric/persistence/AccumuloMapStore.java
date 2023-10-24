@@ -172,6 +172,7 @@ public class AccumuloMapStore<T extends BaseQueryMetric> extends AccumuloMapLoad
                     queryMetricUpdate.getMetric().setNextCount(updatedMetric.getNextCount());
                     queryMetricUpdate.getMetric().setSeekCount(updatedMetric.getSeekCount());
                     queryMetricUpdate.getMetric().setEvaluatedCount(updatedMetric.getEvaluatedCount());
+                    queryMetricUpdate.getMetric().setRejectedCount(updatedMetric.getRejectedCount());
                     queryMetricUpdate.getMetric().setYieldCount(updatedMetric.getYieldCount());
                     queryMetricUpdate.getMetric().setDocRanges(updatedMetric.getDocRanges());
                     queryMetricUpdate.getMetric().setFiRanges(updatedMetric.getFiRanges());

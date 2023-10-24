@@ -297,6 +297,9 @@ public class ContentQueryMetricsIngestHelper extends CSVIngestHelper implements 
             if (isChanged(updated.getEvaluatedCount(), stored == null ? -1 : stored.getEvaluatedCount())) {
                 fields.put("EVALUATED_COUNT", Long.toString(updated.getEvaluatedCount()));
             }
+            if (isChanged(updated.getRejectedCount(), stored == null ? -1 : stored.getRejectedCount())) {
+                fields.put("REJECTED_COUNT", Long.toString(updated.getRejectedCount()));
+            }
             if (isChanged(updated.getSourceCount(), stored == null ? -1 : stored.getSourceCount())) {
                 fields.put("SOURCE_COUNT", Long.toString(updated.getSourceCount()));
             }
@@ -409,6 +412,9 @@ public class ContentQueryMetricsIngestHelper extends CSVIngestHelper implements 
                 }
                 if (isChanged(updated.getEvaluatedCount(), stored.getEvaluatedCount())) {
                     fields.put("EVALUATED_COUNT", Long.toString(stored.getEvaluatedCount()));
+                }
+                if (isChanged(updated.getRejectedCount(), stored.getRejectedCount())) {
+                    fields.put("REJECTED_COUNT", Long.toString(stored.getRejectedCount()));
                 }
                 if (isChanged(updated.getSetupTime(), stored.getSetupTime())) {
                     fields.put("SETUP_TIME", Long.toString(stored.getSetupTime()));

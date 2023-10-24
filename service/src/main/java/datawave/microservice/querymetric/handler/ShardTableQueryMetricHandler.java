@@ -672,6 +672,15 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
                         } catch (Exception e) {
                             log.error(fieldName + ":" + fieldValue + ":" + e.getMessage());
                         }
+                    } else if (fieldName.equals("REJECTED_COUNT")) {
+                        try {
+                            long l = Long.parseLong(fieldValue);
+                            if (l > m.getRejectedCount()) {
+                                m.setRejectedCount(l);
+                            }
+                        } catch (Exception e) {
+                            log.error(fieldName + ":" + fieldValue + ":" + e.getMessage());
+                        }
                     } else if (fieldName.equals("SETUP_TIME")) {
                         m.setSetupTime(Long.parseLong(fieldValue));
                     } else if (fieldName.equals("SOURCE_COUNT")) {
