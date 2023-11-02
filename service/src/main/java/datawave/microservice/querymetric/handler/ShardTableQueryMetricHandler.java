@@ -720,19 +720,20 @@ public abstract class ShardTableQueryMetricHandler<T extends BaseQueryMetric> ex
         this.accumuloRecordWriterLock.writeLock().lock();
         try {
             if (this.recordWriter == null || !this.recordWriter.isHealthy()) {
-                log.info("creating new AccumuloRecordWriter");
-                try {
-                    if (this.recordWriter != null) {
-                        // don't try to flush the mtbw (close). If recordWriter != null then this method is being called
-                        // because of an Exception and the writing of the metrics should be re-tried with the new recordWriter.
-                        this.recordWriter.returnConnector();
+                if (this.recordWriter != null) {
+                    // If recordWriter != null then this method is being called because of an error writing to Accumulo.
+                    // We have to try to close the recordWriter and therefore the mtbw because Accumulo now reference
+                    // counts certain objects (like mtbw) to ensure that they are closed before being dereferenced.
+                    try {
+                        this.recordWriter.close(null);
+                    } catch (Exception e) {
+                        log.error(e.getMessage(), e);
                     }
-                    this.recordWriter = new AccumuloRecordWriter(accumuloClientPool, conf);
-                } catch (Exception e) {
-                    log.error(e.getMessage(), e);
-                    throw new RuntimeException(e.getMessage(), e);
                 }
+                this.recordWriter = new AccumuloRecordWriter(accumuloClientPool, conf);
             }
+        } catch (Exception e) {
+            log.error(e.getMessage(), e);
         } finally {
             this.accumuloRecordWriterLock.writeLock().unlock();
         }
