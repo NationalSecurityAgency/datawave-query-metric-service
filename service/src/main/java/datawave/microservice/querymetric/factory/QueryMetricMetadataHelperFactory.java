@@ -1,12 +1,13 @@
 package datawave.microservice.querymetric.factory;
 
-import datawave.query.util.MetadataHelperFactory;
-import datawave.query.util.TypeMetadataHelper;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
+
+import datawave.query.util.MetadataHelperFactory;
+import datawave.query.util.TypeMetadataHelper;
 
 @Component
 @Primary

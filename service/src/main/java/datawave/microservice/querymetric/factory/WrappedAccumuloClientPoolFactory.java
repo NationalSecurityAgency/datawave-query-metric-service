@@ -1,14 +1,15 @@
 package datawave.microservice.querymetric.factory;
 
-import datawave.accumulo.inmemory.InMemoryAccumuloClient;
-import datawave.accumulo.inmemory.InMemoryInstance;
-import datawave.webservice.common.connection.AccumuloClientPoolFactory;
-import datawave.webservice.common.connection.WrappedAccumuloClient;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.commons.pool2.PooledObject;
 import org.apache.commons.pool2.impl.DefaultPooledObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import datawave.accumulo.inmemory.InMemoryAccumuloClient;
+import datawave.accumulo.inmemory.InMemoryInstance;
+import datawave.webservice.common.connection.AccumuloClientPoolFactory;
+import datawave.webservice.common.connection.WrappedAccumuloClient;
 
 /*
  * The InMemoryInstance in this class doesn't cache anything and is only used to create

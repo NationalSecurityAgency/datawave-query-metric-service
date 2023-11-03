@@ -1,9 +1,9 @@
 package datawave.microservice.querymetric;
 
-import datawave.microservice.querymetric.BaseQueryMetric.Lifecycle;
-
 import java.util.HashMap;
 import java.util.Map;
+
+import datawave.microservice.querymetric.BaseQueryMetric.Lifecycle;
 
 public class QueryMetricUpdateHolder<T extends BaseQueryMetric> extends QueryMetricUpdate<T> {
     

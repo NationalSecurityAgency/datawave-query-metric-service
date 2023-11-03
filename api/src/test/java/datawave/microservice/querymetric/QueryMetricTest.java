@@ -1,24 +1,10 @@
 package datawave.microservice.querymetric;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.module.jaxb.JaxbAnnotationModule;
-import datawave.marking.MarkingFunctions;
-import datawave.microservice.querymetric.BaseQueryMetric.Lifecycle;
-import datawave.microservice.querymetric.BaseQueryMetric.PageMetric;
-import datawave.microservice.querymetric.BaseQueryMetric.Prediction;
-import datawave.webservice.query.exception.BadRequestQueryException;
-import datawave.webservice.query.exception.DatawaveErrorCode;
-import io.protostuff.LinkedBuffer;
-import io.protostuff.Message;
-import io.protostuff.ProtostuffIOUtil;
-import io.protostuff.Schema;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.Marshaller;
-import javax.xml.bind.Unmarshaller;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.lang.reflect.Field;
@@ -30,9 +16,27 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.Marshaller;
+import javax.xml.bind.Unmarshaller;
+
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.module.jaxb.JaxbAnnotationModule;
+
+import datawave.marking.MarkingFunctions;
+import datawave.microservice.querymetric.BaseQueryMetric.Lifecycle;
+import datawave.microservice.querymetric.BaseQueryMetric.PageMetric;
+import datawave.microservice.querymetric.BaseQueryMetric.Prediction;
+import datawave.webservice.query.exception.BadRequestQueryException;
+import datawave.webservice.query.exception.DatawaveErrorCode;
+import io.protostuff.LinkedBuffer;
+import io.protostuff.Message;
+import io.protostuff.ProtostuffIOUtil;
+import io.protostuff.Schema;
 
 public class QueryMetricTest {
     
@@ -43,7 +47,7 @@ public class QueryMetricTest {
     private static List<String> positiveSelectors = null;
     private static List<String> proxyServers = null;
     
-    @BeforeClass
+    @BeforeAll
     public static void setup() {
         queryMetric = new QueryMetric();
         markings = new HashMap<>();
@@ -176,14 +180,14 @@ public class QueryMetricTest {
         try {
             o = clazz.getConstructor().newInstance();
         } catch (Exception e) {
-            Assert.fail(e.getMessage());
+            fail(e.getMessage());
         }
         String className = clazz.getSimpleName();
         Schema schema = null;
         if (o instanceof Message) {
             schema = ((Message) o).cachedSchema();
         } else {
-            Assert.fail(String.format("%s does not implement Message interface", className));
+            fail(String.format("%s does not implement Message interface", className));
         }
         List<Field> fields = new ArrayList<>();
         Class currentClazz = clazz;
@@ -196,11 +200,11 @@ public class QueryMetricTest {
             if (!Modifier.isStatic(f.getModifiers())) {
                 String fieldName = f.getName();
                 int fieldNumber = schema.getFieldNumber(fieldName);
-                assertTrue(String.format(message, fieldName, className), fieldNumber > 0);
+                assertTrue(fieldNumber > 0, String.format(message, fieldName, className));
                 String schemaFieldName = schema.getFieldName(fieldNumber);
-                assertNotNull(String.format(message, f.getName(), className, fieldName), schemaFieldName);
-                assertEquals(String.format("field name [%s] and protobuf field name [%s] should match", f.getName(), schemaFieldName), f.getName(),
-                                schemaFieldName);
+                assertNotNull(schemaFieldName, String.format(message, f.getName(), className, fieldName));
+                assertEquals(f.getName(), schemaFieldName,
+                                String.format("field name [%s] and protobuf field name [%s] should match", f.getName(), schemaFieldName));
             }
         }
     }
@@ -253,7 +257,7 @@ public class QueryMetricTest {
         // host/pageUuid/pageSize/returnTime/callTime/serializationTime/bytesWritten/pageRequested/pageReturned/loginTime
         String pmText1 = "localhost/aa-bb-cc-dd/2500/2000/2200/3000/10000/3500/3600/1000";
         PageMetric pm1 = PageMetric.parse(pmText1);
-        assertEquals("page metrics not equal", pmRef1, pm1);
+        assertEquals(pmRef1, pm1, "page metrics not equal");
     }
     
     @Test
@@ -262,7 +266,7 @@ public class QueryMetricTest {
         // /pageUuid/pageSize/returnTime/callTime/serializationTime/bytesWritten/pageRequested/pageReturned/loginTime
         String pmText1 = "/aa-bb-cc-dd/2500/2000/2200/3000/10000/3500/3600/1000";
         PageMetric pm1 = PageMetric.parse(pmText1);
-        assertEquals("page metrics not equal", pmRef1, pm1);
+        assertEquals(pmRef1, pm1, "page metrics not equal");
     }
     
     @Test
@@ -271,7 +275,7 @@ public class QueryMetricTest {
         // pageSize/returnTime/callTime/serializationTime/bytesWritten/pageRequested/pageReturned
         String pmText1 = "2500/2000/2200/3000/10000/3500/3600";
         PageMetric pm1 = PageMetric.parse(pmText1);
-        assertEquals("page metrics not equal", pmRef1, pm1);
+        assertEquals(pmRef1, pm1, "page metrics not equal");
     }
     
     @Test
@@ -280,7 +284,7 @@ public class QueryMetricTest {
         // pageSize/returnTime/callTime/serializationTime/bytesWritten
         String pmText1 = "2500/2000/2200/3000/10000";
         PageMetric pm1 = PageMetric.parse(pmText1);
-        assertEquals("page metrics not equal", pmRef1, pm1);
+        assertEquals(pmRef1, pm1, "page metrics not equal");
     }
     
     @Test
@@ -289,6 +293,6 @@ public class QueryMetricTest {
         // pageSize/returnTime
         String pmText1 = "2500/2000";
         PageMetric pm1 = PageMetric.parse(pmText1);
-        assertEquals("page metrics not equal", pmRef1, pm1);
+        assertEquals(pmRef1, pm1, "page metrics not equal");
     }
 }

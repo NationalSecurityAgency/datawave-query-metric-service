@@ -4,29 +4,30 @@
     <parent>
         <groupId>gov.nsa.datawave.microservice</groupId>
         <artifactId>datawave-microservice-parent</artifactId>
-        <version>1.9</version>
-        <relativePath />
+        <version>3.0.0</version>
+        <relativePath>../../../microservice-parent/pom.xml</relativePath>
     </parent>
     <artifactId>query-metric-api</artifactId>
-    <version>2.1.5-SNAPSHOT</version>
+    <version>3.0.1-SNAPSHOT</version>
     <url>https://code.nsa.gov/datawave-query-metric-service</url>
     <scm>
         <connection>scm:git:https://github.com/NationalSecurityAgency/datawave-query-metric-service.git</connection>
         <developerConnection>scm:git:git@github.com:NationalSecurityAgency/datawave-query-metric-service.git</developerConnection>
+        <tag>HEAD</tag>
         <url>https://github.com/NationalSecurityAgency/datawave-query-metric-service</url>
     </scm>
     <properties>
-        <datawave.webservice.namespace>http://webservice.datawave/v1</datawave.webservice.namespace>
+        <datawave.webservice.namespace>http://webservice.datawave.nsa/v1</datawave.webservice.namespace>
         <spotbugs.excludes.file>${basedir}/spotbugs-exclude.xml</spotbugs.excludes.file>
-        <version.base-rest-responses>2.1.0</version.base-rest-responses>
+        <version.accumulo-utils>3.0.1</version.accumulo-utils>
+        <version.base-rest-responses>3.0.0</version.base-rest-responses>
         <version.commons-lang3>3.12.0</version.commons-lang3>
         <version.commons-text>1.9</version.commons-text>
-        <version.datawave>5.9.1</version.datawave>
+        <version.datawave>6.0.0</version.datawave>
         <version.glassfish>2.3.6</version.glassfish>
         <version.guava>31.1-jre</version.guava>
         <version.jackson>2.12.5</version.jackson>
         <version.jaxb-api>2.3.1</version.jaxb-api>
-        <version.microservice.accumulo-utils>2.1.2</version.microservice.accumulo-utils>
         <version.protobuf-java>3.7.1</version.protobuf-java>
         <version.protostuff>1.6.2</version.protostuff>
         <version.slf4j>1.7.36</version.slf4j>
@@ -46,7 +47,7 @@
             <dependency>
                 <groupId>gov.nsa.datawave.microservice</groupId>
                 <artifactId>accumulo-utils</artifactId>
-                <version>${version.microservice.accumulo-utils}</version>
+                <version>${version.accumulo-utils}</version>
                 <exclusions>
                     <exclusion>
                         <artifactId>*</artifactId>
@@ -189,18 +190,8 @@
             <artifactId>slf4j-api</artifactId>
         </dependency>
         <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-engine</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.junit.vintage</groupId>
-            <artifactId>junit-vintage-engine</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -221,11 +212,20 @@
         </repository>
     </repositories>
     <build>
+        <resources>
+            <resource>
+                <filtering>true</filtering>
+                <directory>src/main/resources</directory>
+                <excludes>
+                    <exclude>source-templates/**</exclude>
+                </excludes>
+            </resource>
+        </resources>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-enforcer-plugin</artifactId>
-                <version>1.4.1</version>
+                <version>3.0.0</version>
                 <executions>
                     <execution>
                         <id>enforce-banned-dependencies</id>
@@ -251,6 +251,46 @@
                                 </bannedDependencies>
                             </rules>
                             <fail>true</fail>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <artifactId>maven-resources-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>copy-templated-sources</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}/generated-sources/templated-sources</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>src/main/resources/source-templates</directory>
+                                    <filtering>true</filtering>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>build-helper-maven-plugin</artifactId>
+                <version>3.3.0</version>
+                <executions>
+                    <execution>
+                        <id>add-source</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>add-source</goal>
+                        </goals>
+                        <configuration>
+                            <sources>
+                                <source>target/generated-sources/templated-sources</source>
+                            </sources>
                         </configuration>
                     </execution>
                 </executions>

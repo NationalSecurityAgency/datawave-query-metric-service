@@ -1,28 +1,5 @@
 package datawave.microservice.querymetric;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import datawave.marking.MarkingFunctions;
-import datawave.webservice.query.Query;
-import datawave.webservice.query.QueryImpl.Parameter;
-import datawave.webservice.query.exception.QueryException;
-import datawave.webservice.query.result.event.HasMarkings;
-import io.protostuff.Input;
-import io.protostuff.Message;
-import io.protostuff.Output;
-import io.protostuff.Schema;
-
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.builder.CompareToBuilder;
-import org.apache.commons.lang3.builder.EqualsBuilder;
-import org.apache.commons.lang3.builder.HashCodeBuilder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlElementWrapper;
-import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Serializable;
@@ -40,6 +17,31 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
+
+import javax.xml.bind.annotation.XmlAccessType;
+import javax.xml.bind.annotation.XmlAccessorType;
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlElementWrapper;
+import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.builder.CompareToBuilder;
+import org.apache.commons.lang3.builder.EqualsBuilder;
+import org.apache.commons.lang3.builder.HashCodeBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
+import datawave.marking.MarkingFunctions;
+import datawave.webservice.query.Query;
+import datawave.webservice.query.QueryImpl.Parameter;
+import datawave.webservice.query.exception.QueryException;
+import datawave.webservice.query.result.event.HasMarkings;
+import io.protostuff.Input;
+import io.protostuff.Message;
+import io.protostuff.Output;
+import io.protostuff.Schema;
 
 @XmlAccessorType(XmlAccessType.NONE)
 public abstract class BaseQueryMetric implements HasMarkings, Serializable {

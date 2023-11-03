@@ -3,17 +3,16 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>gov.nsa.datawave.microservice</groupId>
-        <artifactId>datawave-microservice-service-parent</artifactId>
-        <version>2.1</version>
-        <relativePath />
+        <artifactId>datawave-microservice-parent</artifactId>
+        <version>3.0.0</version>
+        <relativePath>../../microservice-parent/pom.xml</relativePath>
     </parent>
     <artifactId>query-metric-parent</artifactId>
-    <version>2.1.5-SNAPSHOT</version>
+    <version>3.0.1-SNAPSHOT</version>
     <packaging>pom</packaging>
     <url>https://code.nsa.gov/datawave-query-metric-service</url>
     <modules>
         <module>api</module>
-        <module>service</module>
     </modules>
     <scm>
         <connection>scm:git:https://github.com/NationalSecurityAgency/datawave-query-metric-service.git</connection>
@@ -36,4 +35,17 @@
             <url>https://raw.githubusercontent.com/NationalSecurityAgency/datawave/mvn-repo</url>
         </repository>
     </repositories>
+    <profiles>
+        <profile>
+            <id>services</id>
+            <activation>
+                <property>
+                    <name>!skipServices</name>
+                </property>
+            </activation>
+            <modules>
+                <module>service</module>
+            </modules>
+        </profile>
+    </profiles>
 </project>

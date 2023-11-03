@@ -1,10 +1,5 @@
 package datawave.microservice.querymetric.config;
 
-import datawave.accumulo.inmemory.InMemoryAccumuloClient;
-import datawave.accumulo.inmemory.InMemoryInstance;
-import datawave.microservice.config.accumulo.AccumuloProperties;
-import datawave.webservice.common.connection.AccumuloClientPool;
-import datawave.webservice.common.connection.AccumuloClientPoolFactory;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.security.Authorizations;
@@ -20,6 +15,12 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.context.annotation.Profile;
+
+import datawave.accumulo.inmemory.InMemoryAccumuloClient;
+import datawave.accumulo.inmemory.InMemoryInstance;
+import datawave.microservice.config.accumulo.AccumuloProperties;
+import datawave.webservice.common.connection.AccumuloClientPool;
+import datawave.webservice.common.connection.AccumuloClientPoolFactory;
 
 @ImportAutoConfiguration({RefreshAutoConfiguration.class})
 @AutoConfigureCache(cacheProvider = CacheType.HAZELCAST)

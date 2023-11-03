@@ -1,66 +1,68 @@
 package datawave.microservice.querymetric;
 
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.cloud.stream.annotation.Output;
-import org.springframework.cloud.stream.messaging.DirectWithAttributesChannel;
-import org.springframework.messaging.MessageChannel;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
-import org.springframework.web.client.HttpClientErrorException;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import static datawave.microservice.querymetric.config.QueryMetricSourceConfiguration.QueryMetricSourceBinding.SOURCE_NAME;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.context.annotation.Primary;
+import org.springframework.context.annotation.Profile;
+import org.springframework.messaging.Message;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.springframework.web.client.HttpClientErrorException;
 
-@RunWith(SpringRunner.class)
+import datawave.microservice.querymetric.function.QueryMetricSupplier;
+
+@ExtendWith(SpringExtension.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles({"QueryMetricHttpTest", "QueryMetricTest", "http", "hazelcast-writebehind"})
 public class QueryMetricHttpTest extends QueryMetricTestBase {
     
-    @Output(SOURCE_NAME)
-    @Autowired
-    private MessageChannel output;
+    static {}
     
-    @Before
+    @Autowired
+    public List<QueryMetricUpdate> storedMetricUpdates;
+    
+    @BeforeEach
     public void setup() {
         super.setup();
+        storedMetricUpdates.clear();
     }
     
-    @After
-    public void cleanup() {
-        super.cleanup();
-        ((DirectWithAttributesChannel) output).reset();
-    }
-    
-    @Test(expected = HttpClientErrorException.Forbidden.class)
+    @Test
     public void RejectNonAdminUserForUpdateMetric() throws Exception {
         // @formatter:off
-        client.submit(new QueryMetricClient.Request.Builder()
+        assertThrows(HttpClientErrorException.Forbidden.class, () -> client.submit(new QueryMetricClient.Request.Builder()
                 .withMetric(createMetric())
                 .withMetricType(QueryMetricType.COMPLETE)
                 .withUser(nonAdminUser)
-                .build());
+                .build()));
         // @formatter:on
     }
     
-    @Test(expected = HttpClientErrorException.Forbidden.class)
+    @Test
     public void RejectNonAdminUserForUpdateMetrics() throws Exception {
         List<BaseQueryMetric> metrics = new ArrayList<>();
         metrics.add(createMetric());
         metrics.add(createMetric());
         // @formatter:off
-        client.submit(new QueryMetricClient.Request.Builder()
+        assertThrows(HttpClientErrorException.Forbidden.class, () -> client.submit(new QueryMetricClient.Request.Builder()
                 .withMetrics(metrics)
                 .withMetricType(QueryMetricType.COMPLETE)
                 .withUser(nonAdminUser)
-                .build());
+                .build()));
         // @formatter:on
     }
     
@@ -103,6 +105,28 @@ public class QueryMetricHttpTest extends QueryMetricTestBase {
                 .withUser(adminUser)
                 .build());
         // @formatter:on
-        Assert.assertEquals(2, ((DirectWithAttributesChannel) output).getSendCount());
+        assertEquals(2, storedMetricUpdates.size());
+    }
+    
+    @Configuration
+    @Profile("QueryMetricHttpTest")
+    @ComponentScan(basePackages = "datawave.microservice")
+    public static class QueryMetricHttpTestConfiguration {
+        @Bean
+        public List<QueryMetricUpdate> storedMetricUpdates() {
+            return new ArrayList<>();
+        }
+        
+        @Primary
+        @Bean
+        public QueryMetricSupplier testQueryMetricSource(@Lazy QueryMetricOperations queryMetricOperations) {
+            return new QueryMetricSupplier() {
+                @Override
+                public boolean send(Message<QueryMetricUpdate> queryMetricUpdate) {
+                    storedMetricUpdates().add(queryMetricUpdate.getPayload());
+                    return true;
+                }
+            };
+        }
     }
 }

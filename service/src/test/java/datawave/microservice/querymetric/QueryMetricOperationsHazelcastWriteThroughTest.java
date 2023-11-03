@@ -1,27 +1,27 @@
 package datawave.microservice.querymetric;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 /*
  * Run the same tests as in the base class but with specific profile / settings
  */
-@RunWith(SpringRunner.class)
+@ExtendWith(SpringExtension.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ActiveProfiles({"QueryMetricOperationsHazelcastWriteThroughTest", "QueryMetricTest", "hazelcast-writethrough"})
+@ActiveProfiles({"QueryMetricOperationsHazelcastWriteThroughTest", "QueryMetricTest", "MessageRouting", "hazelcast-writethrough"})
 public class QueryMetricOperationsHazelcastWriteThroughTest extends QueryMetricOperationsTest {
     
-    @Before
+    @BeforeEach
     public void setup() {
         super.setup();
     }
     
-    @After
+    @AfterEach
     public void cleanup() {
         super.cleanup();
     }

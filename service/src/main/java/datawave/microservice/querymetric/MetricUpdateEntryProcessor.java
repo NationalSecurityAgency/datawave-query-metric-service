@@ -1,11 +1,12 @@
 package datawave.microservice.querymetric;
 
-import com.hazelcast.map.AbstractEntryProcessor;
-import datawave.microservice.querymetric.handler.QueryMetricCombiner;
-
 import java.util.Map;
 
-public class MetricUpdateEntryProcessor extends AbstractEntryProcessor<String,QueryMetricUpdateHolder> {
+import com.hazelcast.map.EntryProcessor;
+
+import datawave.microservice.querymetric.handler.QueryMetricCombiner;
+
+public class MetricUpdateEntryProcessor implements EntryProcessor<String,QueryMetricUpdateHolder,Long> {
     
     private QueryMetricCombiner combiner;
     private QueryMetricUpdateHolder metricUpdate;

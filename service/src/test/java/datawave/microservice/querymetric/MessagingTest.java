@@ -1,30 +1,33 @@
 package datawave.microservice.querymetric;
 
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 
-@RunWith(SpringRunner.class)
+@ExtendWith(SpringExtension.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ActiveProfiles({"MessagingTest", "QueryMetricTest", "hazelcast-writethrough"})
+@ContextConfiguration(classes = MessagingTest.MessagingTestConfiguration.class)
+@ActiveProfiles({"MessagingTest", "QueryMetricTest", "MessageRouting", "hazelcast-writethrough"})
 public class MessagingTest extends QueryMetricTestBase {
     
-    @Before
+    @BeforeEach
     public void setup() {
         super.setup();
     }
     
-    @After
+    @AfterEach
     public void cleanup() {
         super.cleanup();
     }
@@ -49,9 +52,9 @@ public class MessagingTest extends QueryMetricTestBase {
         ResponseEntity<BaseQueryMetricListResponse> metricResponse = restTemplate.exchange(metricUri.toUri(), HttpMethod.GET, metricRequestEntity,
                         BaseQueryMetricListResponse.class);
         
-        Assert.assertEquals(1, metricResponse.getBody().getNumResults());
+        assertEquals(1, metricResponse.getBody().getNumResults());
         BaseQueryMetric returnedMetric = (BaseQueryMetric) metricResponse.getBody().getResult().get(0);
-        assertEquals(m, returnedMetric);
+        metricAssertEquals(m, returnedMetric);
     }
     
     @Test
@@ -78,10 +81,10 @@ public class MessagingTest extends QueryMetricTestBase {
             ResponseEntity<BaseQueryMetricListResponse> metricResponse = restTemplate.exchange(metricUri.toUri(), HttpMethod.GET, metricRequestEntity,
                             BaseQueryMetricListResponse.class);
             
-            Assert.assertEquals(1, metricResponse.getBody().getNumResults());
+            assertEquals(1, metricResponse.getBody().getNumResults());
             BaseQueryMetric returnedMetric = (BaseQueryMetric) metricResponse.getBody().getResult().get(0);
-            Assert.assertEquals(i + 1, returnedMetric.getPageTimes().size());
-            assertEquals(m, returnedMetric);
+            assertEquals(i + 1, returnedMetric.getPageTimes().size());
+            metricAssertEquals(m, returnedMetric);
         }
     }
 }

@@ -1,16 +1,5 @@
 package datawave.microservice.querymetric;
 
-import datawave.webservice.query.QueryImpl.Parameter;
-import datawave.microservice.querymetric.BaseQueryMetric.PageMetric;
-import datawave.microservice.querymetric.BaseQueryMetric.Prediction;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.text.StringEscapeUtils;
-
-import javax.xml.bind.annotation.XmlAccessOrder;
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorOrder;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlRootElement;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -20,12 +9,32 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
+import javax.xml.bind.annotation.XmlAccessOrder;
+import javax.xml.bind.annotation.XmlAccessType;
+import javax.xml.bind.annotation.XmlAccessorOrder;
+import javax.xml.bind.annotation.XmlAccessorType;
+import javax.xml.bind.annotation.XmlRootElement;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.text.StringEscapeUtils;
+
+import datawave.microservice.querymetric.BaseQueryMetric.PageMetric;
+import datawave.microservice.querymetric.BaseQueryMetric.Prediction;
+import datawave.webservice.query.QueryImpl.Parameter;
+
 @XmlRootElement(name = "QueryMetricListResponse")
 @XmlAccessorType(XmlAccessType.NONE)
 @XmlAccessorOrder(XmlAccessOrder.ALPHABETICAL)
 public class QueryMetricsDetailListResponse extends QueryMetricListResponse {
     
     private static final long serialVersionUID = 1L;
+    private static final String NEWLINE = System.getProperty("line.separator");
+    
+    @Override
+    public String getHeadContent() {
+        return super.getHeadContent() + "<link rel=\"stylesheet\" type=\"text/css\" href=\"/querymetric/css/theme.css\">"; // styling for microservices query
+                                                                                                                           // metric page
+    }
     
     @Override
     public String getMainContent() {
@@ -82,16 +91,18 @@ public class QueryMetricsDetailListResponse extends QueryMetricListResponse {
             builder.append("<td>").append(metric.getQueryId()).append("</td>");
             builder.append("<td>").append(metric.getQueryType()).append("</td>");
             builder.append("<td>").append(metric.getQueryLogic()).append("</td>");
-            builder.append(isJexlQuery(parameters) ? "<td style=\"white-space: pre; word-wrap: break-word;\">" : "<td style=\"word-wrap: break-word;\">")
-                            .append(StringEscapeUtils.escapeHtml4(metric.getQuery())).append("</td>");
-            builder.append("<td style=\"white-space: pre; word-wrap: break-word;\">").append(StringEscapeUtils.escapeHtml4(metric.getPlan())).append("</td>");
+            // Note the query and query plan are added to the table later (see the javascript at the end of this for loop)
+            builder.append(isJexlQuery(parameters) ? "<td id='query" + x + "'" + " style=\"white-space: pre; word-wrap: break-word;\">"
+                            : "<td id='query" + x + "'" + " style=\"word-wrap: break-word;\">").append("</td>");
+            builder.append("<td id='query-plan" + x + "'" + " style=\"white-space: pre; word-wrap: break-word;\">").append("</td>");
             builder.append("<td>").append(metric.getQueryName()).append("</td>");
             
             String beginDate = metric.getBeginDate() == null ? "" : sdf.format(metric.getBeginDate());
             builder.append("<td style=\"min-width:125px !important;\">").append(beginDate).append("</td>");
             String endDate = metric.getEndDate() == null ? "" : sdf.format(metric.getEndDate());
             builder.append("<td style=\"min-width:125px !important;\">").append(endDate).append("</td>");
-            builder.append("<td>").append(parameters == null ? "" : toParametersString(parameters)).append("</td>");
+            builder.append("<td style=\"white-space: pre; word-wrap: break-word;\">").append(parameters == null ? "" : toFormattedParametersString(parameters))
+                            .append("</td>");
             String queryAuths = metric.getQueryAuthorizations() == null ? "" : metric.getQueryAuthorizations().replaceAll(",", " ");
             builder.append("<td style=\"word-wrap: break-word; min-width:300px !important;\">").append(queryAuths).append("</td>");
             
@@ -177,6 +188,19 @@ public class QueryMetricsDetailListResponse extends QueryMetricListResponse {
             builder.append("<td style=\"word-wrap: break-word;\">").append((errorMessage == null) ? "" : StringEscapeUtils.escapeHtml4(errorMessage))
                             .append("</td>");
             builder.append("\n</tr>\n");
+            
+            /*
+             * javascript to make the metric's query and the metric's query plan interactive (highlight matching parens on mouse over, clicking a paren brings
+             * you to its matching paren)
+             */
+            builder.append("<script>");
+            // To be used in the query-interactive-parens.js file
+            builder.append("function getQuery() { return `" + metric.getQuery() + "`; }" + NEWLINE);
+            builder.append("function getPlan() { return `" + metric.getPlan() + "`; }" + NEWLINE);
+            builder.append("function getMetricNum() { return " + x + "; }" + NEWLINE);
+            builder.append("</script>");
+            builder.append("<script src='/querymetric/js/query-interactive-parens.js'></script>"); // for microservices query metrics page
+            builder.append("<script src='/query-interactive-parens.js'></script>"); // for webservers query metric page
         }
         
         builder.append("</table>\n<br/>\n");
@@ -195,15 +219,16 @@ public class QueryMetricsDetailListResponse extends QueryMetricListResponse {
         return number < minValue ? "" : Long.toString(number);
     }
     
-    private static String toParametersString(final Set<Parameter> parameters) {
+    private static String toFormattedParametersString(final Set<Parameter> parameters) {
         final StringBuilder params = new StringBuilder();
         final String PARAMETER_SEPARATOR = ";";
         final String PARAMETER_NAME_VALUE_SEPARATOR = ":";
+        final String NEWLINE = System.getProperty("line.separator");
         
         if (null != parameters) {
             for (final Parameter param : parameters) {
                 if (params.length() > 0) {
-                    params.append(PARAMETER_SEPARATOR);
+                    params.append(PARAMETER_SEPARATOR + NEWLINE);
                 }
                 
                 params.append(param.getParameterName());

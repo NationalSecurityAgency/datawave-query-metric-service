@@ -1,53 +1,22 @@
 package datawave.microservice.querymetric.handler;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Multimap;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import datawave.data.hash.UID;
-import datawave.data.hash.UIDBuilder;
-import datawave.ingest.config.RawRecordContainerImpl;
-import datawave.ingest.data.RawRecordContainer;
-import datawave.ingest.data.Type;
-import datawave.ingest.data.TypeRegistry;
-import datawave.ingest.data.config.NormalizedContentInterface;
+import java.nio.charset.Charset;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.TreeMap;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-import datawave.ingest.data.config.ingest.AbstractContentIngestHelper;
-import datawave.ingest.mapreduce.handler.shard.AbstractColumnBasedHandler;
-import datawave.ingest.mapreduce.handler.tokenize.ContentIndexingColumnBasedHandler;
-import datawave.ingest.mapreduce.job.BulkIngestKey;
-import datawave.ingest.table.config.TableConfigHelper;
-import datawave.marking.MarkingFunctions;
-import datawave.microservice.authorization.user.ProxiedUserDetails;
-import datawave.microservice.querymetric.BaseQueryMetric;
-import datawave.microservice.querymetric.BaseQueryMetric.Lifecycle;
-import datawave.microservice.querymetric.BaseQueryMetric.PageMetric;
-import datawave.microservice.querymetric.BaseQueryMetric.Prediction;
-import datawave.microservice.querymetric.QueryMetricFactory;
-import datawave.microservice.querymetric.QueryMetricType;
-import datawave.microservice.querymetric.QueryMetricsSummaryResponse;
-import datawave.microservice.querymetric.config.QueryMetricHandlerProperties;
-import datawave.microservice.querymetric.factory.QueryMetricQueryLogicFactory;
-import datawave.query.iterator.QueryOptions;
-import datawave.query.language.parser.jexl.LuceneToJexlQueryParser;
-import datawave.security.authorization.DatawavePrincipal;
-import datawave.security.authorization.DatawaveUser;
-import datawave.security.authorization.SubjectIssuerDNPair;
-import datawave.security.util.AuthorizationsUtil;
-import datawave.security.util.DnUtils;
-import datawave.webservice.common.connection.AccumuloClientPool;
-import datawave.webservice.common.connection.AccumuloConnectionFactory.Priority;
-import datawave.webservice.query.Query;
-import datawave.webservice.query.QueryImpl;
-import datawave.webservice.query.cache.ResultsPage;
-import datawave.webservice.query.exception.QueryExceptionType;
-import datawave.webservice.query.logic.QueryLogic;
-import datawave.webservice.query.result.event.EventBase;
-import datawave.webservice.query.result.event.FieldBase;
-import datawave.webservice.query.runner.RunningQuery;
-import datawave.webservice.query.util.QueryUtil;
-import datawave.webservice.result.BaseQueryResponse;
-import datawave.webservice.result.EventQueryResponseBase;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -73,34 +42,52 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 
-import java.nio.charset.Charset;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.TreeMap;
-import java.util.UUID;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
 
-import static datawave.security.authorization.DatawaveUser.UserType.USER;
+import datawave.data.hash.UID;
+import datawave.data.hash.UIDBuilder;
+import datawave.ingest.config.RawRecordContainerImpl;
+import datawave.ingest.data.RawRecordContainer;
+import datawave.ingest.data.Type;
+import datawave.ingest.data.TypeRegistry;
+import datawave.ingest.data.config.NormalizedContentInterface;
+import datawave.ingest.data.config.ingest.AbstractContentIngestHelper;
+import datawave.ingest.mapreduce.handler.shard.AbstractColumnBasedHandler;
+import datawave.ingest.mapreduce.handler.tokenize.ContentIndexingColumnBasedHandler;
+import datawave.ingest.mapreduce.job.BulkIngestKey;
+import datawave.ingest.table.config.TableConfigHelper;
+import datawave.marking.MarkingFunctions;
+import datawave.microservice.authorization.user.DatawaveUserDetails;
+import datawave.microservice.querymetric.BaseQueryMetric;
+import datawave.microservice.querymetric.BaseQueryMetric.Lifecycle;
+import datawave.microservice.querymetric.BaseQueryMetric.PageMetric;
+import datawave.microservice.querymetric.BaseQueryMetric.Prediction;
+import datawave.microservice.querymetric.QueryMetricFactory;
+import datawave.microservice.querymetric.QueryMetricType;
+import datawave.microservice.querymetric.QueryMetricsSummaryResponse;
+import datawave.microservice.querymetric.config.QueryMetricHandlerProperties;
+import datawave.microservice.querymetric.factory.QueryMetricQueryLogicFactory;
+import datawave.microservice.security.util.DnUtils;
+import datawave.query.iterator.QueryOptions;
+import datawave.query.language.parser.jexl.LuceneToJexlQueryParser;
+import datawave.security.authorization.DatawaveUser;
+import datawave.security.util.WSAuthorizationsUtil;
+import datawave.webservice.common.connection.AccumuloClientPool;
+import datawave.webservice.query.Query;
+import datawave.webservice.query.QueryImpl;
+import datawave.webservice.query.exception.QueryExceptionType;
+import datawave.webservice.query.result.event.EventBase;
+import datawave.webservice.query.result.event.FieldBase;
+import datawave.webservice.query.util.QueryUtil;
+import datawave.webservice.result.BaseQueryResponse;
+import datawave.webservice.result.EventQueryResponseBase;
 
-public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends BaseQueryMetricHandler<T> {
+public abstract class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends BaseQueryMetricHandler<T> {
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final org.apache.log4j.Logger setupLogger = org.apache.log4j.Logger.getLogger(getClass());
     
-    protected static final String QUERY_METRICS_LOGIC_NAME = "QueryMetricsQuery";
     protected String clientAuthorizations;
     
     protected AccumuloClientPool accumuloClientPool;
@@ -116,24 +103,24 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
     protected QueryMetricQueryLogicFactory logicFactory;
     protected QueryMetricFactory metricFactory;
     protected UIDBuilder<UID> uidBuilder = UID.builder();
-    protected DatawavePrincipal datawavePrincipal;
-    protected MarkingFunctions markingFunctions;
     protected QueryMetricCombiner queryMetricCombiner;
-    protected ExecutorService executorService;
+    protected MarkingFunctions markingFunctions;
+    protected DnUtils dnUtils;
     // this lock is necessary for when there is an error condition and the accumuloRecordWriter needs to be replaced
     protected ReentrantReadWriteLock accumuloRecordWriterLock = new ReentrantReadWriteLock();
     
     public ShardTableQueryMetricHandler(QueryMetricHandlerProperties queryMetricHandlerProperties,
                     @Qualifier("warehouse") AccumuloClientPool accumuloClientPool, QueryMetricQueryLogicFactory logicFactory, QueryMetricFactory metricFactory,
-                    MarkingFunctions markingFunctions, QueryMetricCombiner queryMetricCombiner, LuceneToJexlQueryParser luceneToJexlQueryParser) {
+                    MarkingFunctions markingFunctions, QueryMetricCombiner queryMetricCombiner, LuceneToJexlQueryParser luceneToJexlQueryParser,
+                    DnUtils dnUtils) {
         super(luceneToJexlQueryParser);
         this.queryMetricHandlerProperties = queryMetricHandlerProperties;
         this.logicFactory = logicFactory;
         this.metricFactory = metricFactory;
         this.markingFunctions = markingFunctions;
+        this.dnUtils = dnUtils;
         this.accumuloClientPool = accumuloClientPool;
         this.queryMetricCombiner = queryMetricCombiner;
-        this.executorService = Executors.newCachedThreadPool(new ThreadFactoryBuilder().setNameFormat("metric-handler-query-thread-%d").build());
         
         queryMetricHandlerProperties.getProperties().entrySet().forEach(e -> conf.set(e.getKey(), e.getValue()));
         
@@ -156,14 +143,6 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
                 this.accumuloClientPool.returnObject(accumuloClient);
             }
         }
-        Collection<String> auths = new ArrayList<>();
-        if (this.clientAuthorizations != null) {
-            Arrays.stream(StringUtils.split(this.clientAuthorizations, ',')).forEach(a -> {
-                auths.add(a);
-            });
-        }
-        DatawaveUser datawaveUser = new DatawaveUser(SubjectIssuerDNPair.of("admin"), USER, null, auths, null, null, System.currentTimeMillis());
-        this.datawavePrincipal = new DatawavePrincipal(Collections.singletonList(datawaveUser));
     }
     
     public void shutdown() throws Exception {
@@ -284,7 +263,7 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
         return eventFields;
     }
     
-    private Multimap<BulkIngestKey,Value> getEntries(ContentIndexingColumnBasedHandler handler, T updatedQueryMetric, T storedQueryMetric, long timestamp) {
+    protected Multimap<BulkIngestKey,Value> getEntries(ContentIndexingColumnBasedHandler handler, T updatedQueryMetric, T storedQueryMetric, long timestamp) {
         Type type = TypeRegistry.getType("querymetrics");
         ContentQueryMetricsIngestHelper ingestHelper = (ContentQueryMetricsIngestHelper) handler.getContentIndexingDataTypeHelper();
         boolean deleteMode = ingestHelper.getDeleteMode();
@@ -385,9 +364,9 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
         Query queryImpl = createQuery();
         queryImpl.setBeginDate(begin);
         queryImpl.setEndDate(end);
-        queryImpl.setQueryLogicName(QUERY_METRICS_LOGIC_NAME);
+        queryImpl.setQueryLogicName(queryMetricHandlerProperties.getQueryMetricsLogic());
         queryImpl.setQuery(query);
-        queryImpl.setQueryName(QUERY_METRICS_LOGIC_NAME);
+        queryImpl.setQueryName(queryMetricHandlerProperties.getQueryMetricsLogic());
         queryImpl.setColumnVisibility(queryMetricHandlerProperties.getQueryVisibility());
         queryImpl.setQueryAuthorizations(this.clientAuthorizations);
         queryImpl.setExpirationDate(DateUtils.addDays(new Date(), 1));
@@ -398,95 +377,58 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
     }
     
     public List<T> getQueryMetrics(Query query) throws Exception {
-        long startTime = System.currentTimeMillis();
-        long maxReadMilliseconds = queryMetricHandlerProperties.getMaxReadMilliseconds();
         List<T> queryMetrics = new ArrayList<>();
-        AccumuloClient accumuloClient = null;
+        
+        String queryId = query.getId().toString();
         try {
-            QueryLogic<?> queryLogic = logicFactory.getObject();
-            Map<String,String> trackingMap = AccumuloClientTracking.getTrackingMap(Thread.currentThread().getStackTrace());
-            accumuloClient = accumuloClientPool.borrowObject(trackingMap);
-            final AccumuloClient finalClient = accumuloClient;
-            // create RunningQuery inside an Executor/Future so that we can handle a non-responsive Accumulo and timeout
-            Future<Object> future1 = this.executorService.submit(() -> {
-                try {
-                    return new RunningQuery(null, finalClient, Priority.ADMIN, queryLogic, query, query.getQueryAuthorizations(), datawavePrincipal,
-                                    this.metricFactory);
-                } catch (Exception e) {
-                    return e;
-                }
-            });
+            BaseQueryResponse queryResponse = createAndNext(query);
+            queryId = (queryResponse != null && queryResponse.getQueryId() != null) ? queryResponse.getQueryId() : queryId;
             
-            RunningQuery runningQuery;
-            try {
-                Object o = future1.get(maxReadMilliseconds - (System.currentTimeMillis() - startTime), TimeUnit.MILLISECONDS);
-                if (o instanceof RunningQuery) {
-                    runningQuery = (RunningQuery) o;
+            boolean done = false;
+            do {
+                if (queryResponse != null) {
+                    List<QueryExceptionType> exceptions = queryResponse.getExceptions();
+                    if (queryResponse.getExceptions() != null && !queryResponse.getExceptions().isEmpty()) {
+                        throw new RuntimeException(exceptions.get(0).getMessage());
+                    }
+                    
+                    if (!(queryResponse instanceof EventQueryResponseBase)) {
+                        throw new IllegalStateException("incompatible response");
+                    }
+                    
+                    EventQueryResponseBase eventQueryResponse = (EventQueryResponseBase) queryResponse;
+                    List<EventBase> eventList = eventQueryResponse.getEvents();
+                    
+                    if (eventList != null && !eventList.isEmpty()) {
+                        for (EventBase<?,?> event : eventList) {
+                            T metric = toMetric(event);
+                            queryMetrics.add(metric);
+                        }
+                        
+                        // request the next page
+                        queryResponse = next(queryId);
+                    } else {
+                        done = true;
+                    }
                 } else {
-                    throw (Exception) o;
+                    done = true;
                 }
-            } finally {
-                future1.cancel(true);
-            }
-            
-            if (runningQuery != null) {
-                // Call RunningQuery.next inside an Executor/Future so that we can handle a non-responsive Accumulo and timeout
-                Future<Object> future2 = this.executorService.submit(() -> {
-                    try {
-                        boolean done = false;
-                        List<Object> objectList = new ArrayList<>();
-                        
-                        while (!done) {
-                            ResultsPage resultsPage = runningQuery.next();
-                            
-                            if (!resultsPage.getResults().isEmpty()) {
-                                objectList.addAll(resultsPage.getResults());
-                            } else {
-                                done = true;
-                            }
-                        }
-                        
-                        BaseQueryResponse queryResponse = queryLogic.getTransformer(query).createResponse(new ResultsPage(objectList));
-                        List<QueryExceptionType> exceptions = queryResponse.getExceptions();
-                        
-                        if (queryResponse.getExceptions() != null && !queryResponse.getExceptions().isEmpty()) {
-                            throw new RuntimeException(exceptions.get(0).getMessage());
-                        }
-                        
-                        if (!(queryResponse instanceof EventQueryResponseBase)) {
-                            throw new IllegalStateException("incompatible response");
-                        }
-                        
-                        EventQueryResponseBase eventQueryResponse = (EventQueryResponseBase) queryResponse;
-                        List<EventBase> eventList = eventQueryResponse.getEvents();
-                        
-                        if (eventList != null) {
-                            for (EventBase<?,?> event : eventList) {
-                                T metric = toMetric(event);
-                                queryMetrics.add(metric);
-                            }
-                        }
-                        return null;
-                    } catch (Exception e) {
-                        return e;
-                    }
-                });
-                try {
-                    Exception exception = (Exception) future2.get(maxReadMilliseconds - (System.currentTimeMillis() - startTime), TimeUnit.MILLISECONDS);
-                    if (exception != null) {
-                        throw exception;
-                    }
-                } finally {
-                    future2.cancel(true);
-                }
-            }
+            } while (!done);
+        } catch (Exception e) {
+            log.error(e.getMessage(), e);
+            throw e;
         } finally {
-            if (accumuloClient != null) {
-                this.accumuloClientPool.returnObject(accumuloClient);
-            }
+            close(queryId);
         }
+        
         return queryMetrics;
     }
+    
+    protected abstract BaseQueryResponse createAndNext(Query query) throws Exception;
+    
+    protected abstract BaseQueryResponse next(String queryId) throws Exception;
+    
+    protected abstract void close(String queryId);
     
     public T toMetric(EventBase event) {
         SimpleDateFormat sdf_date_time1 = new SimpleDateFormat("yyyyMMdd HHmmss");
@@ -764,7 +706,7 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
     }
     
     @SuppressWarnings("unchecked")
-    private Map<String,TableConfigHelper> getTableConfigs(Configuration conf, String[] tableNames) {
+    protected Map<String,TableConfigHelper> getTableConfigs(Configuration conf, String[] tableNames) {
         Map<String,TableConfigHelper> helperMap = new HashMap<>();
         
         for (String table : tableNames) {
@@ -821,12 +763,12 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
     }
     
     @Override
-    public QueryMetricsSummaryResponse getQueryMetricsSummary(Date begin, Date end, ProxiedUserDetails currentUser, boolean onlyCurrentUser) {
+    public QueryMetricsSummaryResponse getQueryMetricsSummary(Date begin, Date end, DatawaveUserDetails currentUser, boolean onlyCurrentUser) {
         QueryMetricsSummaryResponse response = new QueryMetricsSummaryResponse();
         try {
             // this method is open to any user
             DatawaveUser datawaveUser = currentUser.getPrimaryUser();
-            String datawaveUserShortName = DnUtils.getShortName(datawaveUser.getName());
+            String datawaveUserShortName = dnUtils.getShortName(datawaveUser.getName());
             Collection<String> userAuths = new ArrayList<>(datawaveUser.getAuths());
             if (clientAuthorizations != null) {
                 Collection<String> connectorAuths = new ArrayList<>();
@@ -839,15 +781,15 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
             Query query = createQuery();
             query.setBeginDate(begin);
             query.setEndDate(end);
-            query.setQueryLogicName(QUERY_METRICS_LOGIC_NAME);
+            query.setQueryLogicName(queryMetricHandlerProperties.getQueryMetricsLogic());
             if (onlyCurrentUser) {
                 query.setQuery("USER == '" + datawaveUserShortName + "'");
             } else {
                 query.setQuery("((_Bounded_ = true) && (USER > 'A' && USER < 'ZZZZZZZ'))");
             }
-            query.setQueryName(QUERY_METRICS_LOGIC_NAME);
+            query.setQueryName(queryMetricHandlerProperties.getQueryMetricsLogic());
             query.setColumnVisibility(queryMetricHandlerProperties.getQueryVisibility());
-            query.setQueryAuthorizations(AuthorizationsUtil.buildAuthorizationString(authorizations));
+            query.setQueryAuthorizations(WSAuthorizationsUtil.buildAuthorizationString(authorizations));
             query.setExpirationDate(DateUtils.addDays(new Date(), 1));
             query.setPagesize(1000);
             query.setUserDN(datawaveUserShortName);

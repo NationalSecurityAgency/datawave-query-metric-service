@@ -1,29 +1,8 @@
 package datawave.microservice.querymetric;
 
-import com.google.common.collect.Multimap;
-import datawave.microservice.querymetric.handler.ContentQueryMetricsIngestHelper;
-import datawave.microservice.querymetric.persistence.AccumuloMapStore;
-import datawave.util.StringUtils;
-import datawave.webservice.query.result.event.DefaultEvent;
-import datawave.webservice.query.result.event.DefaultField;
-import datawave.webservice.query.result.event.EventBase;
-import datawave.webservice.query.result.event.FieldBase;
-import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Value;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
-import org.springframework.web.util.UriComponents;
-import org.springframework.web.util.UriComponentsBuilder;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -33,20 +12,46 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-@RunWith(SpringRunner.class)
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Value;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.springframework.web.util.UriComponents;
+import org.springframework.web.util.UriComponentsBuilder;
+
+import com.google.common.collect.Multimap;
+
+import datawave.microservice.querymetric.handler.ContentQueryMetricsIngestHelper;
+import datawave.microservice.querymetric.persistence.AccumuloMapStore;
+import datawave.util.StringUtils;
+import datawave.webservice.query.result.event.DefaultEvent;
+import datawave.webservice.query.result.event.DefaultField;
+import datawave.webservice.query.result.event.EventBase;
+import datawave.webservice.query.result.event.FieldBase;
+
+@ExtendWith(SpringExtension.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ActiveProfiles({"QueryMetricConsistencyTest", "QueryMetricTest", "hazelcast-writethrough"})
+@ActiveProfiles({"QueryMetricConsistencyTest", "QueryMetricTest", "MessageRouting", "hazelcast-writethrough"})
 public class QueryMetricConsistencyTest extends QueryMetricTestBase {
     
     @Autowired
     AccumuloMapStore mapStore;
     
-    @Before
+    @BeforeEach
     public void setup() {
         super.setup();
     }
     
-    @After
+    @AfterEach
     public void cleanup() {
         super.cleanup();
     }
@@ -73,10 +78,10 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
             // @formatter:on
             ResponseEntity<BaseQueryMetricListResponse> metricResponse = this.restTemplate.exchange(metricUri.toUri(), HttpMethod.GET, metricRequestEntity,
                             BaseQueryMetricListResponse.class);
-            Assert.assertEquals(1, metricResponse.getBody().getNumResults());
+            assertEquals(1, metricResponse.getBody().getNumResults());
             BaseQueryMetric returnedMetric = (BaseQueryMetric) metricResponse.getBody().getResult().get(0);
-            Assert.assertEquals(i + 1, returnedMetric.getPageTimes().size());
-            assertEquals(m, returnedMetric);
+            assertEquals(i + 1, returnedMetric.getPageTimes().size());
+            metricAssertEquals(m, returnedMetric);
         }
         assertNoDuplicateFields(queryId);
     }
@@ -100,10 +105,10 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
         ResponseEntity<BaseQueryMetricListResponse> metricResponse = this.restTemplate.exchange(metricUri.toUri(), HttpMethod.GET, metricRequestEntity,
                         BaseQueryMetricListResponse.class);
         
-        Assert.assertEquals(1, metricResponse.getBody().getNumResults());
+        assertEquals(1, metricResponse.getBody().getNumResults());
         BaseQueryMetric returnedMetric = (BaseQueryMetric) metricResponse.getBody().getResult().get(0);
-        Assert.assertEquals("lifecycle incorrect", BaseQueryMetric.Lifecycle.CLOSED, returnedMetric.getLifecycle());
-        assertEquals(m, returnedMetric);
+        assertEquals(BaseQueryMetric.Lifecycle.CLOSED, returnedMetric.getLifecycle(), "lifecycle incorrect");
+        metricAssertEquals(m, returnedMetric);
         
         // send an update with out-of-sequence lifecycle
         m = createMetric(queryId);
@@ -118,10 +123,10 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
         metricRequestEntity = createRequestEntity(null, this.adminUser, null);
         metricResponse = restTemplate.exchange(metricUri.toUri(), HttpMethod.GET, metricRequestEntity, BaseQueryMetricListResponse.class);
         
-        Assert.assertEquals(1, metricResponse.getBody().getNumResults());
+        assertEquals(1, metricResponse.getBody().getNumResults());
         returnedMetric = (BaseQueryMetric) metricResponse.getBody().getResult().get(0);
         // metric should have been updated without backtracking on the lifecycle
-        Assert.assertEquals("lifecycle incorrect", BaseQueryMetric.Lifecycle.CLOSED, returnedMetric.getLifecycle());
+        assertEquals(BaseQueryMetric.Lifecycle.CLOSED, returnedMetric.getLifecycle(), "lifecycle incorrect");
         assertNoDuplicateFields(queryId);
     }
     
@@ -176,19 +181,18 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
         ResponseEntity<BaseQueryMetricListResponse> metricResponse = this.restTemplate.exchange(metricUri.toUri(), HttpMethod.GET, metricRequestEntity,
                         BaseQueryMetricListResponse.class);
         
-        Assert.assertEquals(1, metricResponse.getBody().getNumResults());
+        assertEquals(1, metricResponse.getBody().getNumResults());
         BaseQueryMetric returnedMetric = (BaseQueryMetric) metricResponse.getBody().getResult().get(0);
-        Assert.assertEquals("create date should be the first received of the two values", formatDate(new Date(now)),
-                        formatDate(returnedMetric.getCreateDate()));
-        Assert.assertEquals("last updated should only increase", formatDate(new Date(now)), formatDate(returnedMetric.getLastUpdated()));
-        Assert.assertEquals("source count should be additive", 200, returnedMetric.getSourceCount());
-        Assert.assertEquals("next count should be additive", 200, returnedMetric.getNextCount());
-        Assert.assertEquals("seek count should be additive", 200, returnedMetric.getSeekCount());
-        Assert.assertEquals("yield count should be additive", 200, returnedMetric.getYieldCount());
-        Assert.assertEquals("doc ranges count should be additive", 200, returnedMetric.getDocRanges());
-        Assert.assertEquals("fi ranges should be additive", 200, returnedMetric.getFiRanges());
-        long lastPageNumReturned = this.queryMetricCombiner.getLastPageNumber(returnedMetric);
-        Assert.assertEquals("distributed update should append pages", 2, lastPageNumReturned);
+        assertEquals(formatDate(new Date(now)), formatDate(returnedMetric.getCreateDate()), "create date should be the first received of the two values");
+        assertEquals(formatDate(new Date(now)), formatDate(returnedMetric.getLastUpdated()), "last updated should only increase");
+        assertEquals(200, returnedMetric.getSourceCount(), "source count should be additive");
+        assertEquals(200, returnedMetric.getNextCount(), "next count should be additive");
+        assertEquals(200, returnedMetric.getSeekCount(), "seek count should be additive");
+        assertEquals(200, returnedMetric.getYieldCount(), "yield count should be additive");
+        assertEquals(200, returnedMetric.getDocRanges(), "doc ranges count should be additive");
+        assertEquals(200, returnedMetric.getFiRanges(), "fi ranges should be additive");
+        long lastPageNumReturned = queryMetricCombiner.getLastPageNumber(returnedMetric);
+        assertEquals(2, lastPageNumReturned, "distributed update should append pages");
         
         m.setLastUpdated(new Date(now + 1000));
         m.setSourceCount(1000);
@@ -207,15 +211,15 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
         metricRequestEntity = createRequestEntity(null, this.adminUser, null);
         metricResponse = restTemplate.exchange(metricUri.toUri(), HttpMethod.GET, metricRequestEntity, BaseQueryMetricListResponse.class);
         
-        Assert.assertEquals(1, metricResponse.getBody().getNumResults());
+        assertEquals(1, metricResponse.getBody().getNumResults());
         returnedMetric = (BaseQueryMetric) metricResponse.getBody().getResult().get(0);
-        Assert.assertEquals("last updated should only increase", formatDate(new Date(now + 1000)), formatDate(returnedMetric.getLastUpdated()));
-        Assert.assertEquals("latest source count should be used", 1000, returnedMetric.getSourceCount());
-        Assert.assertEquals("latest next count should be used", 1000, returnedMetric.getNextCount());
-        Assert.assertEquals("latest seek count should be used", 1000, returnedMetric.getSeekCount());
-        Assert.assertEquals("latest yield count should be used", 1000, returnedMetric.getYieldCount());
-        Assert.assertEquals("latest doc ranges count should be used", 1000, returnedMetric.getDocRanges());
-        Assert.assertEquals("latest fi ranges should be used", 1000, returnedMetric.getFiRanges());
+        assertEquals(formatDate(new Date(now + 1000)), formatDate(returnedMetric.getLastUpdated()), "last updated should only increase");
+        assertEquals(1000, returnedMetric.getSourceCount(), "latest source count should be used");
+        assertEquals(1000, returnedMetric.getNextCount(), "latest next count should be used");
+        assertEquals(1000, returnedMetric.getSeekCount(), "latest seek count should be used");
+        assertEquals(1000, returnedMetric.getYieldCount(), "latest yield count should be used");
+        assertEquals(1000, returnedMetric.getDocRanges(), "latest doc ranges count should be used");
+        assertEquals(1000, returnedMetric.getFiRanges(), "latest fi ranges should be used");
         assertNoDuplicateFields(queryId);
     }
     
@@ -237,7 +241,7 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
         event.setFields(fields);
         event.setMarkings(queryMetric.getMarkings());
         BaseQueryMetric newMetric = this.shardTableQueryMetricHandler.toMetric(event);
-        QueryMetricTestBase.assertEquals("metrics are not equal", queryMetric, newMetric);
+        metricAssertEquals("metrics are not equal", queryMetric, newMetric);
     }
     
     @Test
@@ -251,10 +255,10 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
         BaseQueryMetric storedQueryMetricCopy = storedQueryMetric.duplicate();
         BaseQueryMetric updatedQueryMetricCopy = updatedQueryMetric.duplicate();
         BaseQueryMetric combinedMetric = this.shardTableQueryMetricHandler.combineMetrics(storedQueryMetric, updatedQueryMetric, QueryMetricType.COMPLETE);
-        QueryMetricTestBase.assertEquals("metric should not change", storedQueryMetricCopy, storedQueryMetric);
-        QueryMetricTestBase.assertEquals("metric should not change", updatedQueryMetricCopy, updatedQueryMetricCopy);
-        Assert.assertEquals(BaseQueryMetric.Lifecycle.CLOSED, combinedMetric.getLifecycle());
-        Assert.assertEquals(2, combinedMetric.getNumPages());
+        metricAssertEquals("metric should not change", storedQueryMetricCopy, storedQueryMetric);
+        metricAssertEquals("metric should not change", updatedQueryMetricCopy, updatedQueryMetricCopy);
+        assertEquals(BaseQueryMetric.Lifecycle.CLOSED, combinedMetric.getLifecycle());
+        assertEquals(2, combinedMetric.getNumPages());
     }
     
     @Test
@@ -279,25 +283,25 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
         updatedFields.put("DOC_RANGES", "400");
         updatedFields.put("NEXT_COUNT", "400");
         updatedFields.put("SEEK_COUNT", "400");
-        Assert.assertFalse("There should be entries in Accumulo", entries.isEmpty());
+        assertFalse(entries.isEmpty(), "There should be entries in Accumulo");
         for (Map.Entry<Key,Value> e : entries) {
             if (e.getKey().getColumnFamily().toString().startsWith("querymetrics")) {
                 String fieldName = fieldSplit(e, 0);
                 if (updatedFields.containsKey(fieldName)) {
-                    Assert.fail(fieldName + " should have been deleted");
+                    fail(fieldName + " should have been deleted");
                 }
             }
         }
         
         shardTableQueryMetricHandler.writeMetric(updatedQueryMetric, Collections.singletonList(storedQueryMetric), now.getTime(), false);
         entries = getEventEntriesFromAccumulo(queryId);
-        Assert.assertFalse("There should be entries in Accumulo", entries.isEmpty());
+        assertFalse(entries.isEmpty(), "There should be entries in Accumulo");
         for (Map.Entry<Key,Value> e : entries) {
             if (e.getKey().getColumnFamily().toString().startsWith("querymetrics")) {
                 String fieldName = fieldSplit(e, 0);
                 String fieldValue = fieldSplit(e, 1);
                 if (updatedFields.containsKey(fieldName)) {
-                    Assert.assertEquals(fieldName + " should have been updated", updatedFields.get(fieldName), fieldValue);
+                    assertEquals(updatedFields.get(fieldName), fieldValue, fieldName + " should have been updated");
                 }
             }
         }
@@ -318,16 +322,16 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
         QueryMetricUpdateHolder holder = new QueryMetricUpdateHolder(storedQueryMetric, QueryMetricType.COMPLETE);
         mapStore.store(queryId, holder);
         QueryMetricUpdateHolder lastWrittenMetricUpdate = this.lastWrittenQueryMetricCache.get(queryId, QueryMetricUpdateHolder.class);
-        assertEquals(storedQueryMetric, lastWrittenMetricUpdate.getMetric());
+        metricAssertEquals(storedQueryMetric, lastWrittenMetricUpdate.getMetric());
         
         holder.setMetric(updatedQueryMetric);
         mapStore.store(queryId, holder);
         lastWrittenMetricUpdate = this.lastWrittenQueryMetricCache.get(queryId, QueryMetricUpdateHolder.class);
         // all fields that were changed should be reflected in the updated metric
-        assertEquals(updatedQueryMetric, lastWrittenMetricUpdate.getMetric());
+        metricAssertEquals(updatedQueryMetric, lastWrittenMetricUpdate.getMetric());
         
         Collection<Map.Entry<Key,Value>> entries = getEventEntriesFromAccumulo(queryId);
-        Assert.assertFalse("There should be entries in Accumulo", entries.isEmpty());
+        assertFalse(entries.isEmpty(), "There should be entries in Accumulo");
         
         assertNoDuplicateFields(queryId);
     }

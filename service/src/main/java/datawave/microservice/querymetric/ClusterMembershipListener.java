@@ -1,12 +1,12 @@
 package datawave.microservice.querymetric;
 
-import com.hazelcast.core.Member;
-import com.hazelcast.core.MemberAttributeEvent;
-import com.hazelcast.core.MembershipEvent;
-import com.hazelcast.core.MembershipListener;
+import java.util.Set;
+
 import org.apache.log4j.Logger;
 
-import java.util.Set;
+import com.hazelcast.cluster.Member;
+import com.hazelcast.cluster.MembershipEvent;
+import com.hazelcast.cluster.MembershipListener;
 
 public class ClusterMembershipListener implements MembershipListener {
     
@@ -24,10 +24,5 @@ public class ClusterMembershipListener implements MembershipListener {
         Set<Member> members = membershipEvent.getCluster().getMembers();
         log.info("removed member: " + membershipEvent.getMember().getUuid() + ":" + membershipEvent.getMember().getAddress().toString() + " cluster now ("
                         + members.size() + ") " + members);
-    }
-    
-    @Override
-    public void memberAttributeChanged(MemberAttributeEvent memberAttributeEvent) {
-        
     }
 }

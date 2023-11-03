@@ -1,18 +1,5 @@
 package datawave.microservice.querymetric.config;
 
-import datawave.data.type.LcNoDiacriticsType;
-import datawave.data.type.NumberType;
-import datawave.ingest.table.config.MetadataTableConfigHelper;
-import datawave.ingest.table.config.ShardTableConfigHelper;
-import datawave.microservice.querymetric.handler.ContentQueryMetricsIngestHelper;
-import org.apache.commons.codec.binary.Base64;
-import org.apache.commons.lang.StringUtils;
-import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.validation.annotation.Validated;
-
-import javax.validation.constraints.Min;
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.Positive;
 import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Collections;
@@ -21,6 +8,23 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.TimeUnit;
+
+import javax.validation.constraints.Min;
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotEmpty;
+import javax.validation.constraints.Positive;
+
+import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.lang.StringUtils;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.validation.annotation.Validated;
+
+import datawave.data.type.LcNoDiacriticsType;
+import datawave.data.type.NumberType;
+import datawave.ingest.table.config.MetadataTableConfigHelper;
+import datawave.ingest.table.config.ShardTableConfigHelper;
+import datawave.microservice.querymetric.handler.ContentQueryMetricsIngestHelper;
 
 @Validated
 @ConfigurationProperties(prefix = "datawave.query.metric.handler")
@@ -64,6 +68,20 @@ public class QueryMetricHandlerProperties {
     protected int recordWriterNumThreads = 4;
     protected String policyEnforcerClass = "datawave.policy.IngestPolicyEnforcer$NoOpIngestPolicyEnforcer";
     protected String baseMaps = "{}";
+    protected String authServiceUri = "https://authorization:8443/authorization/v1/authorize";
+    protected String queryServiceUri = "https://query:8443/query/v1/query";
+    protected String queryPool = "";
+    @NotEmpty
+    protected String queryMetricsLogic = "InternalQueryMetricsQuery";
+    
+    protected boolean useRemoteQuery = true;
+    protected long remoteAuthTimeout = 1L;
+    protected TimeUnit remoteAuthTimeUnit = TimeUnit.MINUTES;
+    protected long remoteQueryTimeout = 1L;
+    protected TimeUnit remoteQueryTimeUnit = TimeUnit.MINUTES;
+    
+    protected String npeOuEntries;
+    protected String subjectDnPattern;
     
     //@formatter:off
     protected List<String> indexFields = Arrays.asList(
@@ -458,5 +476,101 @@ public class QueryMetricHandlerProperties {
     
     public void setBaseMaps(String baseMaps) {
         this.baseMaps = baseMaps;
+    }
+    
+    public String getAuthServiceUri() {
+        return authServiceUri;
+    }
+    
+    public void setAuthServiceUri(String authServiceUri) {
+        this.authServiceUri = authServiceUri;
+    }
+    
+    public String getQueryServiceUri() {
+        return queryServiceUri;
+    }
+    
+    public void setQueryServiceUri(String queryServiceUri) {
+        this.queryServiceUri = queryServiceUri;
+    }
+    
+    public String getQueryPool() {
+        return queryPool;
+    }
+    
+    public void setQueryPool(String queryPool) {
+        this.queryPool = queryPool;
+    }
+    
+    public String getQueryMetricsLogic() {
+        return queryMetricsLogic;
+    }
+    
+    public void setQueryMetricsLogic(String queryMetricsLogic) {
+        this.queryMetricsLogic = queryMetricsLogic;
+    }
+    
+    public boolean isUseRemoteQuery() {
+        return useRemoteQuery;
+    }
+    
+    public void setUseRemoteQuery(boolean useRemoteQuery) {
+        this.useRemoteQuery = useRemoteQuery;
+    }
+    
+    public long getRemoteAuthTimeout() {
+        return remoteAuthTimeout;
+    }
+    
+    public long getRemoteAuthTimeoutMillis() {
+        return remoteAuthTimeUnit.toMillis(remoteAuthTimeout);
+    }
+    
+    public void setRemoteAuthTimeout(long remoteAuthTimeout) {
+        this.remoteAuthTimeout = remoteAuthTimeout;
+    }
+    
+    public TimeUnit getRemoteAuthTimeUnit() {
+        return remoteAuthTimeUnit;
+    }
+    
+    public void setRemoteAuthTimeUnit(TimeUnit remoteAuthTimeUnit) {
+        this.remoteAuthTimeUnit = remoteAuthTimeUnit;
+    }
+    
+    public long getRemoteQueryTimeout() {
+        return remoteQueryTimeout;
+    }
+    
+    public long getRemoteQueryTimeoutMillis() {
+        return remoteQueryTimeUnit.toMillis(remoteQueryTimeout);
+    }
+    
+    public void setRemoteQueryTimeout(long remoteQueryTimeout) {
+        this.remoteQueryTimeout = remoteQueryTimeout;
+    }
+    
+    public TimeUnit getRemoteQueryTimeUnit() {
+        return remoteQueryTimeUnit;
+    }
+    
+    public void setRemoteQueryTimeUnit(TimeUnit remoteQueryTimeUnit) {
+        this.remoteQueryTimeUnit = remoteQueryTimeUnit;
+    }
+    
+    public String getNpeOuEntries() {
+        return npeOuEntries;
+    }
+    
+    public void setNpeOuEntries(String npeOuEntries) {
+        this.npeOuEntries = npeOuEntries;
+    }
+    
+    public String getSubjectDnPattern() {
+        return subjectDnPattern;
+    }
+    
+    public void setSubjectDnPattern(String subjectDnPattern) {
+        this.subjectDnPattern = subjectDnPattern;
     }
 }

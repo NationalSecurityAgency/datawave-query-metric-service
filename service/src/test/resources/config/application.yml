@@ -7,15 +7,6 @@ spring:
       enforce-allowed-callers: false
       allowed-callers:
         - "cn=test a. user, ou=example developers, o=example corp, c=us<cn=example corp ca, o=example corp, c=us>"
-  cloud:
-    stream:
-      bindings:
-        queryMetricSource:
-          destination: queryMetricChannel
-        queryMetricSink:
-          destination: queryMetricChannel
-          group: queryMetricService
-      default-binder: rabbit
 
 server:
   port: 0
@@ -84,9 +75,15 @@ datawave:
         queryVisibility: PUBLIC
         defaultMetricVisibility: (PUBLIC)
         baseMaps: "{}"
+        useRemoteQuery: false
+        remoteAuthTimeout: 10
+        remoteAuthTimeUnit: SECONDS
+        remoteQueryTimeout: 10
+        remoteQueryTimeUnit: SECONDS
+        maxReadMilliseconds: 10000
       client:
         enabled: true
-        transport: message_test
+        transport: message
         host: localhost
         port: ${server.port}
       timely:
@@ -107,5 +104,11 @@ datawave:
     type-substitutions:
       "[datawave.data.type.DateType]": "datawave.data.type.RawDateType"
 
+  security:
+    util:
+      subjectDnPattern: "(?:^|,)\\s*OU\\s*=\\s*My Department\\s*(?:,|$)"
+      npeOuList: "iamnotaperson,npe,stillnotaperson"
+
 hazelcast.client.enabled: false
 hazelcast.server.enabled: false
+hazelcast.clusterName: "${random.uuid}"

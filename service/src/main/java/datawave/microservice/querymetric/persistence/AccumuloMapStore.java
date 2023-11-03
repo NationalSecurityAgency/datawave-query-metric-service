@@ -1,26 +1,7 @@
 package datawave.microservice.querymetric.persistence;
 
-import com.codahale.metrics.SlidingTimeWindowArrayReservoir;
-import com.codahale.metrics.Timer;
-import com.google.common.cache.CacheBuilder;
-import com.hazelcast.core.IMap;
-import com.hazelcast.core.MapLoader;
-import com.hazelcast.core.MapStore;
-import com.hazelcast.core.MapStoreFactory;
-import datawave.microservice.querymetric.BaseQueryMetric;
-import datawave.microservice.querymetric.MergeLockLifecycleListener;
-import datawave.microservice.querymetric.QueryMetricType;
-import datawave.microservice.querymetric.QueryMetricUpdateHolder;
-import datawave.microservice.querymetric.handler.ShardTableQueryMetricHandler;
-import datawave.microservice.querymetric.QueryMetricUpdate;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.cache.Cache;
-import org.springframework.stereotype.Component;
+import static java.util.concurrent.TimeUnit.MINUTES;
 
-import javax.annotation.PreDestroy;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
@@ -30,7 +11,29 @@ import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
-import static java.util.concurrent.TimeUnit.MINUTES;
+import javax.annotation.PreDestroy;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.cache.Cache;
+import org.springframework.stereotype.Component;
+
+import com.codahale.metrics.SlidingTimeWindowArrayReservoir;
+import com.codahale.metrics.Timer;
+import com.google.common.cache.CacheBuilder;
+import com.hazelcast.map.IMap;
+import com.hazelcast.map.MapLoader;
+import com.hazelcast.map.MapStore;
+import com.hazelcast.map.MapStoreFactory;
+
+import datawave.microservice.querymetric.BaseQueryMetric;
+import datawave.microservice.querymetric.MergeLockLifecycleListener;
+import datawave.microservice.querymetric.QueryMetricType;
+import datawave.microservice.querymetric.QueryMetricUpdate;
+import datawave.microservice.querymetric.QueryMetricUpdateHolder;
+import datawave.microservice.querymetric.handler.ShardTableQueryMetricHandler;
 
 @Component("store")
 @ConditionalOnProperty(name = "hazelcast.server.enabled")

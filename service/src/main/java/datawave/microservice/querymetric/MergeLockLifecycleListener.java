@@ -1,19 +1,21 @@
 package datawave.microservice.querymetric;
 
-import com.hazelcast.core.HazelcastInstance;
-import com.hazelcast.core.HazelcastInstanceAware;
-import com.hazelcast.core.HazelcastInstanceNotActiveException;
-import com.hazelcast.core.LifecycleEvent;
-import com.hazelcast.core.LifecycleListener;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.annotation.PreDestroy;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+
+import javax.annotation.PreDestroy;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.hazelcast.core.HazelcastInstance;
+import com.hazelcast.core.HazelcastInstanceAware;
+import com.hazelcast.core.HazelcastInstanceNotActiveException;
+import com.hazelcast.core.LifecycleEvent;
+import com.hazelcast.core.LifecycleListener;
 
 public class MergeLockLifecycleListener implements LifecycleListener, HazelcastInstanceAware {
     
@@ -62,7 +64,7 @@ public class MergeLockLifecycleListener implements LifecycleListener, HazelcastI
     private String getLocalMemberUuid() {
         try {
             if (this.instance != null) {
-                this.localMemberUuid = this.instance.getCluster().getLocalMember().getUuid();
+                this.localMemberUuid = this.instance.getCluster().getLocalMember().getUuid().toString();
             }
         } catch (HazelcastInstanceNotActiveException e) {
             // this.instance.getCluster() will throw an exception during shutdown

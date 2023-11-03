@@ -1,19 +1,5 @@
 package datawave.microservice.querymetric.handler;
 
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
-import datawave.ingest.data.config.NormalizedContentInterface;
-import datawave.ingest.data.config.NormalizedFieldAndValue;
-import datawave.ingest.data.config.ingest.CSVIngestHelper;
-import datawave.ingest.data.config.ingest.TermFrequencyIngestHelperInterface;
-import datawave.microservice.querymetric.BaseQueryMetric;
-import datawave.microservice.querymetric.BaseQueryMetric.PageMetric;
-import datawave.microservice.querymetric.BaseQueryMetric.Prediction;
-import datawave.webservice.query.util.QueryUtil;
-import org.apache.commons.lang.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.text.SimpleDateFormat;
 import java.util.Collection;
 import java.util.Date;
@@ -22,6 +8,22 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import org.apache.commons.lang.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
+
+import datawave.ingest.data.config.NormalizedContentInterface;
+import datawave.ingest.data.config.NormalizedFieldAndValue;
+import datawave.ingest.data.config.ingest.CSVIngestHelper;
+import datawave.ingest.data.config.ingest.TermFrequencyIngestHelperInterface;
+import datawave.microservice.querymetric.BaseQueryMetric;
+import datawave.microservice.querymetric.BaseQueryMetric.PageMetric;
+import datawave.microservice.querymetric.BaseQueryMetric.Prediction;
+import datawave.webservice.query.util.QueryUtil;
 
 public class ContentQueryMetricsIngestHelper extends CSVIngestHelper implements TermFrequencyIngestHelperInterface {
     

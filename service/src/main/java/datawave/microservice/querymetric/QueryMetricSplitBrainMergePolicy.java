@@ -1,14 +1,18 @@
 package datawave.microservice.querymetric;
 
-import com.hazelcast.nio.ObjectDataInput;
-import com.hazelcast.nio.ObjectDataOutput;
-import com.hazelcast.spi.merge.MergingLastUpdateTime;
-import com.hazelcast.spi.merge.SplitBrainMergePolicy;
-import datawave.microservice.querymetric.handler.QueryMetricCombiner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class QueryMetricSplitBrainMergePolicy<V extends QueryMetricUpdateHolder,T extends MergingLastUpdateTime<V>> implements SplitBrainMergePolicy<V,T> {
+import com.hazelcast.nio.ObjectDataInput;
+import com.hazelcast.nio.ObjectDataOutput;
+import com.hazelcast.spi.merge.MergingLastUpdateTime;
+import com.hazelcast.spi.merge.MergingValue;
+import com.hazelcast.spi.merge.SplitBrainMergePolicy;
+
+import datawave.microservice.querymetric.handler.QueryMetricCombiner;
+
+public class QueryMetricSplitBrainMergePolicy<V extends QueryMetricUpdateHolder,T extends MergingValue<V> & MergingLastUpdateTime,R extends QueryMetricUpdateHolder>
+                implements SplitBrainMergePolicy<V,T,R> {
     
     private final Logger log = LoggerFactory.getLogger(getClass());
     protected QueryMetricCombiner queryMetricCombiner;
@@ -22,10 +26,10 @@ public class QueryMetricSplitBrainMergePolicy<V extends QueryMetricUpdateHolder,
     }
     
     @Override
-    public V merge(T mergingValue, T existingValue) {
+    public R merge(T mergingValue, T existingValue) {
         QueryMetricUpdateHolder mergedValue;
         if (existingValue == null) {
-            mergedValue = mergingValue.getDeserializedValue();
+            mergedValue = mergingValue.getValue();
             if (log.isTraceEnabled()) {
                 log.trace("Merged metrics existing is null, using merging: " + mergedValue.getMetric());
             } else {
@@ -33,8 +37,8 @@ public class QueryMetricSplitBrainMergePolicy<V extends QueryMetricUpdateHolder,
             }
         } else {
             
-            QueryMetricUpdateHolder merging = mergingValue.getDeserializedValue();
-            QueryMetricUpdateHolder existing = existingValue.getDeserializedValue();
+            QueryMetricUpdateHolder merging = mergingValue.getValue();
+            QueryMetricUpdateHolder existing = existingValue.getValue();
             
             try {
                 BaseQueryMetric metric = this.queryMetricCombiner.combineMetrics(merging.getMetric(), existing.getMetric(), existing.getMetricType());
@@ -53,7 +57,7 @@ public class QueryMetricSplitBrainMergePolicy<V extends QueryMetricUpdateHolder,
             }
         }
         
-        return (V) mergedValue;
+        return (R) mergedValue;
     }
     
     @Override

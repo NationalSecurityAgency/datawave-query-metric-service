@@ -1,52 +1,12 @@
 package datawave.microservice.querymetric;
 
-import com.codahale.metrics.Timer;
-import com.hazelcast.core.HazelcastInstanceNotActiveException;
-import com.hazelcast.core.IMap;
-import com.hazelcast.spring.cache.HazelcastCacheManager;
-import datawave.marking.MarkingFunctions;
-import datawave.microservice.authorization.user.ProxiedUserDetails;
-import datawave.microservice.querymetric.config.QueryMetricSinkConfiguration.QueryMetricSinkBinding;
-import datawave.microservice.querymetric.factory.BaseQueryMetricListResponseFactory;
-import datawave.microservice.querymetric.handler.QueryGeometryHandler;
-import datawave.microservice.querymetric.handler.ShardTableQueryMetricHandler;
-import datawave.microservice.querymetric.handler.SimpleQueryGeometryHandler;
-import datawave.security.authorization.DatawaveUser;
-import datawave.security.util.DnUtils;
-import datawave.webservice.query.exception.DatawaveErrorCode;
-import datawave.webservice.query.exception.QueryException;
-import datawave.webservice.query.map.QueryGeometryResponse;
-import datawave.webservice.result.VoidResponse;
-import io.swagger.annotations.ApiParam;
-import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.ColumnVisibility;
-import org.apache.accumulo.core.security.VisibilityEvaluator;
-import org.apache.commons.lang.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cache.Cache;
-import org.springframework.cache.CacheManager;
-import org.springframework.cloud.stream.annotation.EnableBinding;
-import org.springframework.cloud.stream.annotation.Output;
-import org.springframework.cloud.stream.annotation.StreamListener;
-import org.springframework.http.MediaType;
-import org.springframework.integration.support.MessageBuilder;
-import org.springframework.messaging.MessageChannel;
-import org.springframework.scheduling.annotation.EnableScheduling;
-import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import static datawave.microservice.querymetric.QueryMetricOperations.DEFAULT_DATETIME.BEGIN;
+import static datawave.microservice.querymetric.QueryMetricOperations.DEFAULT_DATETIME.END;
+import static datawave.microservice.querymetric.QueryMetricOperationsStats.METERS;
+import static datawave.microservice.querymetric.QueryMetricOperationsStats.TIMERS;
+import static datawave.microservice.querymetric.config.HazelcastMetricCacheConfiguration.INCOMING_METRICS;
+import static datawave.microservice.querymetric.config.HazelcastMetricCacheConfiguration.LAST_WRITTEN_METRICS;
 
-import javax.annotation.PreDestroy;
-import javax.annotation.security.PermitAll;
-import javax.annotation.security.RolesAllowed;
-import javax.inject.Named;
 import java.net.InetAddress;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -56,18 +16,63 @@ import java.util.Date;
 import java.util.List;
 import java.util.TimeZone;
 
-import static datawave.microservice.querymetric.QueryMetricOperations.DEFAULT_DATETIME.BEGIN;
-import static datawave.microservice.querymetric.QueryMetricOperations.DEFAULT_DATETIME.END;
-import static datawave.microservice.querymetric.config.HazelcastMetricCacheConfiguration.INCOMING_METRICS;
-import static datawave.microservice.querymetric.config.HazelcastMetricCacheConfiguration.LAST_WRITTEN_METRICS;
-import static datawave.microservice.querymetric.config.QueryMetricSourceConfiguration.QueryMetricSourceBinding.SOURCE_NAME;
-import static datawave.microservice.querymetric.QueryMetricOperationsStats.METERS;
-import static datawave.microservice.querymetric.QueryMetricOperationsStats.TIMERS;
+import javax.annotation.PreDestroy;
+import javax.annotation.security.PermitAll;
+import javax.inject.Named;
+
+import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.security.ColumnVisibility;
+import org.apache.accumulo.core.security.VisibilityEvaluator;
+import org.apache.commons.lang.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
+import org.springframework.http.MediaType;
+import org.springframework.messaging.support.MessageBuilder;
+import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.security.access.annotation.Secured;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.codahale.metrics.Timer;
+import com.hazelcast.core.HazelcastInstanceNotActiveException;
+import com.hazelcast.map.EntryProcessor;
+import com.hazelcast.map.IMap;
+import com.hazelcast.spring.cache.HazelcastCacheManager;
+
+import datawave.marking.MarkingFunctions;
+import datawave.microservice.authorization.user.DatawaveUserDetails;
+import datawave.microservice.querymetric.factory.BaseQueryMetricListResponseFactory;
+import datawave.microservice.querymetric.function.QueryMetricSupplier;
+import datawave.microservice.querymetric.handler.QueryGeometryHandler;
+import datawave.microservice.querymetric.handler.ShardTableQueryMetricHandler;
+import datawave.microservice.querymetric.handler.SimpleQueryGeometryHandler;
+import datawave.microservice.security.util.DnUtils;
+import datawave.query.jexl.visitors.JexlFormattedStringBuildingVisitor;
+import datawave.security.authorization.DatawaveUser;
+import datawave.webservice.query.exception.DatawaveErrorCode;
+import datawave.webservice.query.exception.QueryException;
+import datawave.webservice.query.map.QueryGeometryResponse;
+import datawave.webservice.result.VoidResponse;
+import io.swagger.v3.oas.annotations.ExternalDocumentation;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 /**
  * The type Query metric operations.
  */
-@EnableBinding(QueryMetricSinkBinding.class)
+@Tag(name = "Query Metric Operations /v1",
+                externalDocs = @ExternalDocumentation(description = "Query Metric Service Documentation",
+                                url = "https://github.com/NationalSecurityAgency/datawave-query-metric-service"))
 @EnableScheduling
 @RestController
 @RequestMapping(path = "/v1")
@@ -86,6 +91,9 @@ public class QueryMetricOperations {
     private MetricUpdateEntryProcessorFactory entryProcessorFactory;
     private QueryMetricOperationsStats stats;
     
+    private final QueryMetricSupplier queryMetricSupplier;
+    private final DnUtils dnUtils;
+    
     /**
      * The enum Default datetime.
      */
@@ -100,10 +108,6 @@ public class QueryMetricOperations {
         END
     }
     
-    @Output(SOURCE_NAME)
-    @Autowired
-    private MessageChannel output;
-    
     /**
      * Instantiates a new QueryMetricOperations.
      *
@@ -117,6 +121,10 @@ public class QueryMetricOperations {
      *            the MarkingFunctions
      * @param queryMetricListResponseFactory
      *            the QueryMetricListResponseFactory
+     * @param queryMetricSupplier
+     *            the query metric object supplier
+     * @param dnUtils
+     *            the dnUtils
      * @param mergeLock
      *            the merge lock
      * @param entryProcessorFactory
@@ -127,7 +135,8 @@ public class QueryMetricOperations {
     @Autowired
     public QueryMetricOperations(@Named("queryMetricCacheManager") CacheManager cacheManager, ShardTableQueryMetricHandler handler,
                     QueryGeometryHandler geometryHandler, MarkingFunctions markingFunctions, BaseQueryMetricListResponseFactory queryMetricListResponseFactory,
-                    MergeLockLifecycleListener mergeLock, MetricUpdateEntryProcessorFactory entryProcessorFactory, QueryMetricOperationsStats stats) {
+                    MergeLockLifecycleListener mergeLock, MetricUpdateEntryProcessorFactory entryProcessorFactory, QueryMetricOperationsStats stats,
+                    QueryMetricSupplier queryMetricSupplier, DnUtils dnUtils) {
         this.handler = handler;
         this.geometryHandler = geometryHandler;
         this.cacheManager = cacheManager;
@@ -138,6 +147,8 @@ public class QueryMetricOperations {
         this.mergeLock = mergeLock;
         this.entryProcessorFactory = entryProcessorFactory;
         this.stats = stats;
+        this.queryMetricSupplier = queryMetricSupplier;
+        this.dnUtils = dnUtils;
     }
     
     @PreDestroy
@@ -157,7 +168,8 @@ public class QueryMetricOperations {
      */
     // Messages that arrive via http/https get placed on the message queue
     // to ensure a quick response and to maintain a single queue of work
-    @RolesAllowed({"Administrator", "JBossAdministrator"})
+    @Operation(summary = "Submit a list of metrics updates.", description = "Metrics updates will be placed on a message queue to ensure a quick response.")
+    @Secured({"Administrator", "JBossAdministrator", "MetricsAdministrator"})
     @RequestMapping(path = "/updateMetrics", method = {RequestMethod.POST}, consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE},
                     produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
     public VoidResponse updateMetrics(@RequestBody List<BaseQueryMetric> queryMetrics,
@@ -173,7 +185,7 @@ public class QueryMetricOperations {
             } else {
                 log.debug("received metric update via REST: " + m.getQueryId());
             }
-            output.send(MessageBuilder.withPayload(new QueryMetricUpdate(m, metricType)).build());
+            queryMetricSupplier.send(MessageBuilder.withPayload(new QueryMetricUpdate(m, metricType)).build());
         }
         return response;
     }
@@ -189,7 +201,8 @@ public class QueryMetricOperations {
      */
     // Messages that arrive via http/https get placed on the message queue
     // to ensure a quick response and to maintain a single queue of work
-    @RolesAllowed({"Administrator", "JBossAdministrator"})
+    @Operation(summary = "Submit a single metric update.", description = "The metric update will be placed on a message queue to ensure a quick response.")
+    @Secured({"Administrator", "JBossAdministrator", "MetricsAdministrator"})
     @RequestMapping(path = "/updateMetric", method = {RequestMethod.POST}, consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE},
                     produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
     public VoidResponse updateMetric(@RequestBody BaseQueryMetric queryMetric,
@@ -203,7 +216,7 @@ public class QueryMetricOperations {
         } else {
             log.debug("received metric update via REST: " + queryMetric.getQueryId());
         }
-        output.send(MessageBuilder.withPayload(new QueryMetricUpdate(queryMetric, metricType)).build());
+        queryMetricSupplier.send(MessageBuilder.withPayload(new QueryMetricUpdate(queryMetric, metricType)).build());
         return new VoidResponse();
     }
     
@@ -213,8 +226,7 @@ public class QueryMetricOperations {
      * @param update
      *            the query metric update
      */
-    @StreamListener(QueryMetricSinkBinding.SINK_NAME)
-    public void handleEvent(QueryMetricUpdate update) {
+    public void storeMetric(QueryMetricUpdate update) {
         stats.getMeter(METERS.MESSAGE).mark();
         String queryId = update.getMetric().getQueryId();
         this.stats.queueTimelyMetrics(update);
@@ -226,14 +238,15 @@ public class QueryMetricOperations {
     }
     
     private String getClusterLocalMemberUuid() {
-        return ((HazelcastCacheManager) this.cacheManager).getHazelcastInstance().getCluster().getLocalMember().getUuid();
+        return ((HazelcastCacheManager) this.cacheManager).getHazelcastInstance().getCluster().getLocalMember().getUuid().toString();
     }
     
     private void storeMetricUpdate(QueryMetricUpdateHolder metricUpdate) {
         Timer.Context storeTimer = this.stats.getTimer(TIMERS.STORE).time();
         String queryId = metricUpdate.getMetric().getQueryId();
         try {
-            IMap<Object,Object> incomingQueryMetricsCacheHz = ((IMap<Object,Object>) incomingQueryMetricsCache.getNativeCache());
+            IMap<String,QueryMetricUpdateHolder> incomingQueryMetricsCacheHz = ((IMap<String,QueryMetricUpdateHolder>) incomingQueryMetricsCache
+                            .getNativeCache());
             this.mergeLock.lock();
             try {
                 incomingQueryMetricsCacheHz.executeOnKey(queryId, this.entryProcessorFactory.createEntryProcessor(metricUpdate));
@@ -261,15 +274,16 @@ public class QueryMetricOperations {
      *            the current user
      * @param queryId
      *            the query id
-     * @return datawave.webservice.result.QueryMetricListResponse base query metric list response
+     * @return the base query metric list response
      * @HTTP 200 success
      * @HTTP 500 internal server error
      */
+    @Operation(summary = "Get the metrics for a given query ID.")
     @PermitAll
     @RequestMapping(path = "/id/{queryId}", method = {RequestMethod.GET},
                     produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE, MediaType.TEXT_HTML_VALUE})
-    public BaseQueryMetricListResponse query(@AuthenticationPrincipal ProxiedUserDetails currentUser,
-                    @ApiParam("queryId to return") @PathVariable("queryId") String queryId) {
+    public BaseQueryMetricListResponse query(@AuthenticationPrincipal DatawaveUserDetails currentUser,
+                    @Parameter(description = "queryId to return") @PathVariable("queryId") String queryId) {
         
         BaseQueryMetricListResponse response = this.queryMetricListResponseFactory.createDetailedResponse();
         List<BaseQueryMetric> metricList = new ArrayList<>();
@@ -286,7 +300,7 @@ public class QueryMetricOperations {
                 boolean sameUser = false;
                 if (currentUser != null) {
                     String metricUser = metric.getUser();
-                    String requestingUser = DnUtils.getShortName(currentUser.getPrimaryUser().getName());
+                    String requestingUser = dnUtils.getShortName(currentUser.getPrimaryUser().getName());
                     sameUser = metricUser != null && metricUser.equals(requestingUser);
                     allowAllMetrics = currentUser.getPrimaryUser().getRoles().contains("MetricsAdministrator");
                 }
@@ -311,7 +325,8 @@ public class QueryMetricOperations {
         } catch (Exception e) {
             response.addException(new QueryException(e.getMessage(), 500));
         }
-        response.setResult(metricList);
+        // Set the result to have the formatted query and query plan
+        response.setResult(JexlFormattedStringBuildingVisitor.formatMetrics(metricList));
         if (metricList.isEmpty()) {
             response.setHasResults(false);
         } else {
@@ -322,27 +337,28 @@ public class QueryMetricOperations {
     }
     
     /**
-     * Returns metrics for the current users queries that are identified by the id
+     * Get a map for the given query represented by the query ID, if applicable.
      *
      * @param currentUser
      *            the current user
      * @param queryId
      *            the query id
-     * @return datawave.webservice.result.QueryMetricListResponse query geometry response
+     * @return the query geometry response
      * @HTTP 200 success
      * @HTTP 500 internal server error
      */
+    @Operation(summary = "Get a map for the given query represented by the query ID, if applicable.")
     @PermitAll
     @RequestMapping(path = "/id/{queryId}/map", method = {RequestMethod.GET, RequestMethod.POST},
                     produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE, MediaType.TEXT_HTML_VALUE})
-    public QueryGeometryResponse map(@AuthenticationPrincipal ProxiedUserDetails currentUser, @PathVariable("queryId") String queryId) {
+    public QueryGeometryResponse map(@AuthenticationPrincipal DatawaveUserDetails currentUser, @PathVariable("queryId") String queryId) {
         QueryGeometryResponse queryGeometryResponse = new QueryGeometryResponse();
         BaseQueryMetricListResponse metricResponse = query(currentUser, queryId);
-        if (metricResponse.getExceptions() == null || metricResponse.getExceptions().isEmpty()) {
-            return geometryHandler.getQueryGeometryResponse(queryId, metricResponse.getResult());
-        } else {
+        if (!metricResponse.getExceptions().isEmpty()) {
             metricResponse.getExceptions().forEach(e -> queryGeometryResponse.addException(new QueryException(e.getMessage(), e.getCause(), e.getCode())));
             return queryGeometryResponse;
+        } else {
+            return geometryHandler.getQueryGeometryResponse(queryId, metricResponse.getResult());
         }
     }
     
@@ -368,7 +384,7 @@ public class QueryMetricOperations {
         }
     }
     
-    private QueryMetricsSummaryResponse queryMetricsSummary(Date begin, Date end, ProxiedUserDetails currentUser, boolean onlyCurrentUser) {
+    private QueryMetricsSummaryResponse queryMetricsSummary(Date begin, Date end, DatawaveUserDetails currentUser, boolean onlyCurrentUser) {
         
         if (null == end) {
             end = new Date();
@@ -400,14 +416,15 @@ public class QueryMetricOperations {
      *            formatted date/time (yyyyMMdd | yyyyMMdd HHmmss | yyyyMMdd HHmmss.SSS)
      * @param end
      *            formatted date/time (yyyyMMdd | yyyyMMdd HHmmss | yyyyMMdd HHmmss.SSS)
-     * @return datawave.microservice.querymetric.QueryMetricsSummaryResponse query metrics summary
+     * @return the query metrics summary
      * @HTTP 200 success
      * @HTTP 500 internal server error
      */
-    @RolesAllowed({"Administrator", "JBossAdministrator", "MetricsAdministrator"})
+    @Operation(summary = "Get a summary of the query metrics.")
+    @Secured({"Administrator", "JBossAdministrator", "MetricsAdministrator"})
     @RequestMapping(path = "/summary/all", method = {RequestMethod.GET},
                     produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE, MediaType.TEXT_HTML_VALUE})
-    public QueryMetricsSummaryResponse getQueryMetricsSummary(@AuthenticationPrincipal ProxiedUserDetails currentUser,
+    public QueryMetricsSummaryResponse getQueryMetricsSummary(@AuthenticationPrincipal DatawaveUserDetails currentUser,
                     @RequestParam(required = false) String begin, @RequestParam(required = false) String end) {
         
         try {
@@ -428,14 +445,15 @@ public class QueryMetricOperations {
      *            formatted date/time (yyyyMMdd | yyyyMMdd HHmmss | yyyyMMdd HHmmss.SSS)
      * @param end
      *            formatted date/time (yyyyMMdd | yyyyMMdd HHmmss | yyyyMMdd HHmmss.SSS)
-     * @return datawave.microservice.querymetric.QueryMetricsSummaryResponse query metrics user summary
+     * @return the query metrics user summary
      * @HTTP 200 success
      * @HTTP 500 internal server error
      */
+    @Operation(summary = "Get a summary of the query metrics for the given user.")
     @PermitAll
     @RequestMapping(path = "/summary/user", method = {RequestMethod.GET},
                     produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE, MediaType.TEXT_HTML_VALUE})
-    public QueryMetricsSummaryResponse getQueryMetricsUserSummary(@AuthenticationPrincipal ProxiedUserDetails currentUser,
+    public QueryMetricsSummaryResponse getQueryMetricsUserSummary(@AuthenticationPrincipal DatawaveUserDetails currentUser,
                     @RequestParam(required = false) String begin, @RequestParam(required = false) String end) {
         try {
             return queryMetricsSummary(parseDate(begin, BEGIN), parseDate(end, END), currentUser, true);
@@ -449,12 +467,13 @@ public class QueryMetricOperations {
     /**
      * Returns cache stats for the local part of the distributed Hazelcast cache
      *
-     * @return datawave.microservice.querymetric.CacheStats
+     * @return the cache stats
      * @HTTP 200 success
      * @HTTP 500 internal server error
      */
-    @RolesAllowed({"Administrator", "JBossAdministrator", "MetricsAdministrator"})
-    @RequestMapping(path = "/stats", method = {RequestMethod.GET}, produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
+    @Operation(summary = "Get the query metrics cache stats.")
+    @Secured({"Administrator", "JBossAdministrator", "MetricsAdministrator"})
+    @RequestMapping(path = "/cacheStats", method = {RequestMethod.GET}, produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
     public CacheStats getCacheStats() {
         CacheStats cacheStats = new CacheStats();
         IMap<Object,Object> incomingCacheHz = ((IMap<Object,Object>) incomingQueryMetricsCache.getNativeCache());
