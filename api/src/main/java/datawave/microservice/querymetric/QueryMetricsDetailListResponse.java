@@ -50,7 +50,7 @@ public class QueryMetricsDetailListResponse extends QueryMetricListResponse {
         builder.append("<th>Query Setup Time (ms)</th><th>Query Setup Call Time (ms)</th><th>Number Pages</th><th>Number Results</th>");
         
         builder.append("<th>Doc Ranges</th><th>FI Ranges</th>");
-        builder.append("<th>Sources</th><th>Next Calls</th><th>Seek Calls</th><th>Evaluated Calls</th><th>Rejected Calls</th><th>Yield Count</th><th>Versions</th>");
+        builder.append("<th>Sources</th><th>Next Calls</th><th>Seek Calls</th><th>Evaluated Events</th><th>Rejected Events</th><th>Yield Count</th><th>Versions</th>");
         
         builder.append("<th>Total Page Time (ms)</th><th>Total Page Call Time (ms)</th><th>Total Page Serialization Time (ms)</th>");
         builder.append("<th>Total Page Bytes Sent (uncompressed)</th><th>Lifecycle</th><th>Elapsed Time</th><th>Error Code</th><th>Error Message</th>");
