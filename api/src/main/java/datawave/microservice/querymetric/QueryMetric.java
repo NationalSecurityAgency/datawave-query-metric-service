@@ -653,6 +653,8 @@ public class QueryMetric extends BaseQueryMetric implements Serializable, Messag
                     return "versionMap";
                 case 39:
                     return "evaluatedCount";
+                case 40:
+                    return "rejectedCount";
                 default:
                     return null;
             }
@@ -705,6 +707,7 @@ public class QueryMetric extends BaseQueryMetric implements Serializable, Messag
             fieldMap.put("version", 37);
             fieldMap.put("versionMap", 38);
             fieldMap.put("evaluatedCount", 39);
+            fieldMap.put("rejectedCount", 40);
         }
     };
     
