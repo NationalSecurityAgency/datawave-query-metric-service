@@ -615,7 +615,7 @@ public abstract class BaseQueryMetric implements HasMarkings, Serializable {
     @XmlElement
     protected String queryId = null;
     @XmlElement
-    protected long setupTime = 0;
+    protected long setupTime = -1;
     @XmlElement
     protected String query = null;
     @XmlElement

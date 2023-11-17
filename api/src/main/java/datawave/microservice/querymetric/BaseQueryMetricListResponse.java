@@ -153,7 +153,7 @@ public abstract class BaseQueryMetricListResponse<T extends BaseQueryMetric> ext
             builder.append("<td style=\"word-wrap: break-word; min-width:300px !important;\">").append(queryAuths).append("</td>");
             
             builder.append("<td>").append(metric.getHost()).append("</td>");
-            builder.append("<td>").append(metric.getSetupTime()).append("</td>");
+            builder.append("<td>").append(numToString(metric.getSetupTime())).append("</td>");
             builder.append("<td>").append(numToString(metric.getCreateCallTime())).append("</td>\n");
             builder.append("<td>").append(metric.getNumPages()).append("</td>");
             builder.append("<td>").append(metric.getNumResults()).append("</td>");

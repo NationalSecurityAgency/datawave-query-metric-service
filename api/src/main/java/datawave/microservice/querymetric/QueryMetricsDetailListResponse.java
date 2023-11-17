@@ -109,7 +109,7 @@ public class QueryMetricsDetailListResponse extends QueryMetricListResponse {
                 builder.append("<td/>");
             }
             builder.append("<td>").append(numToString(metric.getLoginTime(), 0)).append("</td>");
-            builder.append("<td>").append(metric.getSetupTime()).append("</td>");
+            builder.append("<td>").append(numToString(metric.getSetupTime(), 0)).append("</td>");
             builder.append("<td>").append(numToString(metric.getCreateCallTime(), 0)).append("</td>\n");
             builder.append("<td>").append(metric.getNumPages()).append("</td>");
             builder.append("<td>").append(metric.getNumResults()).append("</td>");
