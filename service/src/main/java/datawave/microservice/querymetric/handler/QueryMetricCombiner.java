@@ -156,16 +156,16 @@ public class QueryMetricCombiner<T extends BaseQueryMetric> implements Serializa
             if (combinedMetric.getParameters() == null && updatedQueryMetric.getParameters() != null) {
                 combinedMetric.setParameters(updatedQueryMetric.getParameters());
             }
-            // only update once
-            if (combinedMetric.getSetupTime() > -1) {
+            // if updatedQueryMetric.setupTime is greater than combinedMetric.setupTime then update
+            if (updatedQueryMetric.getSetupTime() > combinedMetric.getSetupTime()) {
                 combinedMetric.setSetupTime(updatedQueryMetric.getSetupTime());
             }
-            // only update once
-            if (combinedMetric.getCreateCallTime() > -1) {
+            // if updatedQueryMetric.createCallTime is greater than combinedMetric.createCallTime then update
+            if (updatedQueryMetric.getCreateCallTime() > combinedMetric.getCreateCallTime()) {
                 combinedMetric.setCreateCallTime(updatedQueryMetric.getCreateCallTime());
             }
-            // only update once
-            if (combinedMetric.getLoginTime() > -1) {
+            // if updatedQueryMetric.loginTime is greater than combinedMetric.loginTime then update
+            if (updatedQueryMetric.getLoginTime() > combinedMetric.getLoginTime()) {
                 combinedMetric.setLoginTime(updatedQueryMetric.getLoginTime());
             }
             
