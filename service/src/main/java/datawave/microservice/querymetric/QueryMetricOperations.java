@@ -12,6 +12,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.TimeZone;
@@ -326,11 +327,27 @@ public class QueryMetricOperations {
             response.addException(new QueryException(e.getMessage(), 500));
         }
         // Set the result to have the formatted query and query plan
-        response.setResult(JexlFormattedStringBuildingVisitor.formatMetrics(metricList));
-        if (metricList.isEmpty()) {
+        // StackOverflowErrors seen in JexlFormattedStringBuildingVisitor.formatMetrics, so protect
+        // this call for each metric with try/catch and add original metric if formatMetrics fails
+        List<BaseQueryMetric> fmtMetricList = new ArrayList<>();
+        for (BaseQueryMetric m : metricList) {
+            List<BaseQueryMetric> formatted = null;
+            try {
+                formatted = JexlFormattedStringBuildingVisitor.formatMetrics(Collections.singletonList(m));
+            } catch (StackOverflowError | Exception e) {
+                log.warn(String.format("%s while formatting metric %s: %s", e.getClass().getCanonicalName(), m.getQueryId(), e.getMessage()));
+            }
+            if (formatted == null || formatted.isEmpty()) {
+                fmtMetricList.add(m);
+            } else {
+                fmtMetricList.addAll(formatted);
+            }
+        }
+        response.setResult(fmtMetricList);
+        if (fmtMetricList.isEmpty()) {
             response.setHasResults(false);
         } else {
-            response.setGeoQuery(metricList.stream().anyMatch(SimpleQueryGeometryHandler::isGeoQuery));
+            response.setGeoQuery(fmtMetricList.stream().anyMatch(SimpleQueryGeometryHandler::isGeoQuery));
             response.setHasResults(true);
         }
         return response;
