@@ -96,6 +96,7 @@ datawave:
         logServiceStatsRateMs: 300000
         publishServiceStatsToTimelyRateMs: 60000
         publishQueryStatsToTimelyRateMs: 60000
+      confirmAckEnabled: false
 
   metadata:
     all-metadata-auths:

@@ -13,7 +13,14 @@ spring:
         max-attempts: 60
       uri: '${CONFIG_SERVER_URL:http://configuration:8888/configserver}'
       allow-override: true
-
+    stream:
+      rabbit:
+        bindings:
+          queryMetricSource-out-0:
+            producer:
+              producer:
+                # Note: This must match CONFIRM_ACK_CHANNEL in AuditController.java or producer confirms will not work.
+                confirmAckChannel: 'confirmAckChannel'
 datawave:
   table:
     cache:
