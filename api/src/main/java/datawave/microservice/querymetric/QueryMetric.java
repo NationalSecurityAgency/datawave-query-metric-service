@@ -384,8 +384,6 @@ public class QueryMetric extends BaseQueryMetric implements Serializable, Messag
             output.writeInt64(28, message.sourceCount, false);
             output.writeInt64(29, message.nextCount, false);
             output.writeInt64(30, message.seekCount, false);
-            output.writeInt64(39, message.evaluatedCount, false);
-            output.writeInt64(40, message.rejectedCount, false);
             output.writeInt64(31, message.yieldCount, false);
             output.writeInt64(32, message.docRanges, false);
             output.writeInt64(33, message.fiRanges, false);
@@ -411,6 +409,9 @@ public class QueryMetric extends BaseQueryMetric implements Serializable, Messag
                     output.writeString(38, StringUtils.join(Arrays.asList(entry.getKey(), entry.getValue()), "\0"), true);
                 }
             }
+
+            output.writeInt64(39, message.evaluatedCount, false);
+            output.writeInt64(40, message.rejectedCount, false);
         }
         
         public void mergeFrom(Input input, QueryMetric message) throws IOException {
