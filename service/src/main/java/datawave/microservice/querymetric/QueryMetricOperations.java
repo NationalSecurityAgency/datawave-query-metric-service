@@ -205,7 +205,7 @@ public class QueryMetricOperations {
             } else {
                 log.debug("received metric update via REST: " + m.getQueryId());
             }
-            if (!updateMetric(new QueryMetricUpdate(m, metricType))) {
+            if (!updateMetric(new QueryMetricUpdate<>(m, metricType))) {
                 throw new RuntimeException("Unable to process query metric update for query [" + m.getQueryId() + "]");
             }
         }
@@ -259,8 +259,9 @@ public class QueryMetricOperations {
             String correlationId = headerObj.toString();
             if (correlationLatchMap.containsKey(correlationId)) {
                 correlationLatchMap.get(correlationId).countDown();
-            } else
+            } else {
                 log.warn("Unable to decrement latch for ID [{}]", correlationId);
+            }
         } else {
             log.warn("No correlation ID found in confirm ack message");
         }
