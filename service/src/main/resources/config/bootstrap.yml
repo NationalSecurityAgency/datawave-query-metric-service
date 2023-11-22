@@ -18,7 +18,7 @@ spring:
         bindings:
           queryMetricSource-out-0:
             producer:
-              # Note: This must match CONFIRM_ACK_CHANNEL in AuditController.java or producer confirms will not work.
+              # Note: This must match CONFIRM_ACK_CHANNEL in QueryMetricOperations.java or producer confirms will not work.
               confirmAckChannel: 'confirmAckChannel'
 datawave:
   table:
