@@ -94,10 +94,11 @@ public class QueryMetricHandlerConfiguration {
     public ShardTableQueryMetricHandler shardTableQueryMetricHandler(QueryMetricHandlerProperties queryMetricHandlerProperties,
                     @Qualifier("warehouse") AccumuloClientPool accumuloClientPool, QueryMetricQueryLogicFactory logicFactory, QueryMetricFactory metricFactory,
                     MarkingFunctions markingFunctions, QueryMetricCombiner queryMetricCombiner, LuceneToJexlQueryParser luceneToJexlQueryParser,
-                    WebClient.Builder webClientBuilder, @Autowired(required = false) JWTTokenHandler jwtTokenHandler, DnUtils dnUtils) {
+                    ResponseObjectFactory responseObjectFactory, WebClient.Builder webClientBuilder,
+                    @Autowired(required = false) JWTTokenHandler jwtTokenHandler, DnUtils dnUtils) {
         if (queryMetricHandlerProperties.isUseRemoteQuery()) {
             return new RemoteShardTableQueryMetricHandler(queryMetricHandlerProperties, accumuloClientPool, logicFactory, metricFactory, markingFunctions,
-                            queryMetricCombiner, luceneToJexlQueryParser, webClientBuilder, jwtTokenHandler, dnUtils);
+                            queryMetricCombiner, luceneToJexlQueryParser, responseObjectFactory, webClientBuilder, jwtTokenHandler, dnUtils);
         } else {
             return new LocalShardTableQueryMetricHandler(queryMetricHandlerProperties, accumuloClientPool, logicFactory, metricFactory, markingFunctions,
                             queryMetricCombiner, luceneToJexlQueryParser, dnUtils);
