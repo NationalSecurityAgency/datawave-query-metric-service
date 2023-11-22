@@ -409,7 +409,7 @@ public class QueryMetric extends BaseQueryMetric implements Serializable, Messag
                     output.writeString(38, StringUtils.join(Arrays.asList(entry.getKey(), entry.getValue()), "\0"), true);
                 }
             }
-
+            
             output.writeInt64(39, message.evaluatedCount, false);
             output.writeInt64(40, message.rejectedCount, false);
         }
