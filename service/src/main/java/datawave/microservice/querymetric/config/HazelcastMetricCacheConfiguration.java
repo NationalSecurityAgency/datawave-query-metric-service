@@ -66,7 +66,7 @@ public class HazelcastMetricCacheConfiguration {
                     MergeLockLifecycleListener lifecycleListener) {
         // Autowire both the AccumuloMapStore and AccumuloMapLoader so that they both get created
         // Ensure that the lastWrittenQueryMetricCache is set into the MapStore before the instance is active and the writeLock is released
-        lifecycleListener.writeLockRunnable.lock(60000, LifecycleEvent.LifecycleState.STARTING);
+        lifecycleListener.writeLockRunnable.lock(LifecycleEvent.LifecycleState.STARTING);
         HazelcastInstance instance = Hazelcast.newHazelcastInstance(config);
         
         try {
