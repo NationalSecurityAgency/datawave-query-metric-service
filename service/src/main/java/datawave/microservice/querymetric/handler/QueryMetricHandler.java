@@ -4,10 +4,10 @@ import java.util.Date;
 import java.util.Map;
 
 import datawave.microservice.authorization.user.DatawaveUserDetails;
+import datawave.microservice.query.Query;
 import datawave.microservice.querymetric.BaseQueryMetric;
 import datawave.microservice.querymetric.QueryMetricType;
 import datawave.microservice.querymetric.QueryMetricsSummaryResponse;
-import datawave.webservice.query.Query;
 
 public interface QueryMetricHandler<T extends BaseQueryMetric> {
     
