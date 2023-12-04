@@ -116,7 +116,9 @@ public class QueryMetricCombiner<T extends BaseQueryMetric> implements Serializa
                 combinedMetric.setErrorCode(updatedQueryMetric.getErrorCode());
             }
             // use updated lifecycle unless trying to update a final lifecycle with a non-final lifecycle
-            if ((combinedMetric.isLifecycleFinal() && !updatedQueryMetric.isLifecycleFinal()) == false) {
+            // or if updating with a lifecycle that is less than the current
+            if ((combinedMetric.isLifecycleFinal() && !updatedQueryMetric.isLifecycleFinal()) == false
+                            && updatedQueryMetric.getLifecycle().compareTo(combinedMetric.getLifecycle()) > 0) {
                 combinedMetric.setLifecycle(updatedQueryMetric.getLifecycle());
             }
             // only update once
