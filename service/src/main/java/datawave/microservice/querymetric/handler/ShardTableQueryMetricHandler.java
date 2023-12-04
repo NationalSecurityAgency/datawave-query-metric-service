@@ -28,6 +28,7 @@ import datawave.microservice.querymetric.QueryMetricType;
 import datawave.microservice.querymetric.QueryMetricsSummaryResponse;
 import datawave.microservice.querymetric.config.QueryMetricHandlerProperties;
 import datawave.microservice.querymetric.factory.QueryMetricQueryLogicFactory;
+import datawave.query.QueryParameters;
 import datawave.query.iterator.QueryOptions;
 import datawave.query.language.parser.jexl.LuceneToJexlQueryParser;
 import datawave.security.authorization.DatawavePrincipal;
@@ -82,6 +83,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -393,7 +395,10 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
         queryImpl.setExpirationDate(DateUtils.addDays(new Date(), 1));
         queryImpl.setPagesize(1000);
         queryImpl.setId(UUID.randomUUID());
-        queryImpl.setParameters(ImmutableMap.of(QueryOptions.INCLUDE_GROUPING_CONTEXT, "true"));
+        Map<String,String> parameters = new LinkedHashMap<>();
+        parameters.put(QueryOptions.INCLUDE_GROUPING_CONTEXT, "true");
+        parameters.put(QueryParameters.DATATYPE_FILTER_SET, "querymetrics");
+        queryImpl.setParameters(parameters);
         return getQueryMetrics(queryImpl);
     }
     
@@ -834,7 +839,10 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
             query.setPagesize(1000);
             query.setUserDN(datawaveUserShortName);
             query.setId(UUID.randomUUID());
-            query.setParameters(ImmutableMap.of(QueryOptions.INCLUDE_GROUPING_CONTEXT, "true"));
+            Map<String,String> parameters = new LinkedHashMap<>();
+            parameters.put(QueryOptions.INCLUDE_GROUPING_CONTEXT, "true");
+            parameters.put(QueryParameters.DATATYPE_FILTER_SET, "querymetrics");
+            query.setParameters(parameters);
             
             List<T> queryMetrics = getQueryMetrics(query);
             response = processQueryMetricsSummary(queryMetrics, end);
