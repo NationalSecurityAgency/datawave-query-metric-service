@@ -3,6 +3,7 @@ package datawave.microservice.querymetric.handler;
 import datawave.microservice.querymetric.BaseQueryMetric;
 import datawave.microservice.querymetric.BaseQueryMetric.PageMetric;
 import datawave.microservice.querymetric.QueryMetricType;
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,6 +24,11 @@ public class QueryMetricCombiner<T extends BaseQueryMetric> implements Serializa
         if (cachedQueryMetric != null) {
             // duplicate cachedQueryMetric so that we leave that object unchanged and return a combined metric
             combinedMetric = (T) cachedQueryMetric.duplicate();
+            
+            boolean inOrderUpdate = true;
+            if (updatedQueryMetric.getLastUpdated() != null && cachedQueryMetric.getLastUpdated() != null) {
+                inOrderUpdate = updatedQueryMetric.getLastUpdated().after(cachedQueryMetric.getLastUpdated());
+            }
             
             // only update once
             if (combinedMetric.getQueryType() == null && updatedQueryMetric.getQueryType() != null) {
@@ -183,8 +189,8 @@ public class QueryMetricCombiner<T extends BaseQueryMetric> implements Serializa
                 combinedMetric.setDocRanges(updatedQueryMetric.getDocRanges());
                 combinedMetric.setFiRanges(updatedQueryMetric.getFiRanges());
             }
-            // only update once
-            if (combinedMetric.getPlan() == null && updatedQueryMetric.getPlan() != null) {
+            // update if the update is in-order and the value changed
+            if (inOrderUpdate && isChanged(updatedQueryMetric.getPlan(), combinedMetric.getPlan())) {
                 combinedMetric.setPlan(updatedQueryMetric.getPlan());
             }
             // only update once
@@ -248,5 +254,13 @@ public class QueryMetricCombiner<T extends BaseQueryMetric> implements Serializa
             pm.setLoginTime(updated.getLoginTime());
         }
         return pm;
+    }
+    
+    protected boolean isChanged(String updated, String stored) {
+        if ((StringUtils.isBlank(stored) && StringUtils.isNotBlank(updated)) || (stored != null && updated != null && !stored.equals(updated))) {
+            return true;
+        } else {
+            return false;
+        }
     }
 }

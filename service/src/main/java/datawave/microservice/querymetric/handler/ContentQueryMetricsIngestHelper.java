@@ -16,7 +16,6 @@ import org.slf4j.LoggerFactory;
 
 import java.text.SimpleDateFormat;
 import java.util.Collection;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -237,7 +236,7 @@ public class ContentQueryMetricsIngestHelper extends CSVIngestHelper implements 
             if (isFirstWrite(updated.getParameters(), stored == null ? null : stored.getParameters())) {
                 fields.put("PARAMETERS", QueryUtil.toParametersString(updated.getParameters()));
             }
-            if (isFirstWrite(updated.getPlan(), stored == null ? null : stored.getPlan())) {
+            if (isChanged(updated.getPlan(), stored == null ? null : stored.getPlan())) {
                 fields.put("PLAN", updated.getPlan());
             }
             if (isFirstWrite(updated.getProxyServers(), stored == null ? null : stored.getProxyServers())) {
@@ -399,6 +398,11 @@ public class ContentQueryMetricsIngestHelper extends CSVIngestHelper implements 
                                 fields.put("PAGE_METRICS." + storedPageMetric.getPageNumber(), storedPageMetric.toEventString());
                             }
                         }
+                    }
+                }
+                if (stored.getPlan() != null) {
+                    if (stored.getPlan() != null && isChanged(updated.getPlan(), stored.getPlan())) {
+                        fields.put("PLAN", stored.getPlan());
                     }
                 }
                 if (isChanged(updated.getSeekCount(), stored.getSeekCount())) {
