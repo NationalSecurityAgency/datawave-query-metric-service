@@ -160,7 +160,7 @@ public class AccumuloMapStore<T extends BaseQueryMetric> extends AccumuloMapLoad
             }
             
             lastWrittenQueryMetricCache.set(queryId, new QueryMetricUpdateHolder(updatedMetric));
-            queryMetricUpdate.persisted();
+            queryMetricUpdate.setPersisted();
             failures.invalidate(queryId);
         } finally {
             if (queryMetricUpdate.getMetricType().equals(QueryMetricType.DISTRIBUTED)) {

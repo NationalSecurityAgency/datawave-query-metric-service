@@ -52,8 +52,11 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.TimeZone;
 
 import static datawave.microservice.querymetric.QueryMetricOperations.DEFAULT_DATETIME.BEGIN;
@@ -83,8 +86,10 @@ public class QueryMetricOperations {
     private MarkingFunctions markingFunctions;
     private BaseQueryMetricListResponseFactory queryMetricListResponseFactory;
     private MergeLockLifecycleListener mergeLock;
+    private Correlator correlator;
     private MetricUpdateEntryProcessorFactory entryProcessorFactory;
     private QueryMetricOperationsStats stats;
+    private static Set<String> inProcess = Collections.synchronizedSet(new HashSet<>());
     
     /**
      * The enum Default datetime.
@@ -127,7 +132,8 @@ public class QueryMetricOperations {
     @Autowired
     public QueryMetricOperations(@Named("queryMetricCacheManager") CacheManager cacheManager, ShardTableQueryMetricHandler handler,
                     QueryGeometryHandler geometryHandler, MarkingFunctions markingFunctions, BaseQueryMetricListResponseFactory queryMetricListResponseFactory,
-                    MergeLockLifecycleListener mergeLock, MetricUpdateEntryProcessorFactory entryProcessorFactory, QueryMetricOperationsStats stats) {
+                    MergeLockLifecycleListener mergeLock, Correlator correlator, MetricUpdateEntryProcessorFactory entryProcessorFactory,
+                    QueryMetricOperationsStats stats) {
         this.handler = handler;
         this.geometryHandler = geometryHandler;
         this.cacheManager = cacheManager;
@@ -136,14 +142,40 @@ public class QueryMetricOperations {
         this.markingFunctions = markingFunctions;
         this.queryMetricListResponseFactory = queryMetricListResponseFactory;
         this.mergeLock = mergeLock;
+        this.correlator = correlator;
         this.entryProcessorFactory = entryProcessorFactory;
         this.stats = stats;
     }
     
     @PreDestroy
     public void shutdown() {
+        if (this.correlator.isEnabled()) {
+            this.correlator.shutdown(true);
+            ensureUpdatesProcessed();
+        }
         this.stats.queueAggregatedQueryStatsForTimely();
         this.stats.writeQueryStatsToTimely();
+    }
+    
+    @Scheduled(fixedDelay = 2000)
+    public void ensureUpdatesProcessed() {
+        if (this.correlator.isEnabled()) {
+            List<QueryMetricUpdate> correlatedUpdates;
+            do {
+                correlatedUpdates = this.correlator.getMetricUpdates(QueryMetricOperations.inProcess);
+                if (correlatedUpdates != null && !correlatedUpdates.isEmpty()) {
+                    try {
+                        String queryId = correlatedUpdates.get(0).getMetric().getQueryId();
+                        QueryMetricType metricType = correlatedUpdates.get(0).getMetricType();
+                        QueryMetricUpdateHolder metricUpdate = combineMetricUpdates(correlatedUpdates, metricType);
+                        log.debug("storing correlated updates for {}", queryId);
+                        storeMetricUpdates(metricUpdate);
+                    } catch (Exception e) {
+                        log.error("exception while combining correlated updates: " + e.getMessage(), e);
+                    }
+                }
+            } while (correlatedUpdates != null && !correlatedUpdates.isEmpty());
+        }
     }
     
     /**
@@ -207,6 +239,18 @@ public class QueryMetricOperations {
         return new VoidResponse();
     }
     
+    private boolean shouldCorrelate(QueryMetricUpdate update) {
+        // add the first update for a metric to get it into the cache
+        if ((update.getMetric().getLifecycle().ordinal() <= BaseQueryMetric.Lifecycle.DEFINED.ordinal())) {
+            return false;
+        }
+        if (this.correlator.isEnabled()) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+    
     /**
      * Handle event.
      *
@@ -216,28 +260,71 @@ public class QueryMetricOperations {
     @StreamListener(QueryMetricSinkBinding.SINK_NAME)
     public void handleEvent(QueryMetricUpdate update) {
         stats.getMeter(METERS.MESSAGE).mark();
-        String queryId = update.getMetric().getQueryId();
-        this.stats.queueTimelyMetrics(update);
-        log.debug("storing update for {}", queryId);
-        if (update.getMetric().getPositiveSelectors() == null) {
-            this.handler.populateMetricSelectors(update.getMetric());
+        if (shouldCorrelate(update)) {
+            log.debug("adding update for {} to correlator", update.getMetric().getQueryId());
+            this.correlator.addMetricUpdate(update);
+        } else {
+            log.debug("storing update for {}", update.getMetric().getQueryId());
+            storeMetricUpdates(new QueryMetricUpdateHolder(update));
         }
-        storeMetricUpdate(new QueryMetricUpdateHolder(update));
+        
+        if (correlator.isEnabled()) {
+            List<QueryMetricUpdate> correlatedUpdates;
+            do {
+                correlatedUpdates = this.correlator.getMetricUpdates(QueryMetricOperations.inProcess);
+                if (correlatedUpdates != null && !correlatedUpdates.isEmpty()) {
+                    try {
+                        String queryId = correlatedUpdates.get(0).getMetric().getQueryId();
+                        QueryMetricType metricType = correlatedUpdates.get(0).getMetricType();
+                        QueryMetricUpdateHolder metricUpdate = combineMetricUpdates(correlatedUpdates, metricType);
+                        log.debug("storing correlated updates for {}", queryId);
+                        storeMetricUpdates(metricUpdate);
+                    } catch (Exception e) {
+                        log.error("exception while combining correlated updates: " + e.getMessage(), e);
+                    }
+                }
+            } while (correlatedUpdates != null && !correlatedUpdates.isEmpty());
+        }
     }
     
     private String getClusterLocalMemberUuid() {
         return ((HazelcastCacheManager) this.cacheManager).getHazelcastInstance().getCluster().getLocalMember().getUuid();
     }
     
-    private void storeMetricUpdate(QueryMetricUpdateHolder metricUpdate) {
+    private QueryMetricUpdateHolder combineMetricUpdates(List<QueryMetricUpdate> updates, QueryMetricType metricType) throws Exception {
+        BaseQueryMetric combinedMetric = null;
+        BaseQueryMetric.Lifecycle lowestLifecycle = null;
+        for (QueryMetricUpdate u : updates) {
+            this.stats.queueTimelyMetrics(u);
+            if (combinedMetric == null) {
+                combinedMetric = u.getMetric();
+                lowestLifecycle = u.getMetric().getLifecycle();
+            } else {
+                if (u.getMetric().getLifecycle().ordinal() < lowestLifecycle.ordinal()) {
+                    lowestLifecycle = u.getMetric().getLifecycle();
+                }
+                combinedMetric = this.handler.combineMetrics(u.getMetric(), combinedMetric, metricType);
+            }
+        }
+        QueryMetricUpdateHolder metricUpdateHolder = new QueryMetricUpdateHolder(combinedMetric, metricType);
+        metricUpdateHolder.updateLowestLifecycle(lowestLifecycle);
+        return metricUpdateHolder;
+    }
+    
+    private void storeMetricUpdates(QueryMetricUpdateHolder metricUpdate) {
         Timer.Context storeTimer = this.stats.getTimer(TIMERS.STORE).time();
         String queryId = metricUpdate.getMetric().getQueryId();
         try {
             IMap<Object,Object> incomingQueryMetricsCacheHz = ((IMap<Object,Object>) incomingQueryMetricsCache.getNativeCache());
+            if (metricUpdate.getMetric().getPositiveSelectors() == null) {
+                this.handler.populateMetricSelectors(metricUpdate.getMetric());
+            }
             this.mergeLock.lock();
+            QueryMetricOperations.inProcess.add(queryId);
             try {
                 incomingQueryMetricsCacheHz.executeOnKey(queryId, this.entryProcessorFactory.createEntryProcessor(metricUpdate));
             } finally {
+                QueryMetricOperations.inProcess.remove(queryId);
                 this.mergeLock.unlock();
             }
         } catch (Exception e) {

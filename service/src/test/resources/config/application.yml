@@ -99,6 +99,8 @@ datawave:
         logServiceStatsRateMs: 300000
         publishServiceStatsToTimelyRateMs: 60000
         publishQueryStatsToTimelyRateMs: 60000
+      correlator:
+        enabled: false
 
   metadata:
     all-metadata-auths:
