@@ -12,6 +12,7 @@ import datawave.webservice.query.result.event.EventBase;
 import datawave.webservice.query.result.event.FieldBase;
 import org.springframework.beans.factory.annotation.Qualifier;
 
+import java.util.Collection;
 import java.util.List;
 
 public class AlternateShardTableQueryMetricHandler extends ShardTableQueryMetricHandler<AlternateQueryMetric> {
@@ -23,8 +24,8 @@ public class AlternateShardTableQueryMetricHandler extends ShardTableQueryMetric
     }
     
     @Override
-    public ContentQueryMetricsIngestHelper getQueryMetricsIngestHelper(boolean deleteMode) {
-        return new AlternateContentQueryMetricsIngestHelper(deleteMode);
+    public ContentQueryMetricsIngestHelper getQueryMetricsIngestHelper(boolean deleteMode, Collection<String> ignoredFields) {
+        return new AlternateContentQueryMetricsIngestHelper(deleteMode, ignoredFields);
     }
     
     @Override

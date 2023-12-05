@@ -54,6 +54,7 @@ public class QueryMetricCombiner<T extends BaseQueryMetric> implements Serializa
             if (combinedMetric.getQuery() == null && updatedQueryMetric.getQuery() != null) {
                 combinedMetric.setQuery(updatedQueryMetric.getQuery());
             }
+            
             // only update once
             if (combinedMetric.getHost() == null && updatedQueryMetric.getHost() != null) {
                 combinedMetric.setHost(updatedQueryMetric.getHost());

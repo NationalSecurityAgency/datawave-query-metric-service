@@ -20,10 +20,13 @@ import org.springframework.cache.Cache;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PreDestroy;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ExecutionException;
@@ -34,6 +37,18 @@ import static java.util.concurrent.TimeUnit.MINUTES;
 @Component("store")
 @ConditionalOnProperty(name = "hazelcast.server.enabled")
 public class AccumuloMapStore<T extends BaseQueryMetric> extends AccumuloMapLoader<T> implements MapStore<String,QueryMetricUpdateHolder<T>> {
+    // A list of fields that won't change once written. There is no need to retrieve these fields from Accumulo
+    // Any change here must be accounted for in ContentQueryMetricIngestHelper.
+    public static final List<String> ignoreFieldsOnQuery = Arrays.asList("POSITIVE_SELECTORS", "NEGATIVE_SELECTORS", "AUTHORIZATIONS", "BEGIN_DATE", "END_DATE",
+                    "PARAMETERS", "PROXY_SERVERS", "PREDICTION", "QUERY", "QUERY_LOGIC", "QUERY_NAME", "QUERY_TYPE", "USER", "USER_DN", "VERSION",
+                    "PAGE_METRICS");
+    // Exclude PREDICTION, PAGE_METRICS which we don't want to pull from Accumulo but which can change after query creation
+    public static final List<String> ignoreFieldsOnWrite = new ArrayList<>();
+    
+    static {
+        AccumuloMapStore.ignoreFieldsOnWrite.addAll(ignoreFieldsOnQuery);
+        AccumuloMapStore.ignoreFieldsOnWrite.removeAll(Arrays.asList("PREDICTION", "PAGE_METRICS"));
+    }
     
     private static AccumuloMapStore instance;
     private Logger log = LoggerFactory.getLogger(AccumuloMapStore.class);
@@ -103,6 +118,7 @@ public class AccumuloMapStore<T extends BaseQueryMetric> extends AccumuloMapLoad
     }
     
     public void store(QueryMetricUpdateHolder<T> queryMetricUpdate) throws Exception {
+        
         String queryId = queryMetricUpdate.getMetric().getQueryId();
         T updatedMetric = null;
         try {
@@ -110,13 +126,17 @@ public class AccumuloMapStore<T extends BaseQueryMetric> extends AccumuloMapLoad
             QueryMetricType metricType = queryMetricUpdate.getMetricType();
             QueryMetricUpdateHolder<T> lastQueryMetricUpdate = null;
             
+            final List<String> ignoredFields = new ArrayList<>();
             if (!queryMetricUpdate.isNewMetric()) {
                 lastQueryMetricUpdate = (QueryMetricUpdateHolder<T>) lastWrittenQueryMetricCache.get(queryId, () -> {
                     log.debug("getting metric {} from accumulo", queryId);
-                    T m = handler.getQueryMetric(queryId);
+                    T m = handler.getQueryMetric(queryId, ignoreFieldsOnQuery);
                     if (m == null) {
                         return null;
                     } else {
+                        // these fields will not be populated in the returned metric,
+                        // so we should not compare them later for writing mutations
+                        ignoredFields.addAll(ignoreFieldsOnWrite);
                         return new QueryMetricUpdateHolder(m, metricType);
                     }
                 });
@@ -152,12 +172,12 @@ public class AccumuloMapStore<T extends BaseQueryMetric> extends AccumuloMapLoad
                 updatedMetric.setLastUpdated(new Date(updatedMetric.getLastUpdated().getTime() + 1));
                 
                 if (lastQueryMetric.getLastUpdated() != null) {
-                    handler.writeMetric(updatedMetric, Collections.singletonList(lastQueryMetric), deleteTimestamp, true);
+                    handler.writeMetric(updatedMetric, Collections.singletonList(lastQueryMetric), deleteTimestamp, true, ignoredFields);
                 }
-                handler.writeMetric(updatedMetric, Collections.singletonList(lastQueryMetric), writeTimestamp, false);
+                handler.writeMetric(updatedMetric, Collections.singletonList(lastQueryMetric), writeTimestamp, false, ignoredFields);
             } else {
                 updatedMetric.setLastUpdated(updatedMetric.getCreateDate());
-                handler.writeMetric(updatedMetric, Collections.emptyList(), updatedMetric.getCreateDate().getTime(), false);
+                handler.writeMetric(updatedMetric, Collections.emptyList(), updatedMetric.getCreateDate().getTime(), false, ignoredFields);
             }
             if (log.isTraceEnabled()) {
                 log.trace("writing metric to accumulo: " + queryId + " - " + queryMetricUpdate.getMetric());
