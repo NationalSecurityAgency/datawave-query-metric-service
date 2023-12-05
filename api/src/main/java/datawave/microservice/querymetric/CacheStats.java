@@ -14,7 +14,7 @@ import java.util.Objects;
 
 @XmlRootElement(name = "CacheStats")
 @XmlAccessorType(XmlAccessType.NONE)
-@XmlType(propOrder = {"serviceStats", "incomingQueryMetrics", "lastWrittenQueryMetrics"})
+@XmlType(propOrder = {"serviceStats", "incomingQueryMetrics"})
 public class CacheStats implements Serializable {
     
     private static final long serialVersionUID = 1L;
@@ -32,10 +32,6 @@ public class CacheStats implements Serializable {
     @XmlElement(name = "incomingQueryMetrics")
     @XmlJavaTypeAdapter(StringMapAdapter.class)
     private Map<String,String> incomingQueryMetrics = new HashMap<>();
-    
-    @XmlElement(name = "lastWrittenQueryMetrics")
-    @XmlJavaTypeAdapter(StringMapAdapter.class)
-    private Map<String,String> lastWrittenQueryMetrics = new HashMap<>();
     
     public CacheStats() {
         
@@ -65,14 +61,6 @@ public class CacheStats implements Serializable {
         return incomingQueryMetrics;
     }
     
-    public void setLastWrittenQueryMetrics(Map<String,String> stats) {
-        this.lastWrittenQueryMetrics = stats;
-    }
-    
-    public Map<String,String> getLastWrittenQueryMetrics() {
-        return lastWrittenQueryMetrics;
-    }
-    
     public void setServiceStats(Map<String,String> serviceStats) {
         this.serviceStats = serviceStats;
     }
@@ -89,11 +77,11 @@ public class CacheStats implements Serializable {
             return false;
         CacheStats that = (CacheStats) o;
         return host.equals(that.host) && memberUuid.equals(that.memberUuid) && incomingQueryMetrics.equals(that.incomingQueryMetrics)
-                        && lastWrittenQueryMetrics.equals(that.lastWrittenQueryMetrics) && serviceStats.equals(that.serviceStats);
+                        && serviceStats.equals(that.serviceStats);
     }
     
     @Override
     public int hashCode() {
-        return Objects.hash(host, memberUuid, incomingQueryMetrics, lastWrittenQueryMetrics, serviceStats);
+        return Objects.hash(host, memberUuid, incomingQueryMetrics, serviceStats);
     }
 }

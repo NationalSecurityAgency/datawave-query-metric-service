@@ -84,6 +84,10 @@ datawave:
         queryVisibility: PUBLIC
         defaultMetricVisibility: (PUBLIC)
         baseMaps: "{}"
+      cache:
+        lastWrittenQueryMetrics:
+          maximumSize: 100
+          ttlSeconds: 60
       client:
         enabled: true
         transport: message_test

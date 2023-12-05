@@ -62,7 +62,6 @@ import java.util.TimeZone;
 import static datawave.microservice.querymetric.QueryMetricOperations.DEFAULT_DATETIME.BEGIN;
 import static datawave.microservice.querymetric.QueryMetricOperations.DEFAULT_DATETIME.END;
 import static datawave.microservice.querymetric.config.HazelcastMetricCacheConfiguration.INCOMING_METRICS;
-import static datawave.microservice.querymetric.config.HazelcastMetricCacheConfiguration.LAST_WRITTEN_METRICS;
 import static datawave.microservice.querymetric.config.QueryMetricSourceConfiguration.QueryMetricSourceBinding.SOURCE_NAME;
 import static datawave.microservice.querymetric.QueryMetricOperationsStats.METERS;
 import static datawave.microservice.querymetric.QueryMetricOperationsStats.TIMERS;
@@ -82,7 +81,6 @@ public class QueryMetricOperations {
     private QueryGeometryHandler geometryHandler;
     private CacheManager cacheManager;
     private Cache incomingQueryMetricsCache;
-    private Cache lastWrittenQueryMetricCache;
     private MarkingFunctions markingFunctions;
     private BaseQueryMetricListResponseFactory queryMetricListResponseFactory;
     private MergeLockLifecycleListener mergeLock;
@@ -138,7 +136,6 @@ public class QueryMetricOperations {
         this.geometryHandler = geometryHandler;
         this.cacheManager = cacheManager;
         this.incomingQueryMetricsCache = cacheManager.getCache(INCOMING_METRICS);
-        this.lastWrittenQueryMetricCache = cacheManager.getCache(LAST_WRITTEN_METRICS);
         this.markingFunctions = markingFunctions;
         this.queryMetricListResponseFactory = queryMetricListResponseFactory;
         this.mergeLock = mergeLock;
@@ -363,10 +360,10 @@ public class QueryMetricOperations {
         try {
             BaseQueryMetric metric;
             QueryMetricUpdateHolder metricUpdate = incomingQueryMetricsCache.get(queryId, QueryMetricUpdateHolder.class);
-            if (metricUpdate != null && metricUpdate.isNewMetric()) {
-                metric = metricUpdate.getMetric();
-            } else {
+            if (metricUpdate == null) {
                 metric = this.handler.getQueryMetric(queryId);
+            } else {
+                metric = metricUpdate.getMetric();
             }
             if (metric != null) {
                 boolean allowAllMetrics = false;
@@ -546,8 +543,6 @@ public class QueryMetricOperations {
         CacheStats cacheStats = new CacheStats();
         IMap<Object,Object> incomingCacheHz = ((IMap<Object,Object>) incomingQueryMetricsCache.getNativeCache());
         cacheStats.setIncomingQueryMetrics(this.stats.getLocalMapStats(incomingCacheHz.getLocalMapStats()));
-        IMap<Object,Object> lastWrittenCacheHz = ((IMap<Object,Object>) lastWrittenQueryMetricCache.getNativeCache());
-        cacheStats.setLastWrittenQueryMetrics(this.stats.getLocalMapStats(lastWrittenCacheHz.getLocalMapStats()));
         cacheStats.setServiceStats(this.stats.formatStats(this.stats.getServiceStats(), true));
         cacheStats.setMemberUuid(getClusterLocalMemberUuid());
         try {

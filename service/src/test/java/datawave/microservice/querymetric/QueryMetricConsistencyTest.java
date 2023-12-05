@@ -344,7 +344,7 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
         String queryId = createQueryId();
         QueryMetric storedQueryMetric = (QueryMetric) createMetric(queryId);
         QueryMetric updatedQueryMetric = (QueryMetric) storedQueryMetric.duplicate();
-        updatedQueryMetric.setLifecycle(BaseQueryMetric.Lifecycle.CLOSED);
+        updatedQueryMetric.setLifecycle(BaseQueryMetric.Lifecycle.RESULTS);
         updatedQueryMetric.setNumResults(2000);
         updatedQueryMetric.setDocRanges(400);
         updatedQueryMetric.setNextCount(400);

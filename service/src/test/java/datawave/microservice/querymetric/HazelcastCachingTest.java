@@ -10,8 +10,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import java.util.Collections;
-
 @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles({"HazelcastCachingTest", "QueryMetricTest", "hazelcast-writethrough"})
@@ -25,21 +23,6 @@ public class HazelcastCachingTest extends QueryMetricTestBase {
     @After
     public void cleanup() {
         super.cleanup();
-    }
-    
-    @Test
-    public void TestReadThroughCache() {
-        
-        try {
-            String queryId = createQueryId();
-            BaseQueryMetric m = createMetric(queryId);
-            shardTableQueryMetricHandler.writeMetric(m, Collections.emptyList(), m.getCreateDate().getTime(), false);
-            BaseQueryMetric metricFromReadThroughCache = lastWrittenQueryMetricCache.get(queryId, QueryMetricUpdate.class).getMetric();
-            assertEquals("read through cache failed", m, metricFromReadThroughCache);
-        } catch (Exception e) {
-            log.error(e.getMessage(), e);
-            Assert.fail(e.getMessage());
-        }
     }
     
     @Test

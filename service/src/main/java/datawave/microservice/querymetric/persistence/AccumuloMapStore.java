@@ -3,7 +3,6 @@ package datawave.microservice.querymetric.persistence;
 import com.codahale.metrics.SlidingTimeWindowArrayReservoir;
 import com.codahale.metrics.Timer;
 import com.google.common.cache.CacheBuilder;
-import com.hazelcast.core.IMap;
 import com.hazelcast.core.MapLoader;
 import com.hazelcast.core.MapStore;
 import com.hazelcast.core.MapStoreFactory;
@@ -38,7 +37,7 @@ public class AccumuloMapStore<T extends BaseQueryMetric> extends AccumuloMapLoad
     
     private static AccumuloMapStore instance;
     private Logger log = LoggerFactory.getLogger(AccumuloMapStore.class);
-    private IMap<Object,Object> lastWrittenQueryMetricCache;
+    private Cache lastWrittenQueryMetricCache;
     private MergeLockLifecycleListener mergeLock;
     private com.google.common.cache.Cache failures;
     private Timer writeTimer = new Timer(new SlidingTimeWindowArrayReservoir(1, MINUTES));
@@ -72,7 +71,7 @@ public class AccumuloMapStore<T extends BaseQueryMetric> extends AccumuloMapLoad
     }
     
     public void setLastWrittenQueryMetricCache(Cache lastWrittenQueryMetricCache) {
-        this.lastWrittenQueryMetricCache = (IMap<Object,Object>) lastWrittenQueryMetricCache.getNativeCache();
+        this.lastWrittenQueryMetricCache = lastWrittenQueryMetricCache;
     }
     
     @Override
@@ -106,14 +105,21 @@ public class AccumuloMapStore<T extends BaseQueryMetric> extends AccumuloMapLoad
     public void store(QueryMetricUpdateHolder<T> queryMetricUpdate) throws Exception {
         String queryId = queryMetricUpdate.getMetric().getQueryId();
         T updatedMetric = null;
-        this.mergeLock.lock();
         try {
             updatedMetric = (T) queryMetricUpdate.getMetric().duplicate();
             QueryMetricType metricType = queryMetricUpdate.getMetricType();
             QueryMetricUpdateHolder<T> lastQueryMetricUpdate = null;
             
             if (!queryMetricUpdate.isNewMetric()) {
-                lastQueryMetricUpdate = (QueryMetricUpdateHolder<T>) lastWrittenQueryMetricCache.get(queryId);
+                lastQueryMetricUpdate = (QueryMetricUpdateHolder<T>) lastWrittenQueryMetricCache.get(queryId, () -> {
+                    log.debug("getting metric {} from accumulo", queryId);
+                    T m = handler.getQueryMetric(queryId);
+                    if (m == null) {
+                        return null;
+                    } else {
+                        return new QueryMetricUpdateHolder(m, metricType);
+                    }
+                });
             }
             
             if (lastQueryMetricUpdate != null) {
@@ -159,7 +165,7 @@ public class AccumuloMapStore<T extends BaseQueryMetric> extends AccumuloMapLoad
                 log.debug("writing metric to accumulo: " + queryId);
             }
             
-            lastWrittenQueryMetricCache.set(queryId, new QueryMetricUpdateHolder(updatedMetric));
+            lastWrittenQueryMetricCache.put(queryId, new QueryMetricUpdateHolder(updatedMetric));
             queryMetricUpdate.setPersisted();
             failures.invalidate(queryId);
         } finally {
@@ -175,7 +181,6 @@ public class AccumuloMapStore<T extends BaseQueryMetric> extends AccumuloMapLoad
                     queryMetricUpdate.getMetric().setFiRanges(updatedMetric.getFiRanges());
                 }
             }
-            this.mergeLock.unlock();
         }
     }
     
