@@ -26,6 +26,7 @@ import datawave.microservice.querymetric.BaseQueryMetric.Prediction;
 import datawave.microservice.querymetric.QueryMetricFactory;
 import datawave.microservice.querymetric.QueryMetricType;
 import datawave.microservice.querymetric.QueryMetricsSummaryResponse;
+import datawave.microservice.querymetric.RangeCounts;
 import datawave.microservice.querymetric.config.QueryMetricHandlerProperties;
 import datawave.microservice.querymetric.factory.QueryMetricQueryLogicFactory;
 import datawave.query.QueryParameters;
@@ -509,7 +510,7 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
             List<FieldBase> field = event.getFields();
             m.setMarkings(event.getMarkings());
             TreeMap<Long,PageMetric> pageMetrics = Maps.newTreeMap();
-            Map<String,List<Integer>> subplans = new HashMap<>();
+            Map<String,RangeCounts> subplans = new HashMap<>();
             
             boolean createDateSet = false;
             for (FieldBase f : field) {
@@ -636,11 +637,7 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
                         if (fieldValue != null) {
                             String[] arr = fieldValue.split(" : ", 2);
                             if (arr.length == 2) {
-                                List<Integer> rangeCounts = new ArrayList<>();
-                                String[] rangeCountSplit = StringUtils.split(arr[1], ",");
-                                for (String count : rangeCountSplit) {
-                                    rangeCounts.add(Integer.parseInt(count));
-                                }
+                                RangeCounts rangeCounts = getRangeCounts(arr);
                                 subplans.put(arr[0], rangeCounts);
                             }
                         }
@@ -731,6 +728,20 @@ public class ShardTableQueryMetricHandler<T extends BaseQueryMetric> extends Bas
         } catch (RuntimeException e) {
             return null;
         }
+    }
+    
+    private static RangeCounts getRangeCounts(String[] arr) {
+        RangeCounts ranges = new RangeCounts();
+        int index = 0;
+        for (String count : arr[1].substring(1, arr[1].length() - 1).split(", ")) {
+            if (index == 0) {
+                ranges.setDocumentRangeCount(Integer.parseInt(count));
+            } else if (index == 1) {
+                ranges.setShardRangeCount(Integer.parseInt(count));
+            }
+            index++;
+        }
+        return ranges;
     }
     
     protected void createAndConfigureTablesIfNecessary(String[] tableNames, AccumuloClient accumuloClient, Configuration conf)

@@ -411,7 +411,7 @@ public class QueryMetric extends BaseQueryMetric implements Serializable, Messag
             }
             
             if (message.subPlans != null) {
-                for (Map.Entry<String,List<Integer>> entry : message.subPlans.entrySet()) {
+                for (Map.Entry<String,RangeCounts> entry : message.subPlans.entrySet()) {
                     output.writeString(39, StringUtils.join(Arrays.asList(entry.getKey(), StringUtils.join(entry.getValue(), ",")), "\0"), true);
                 }
             }
@@ -571,10 +571,15 @@ public class QueryMetric extends BaseQueryMetric implements Serializable, Messag
                         String encodedPlans = input.readString();
                         String[] splitPlans = StringUtils.split(encodedPlans, "\0");
                         if (splitPlans.length == 2) {
-                            List<Integer> rangeCounts = new ArrayList<>();
-                            String[] rangeCountSplit = StringUtils.split(splitPlans[1], ",");
-                            for (String count : rangeCountSplit) {
-                                rangeCounts.add(Integer.parseInt(count));
+                            RangeCounts rangeCounts = new RangeCounts();
+                            int index = 0;
+                            for (String count : StringUtils.split(splitPlans[1], ",")) {
+                                if (index == 0) {
+                                    rangeCounts.setDocumentRangeCount(Integer.parseInt(count));
+                                } else if (index == 1) {
+                                    rangeCounts.setShardRangeCount(Integer.parseInt(count));
+                                }
+                                index++;
                             }
                             message.subPlans.put(splitPlans[0], rangeCounts);
                         }

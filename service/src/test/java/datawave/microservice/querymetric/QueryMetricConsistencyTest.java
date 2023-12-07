@@ -142,9 +142,10 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
             updateRangeCounts(shardCounts, documentCounts, subplan, new Range(begin, end));
         }
         for (String p : plans) {
-            Integer shardCount = shardCounts.getOrDefault(p, 0);
-            Integer documentCount = documentCounts.getOrDefault(p, 0);
-            m.addSubPlan(p, Arrays.asList(shardCount, documentCount));
+            RangeCounts ranges = new RangeCounts();
+            ranges.setShardRangeCount(shardCounts.getOrDefault(p, 0));
+            ranges.setDocumentRangeCount(documentCounts.getOrDefault(p, 0));
+            m.addSubPlan(p, ranges);
         }
         
         // @formatter:off

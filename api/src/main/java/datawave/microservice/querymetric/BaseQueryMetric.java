@@ -684,7 +684,7 @@ public abstract class BaseQueryMetric implements HasMarkings, Serializable {
     
     @XmlElement(name = "subplans")
     @XmlJavaTypeAdapter(StringIntegerListMapAdapter.class)
-    protected Map<String,List<Integer>> subPlans = new HashMap<>();
+    protected Map<String,RangeCounts> subPlans = new HashMap<>();
     
     public static final String DATAWAVE = "DATAWAVE";
     protected static final Map<String,String> discoveredVersionMap = BaseQueryMetric.getVersionsFromClasspath();
@@ -695,15 +695,25 @@ public abstract class BaseQueryMetric implements HasMarkings, Serializable {
         NONE, DEFINED, INITIALIZED, RESULTS, CLOSED, CANCELLED, MAXRESULTS, NEXTTIMEOUT, TIMEOUT, SHUTDOWN, MAXWORK
     }
     
-    public void addSubPlan(String plan, List<Integer> rangeCounts) {
-        subPlans.put(plan, rangeCounts);
+    public void addSubPlan(String plan, RangeCounts rangeCounts) {
+        synchronized (this.subPlans) {
+            if (subPlans.containsKey(plan)) {
+                RangeCounts combinedCounts = new RangeCounts();
+                RangeCounts currentCounts = subPlans.get(plan);
+                combinedCounts.setDocumentRangeCount(currentCounts.getDocumentRangeCount() + rangeCounts.getDocumentRangeCount());
+                combinedCounts.setShardRangeCount(currentCounts.getShardRangeCount() + rangeCounts.getShardRangeCount());
+                subPlans.put(plan, combinedCounts);
+            } else {
+                subPlans.put(plan, rangeCounts);
+            }
+        }
     }
     
-    public Map<String,List<Integer>> getSubPlans() {
+    public Map<String,RangeCounts> getSubPlans() {
         return subPlans;
     }
     
-    public void setSubPlans(Map<String,List<Integer>> subPlans) {
+    public void setSubPlans(Map<String,RangeCounts> subPlans) {
         this.subPlans = subPlans;
     }
     

@@ -9,8 +9,6 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlTransient;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
@@ -134,7 +132,7 @@ public abstract class BaseQueryMetricSubplanResponse<T extends BaseQueryMetric> 
             builder.append("<tr><th>Range</th><th>Sub Plan</th></tr>");
             if (metric.getSubPlans() != null && !metric.getSubPlans().isEmpty()) {
                 int s = 0;
-                for (Map.Entry<String, List<Integer>> e : metric.getSubPlans().entrySet()) {
+                for (Map.Entry<String, RangeCounts> e : metric.getSubPlans().entrySet()) {
                     // highlight alternating rows
                     if (s % 2 == 0) {
                         builder.append("<tr class=\"highlight\">");
@@ -142,7 +140,7 @@ public abstract class BaseQueryMetricSubplanResponse<T extends BaseQueryMetric> 
                         builder.append("<tr>");
                     }
                     builder.append("<td>").append(e.getKey()).append("</td>");
-                    builder.append("<td>").append(e.getValue()).append("</td>");
+                    builder.append("<td>").append("[" + e.getValue().getDocumentRangeCount() + "," + e.getValue().getShardRangeCount() + "]").append("</td>");
                     builder.append("\n</tr>\n");
                     s++;
                 }
