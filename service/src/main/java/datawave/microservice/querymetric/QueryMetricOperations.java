@@ -14,6 +14,8 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
@@ -21,6 +23,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import javax.annotation.PreDestroy;
 import javax.annotation.security.PermitAll;
@@ -53,6 +56,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.codahale.metrics.Timer;
+import com.google.common.collect.Lists;
 import com.hazelcast.core.HazelcastInstanceNotActiveException;
 import com.hazelcast.map.IMap;
 import com.hazelcast.spring.cache.HazelcastCacheManager;
@@ -201,13 +205,13 @@ public class QueryMetricOperations {
         VoidResponse response = new VoidResponse();
         for (BaseQueryMetric m : queryMetrics) {
             if (log.isTraceEnabled()) {
-                log.trace("received metric update via REST: " + m.toString());
+                log.trace("received bulk metric update via REST: " + m.toString());
             } else {
-                log.debug("received metric update via REST: " + m.getQueryId());
+                log.debug("received bulk metric update via REST: " + m.getQueryId());
             }
-            if (!updateMetric(new QueryMetricUpdate<>(m, metricType))) {
-                throw new RuntimeException("Unable to process query metric update for query [" + m.getQueryId() + "]");
-            }
+        }
+        if (!updateMetrics(queryMetrics.stream().map(m -> new QueryMetricUpdate<>(m, metricType)).collect(Collectors.toList()))) {
+            throw new RuntimeException("Unable to process bulk query metric update");
         }
         return response;
     }
@@ -267,7 +271,9 @@ public class QueryMetricOperations {
         }
     }
     
-    private boolean updateMetric(QueryMetricUpdate update) {
+    private boolean updateMetrics(List<QueryMetricUpdate> updates) {
+        List<QueryMetricUpdate> failedUpdates = new ArrayList<>(updates.size());
+        Map<String,QueryMetricUpdate> updatesById = new LinkedHashMap<>();
         
         boolean success;
         final long updateStartTime = System.currentTimeMillis();
@@ -286,54 +292,107 @@ public class QueryMetricOperations {
             }
             
             if (log.isDebugEnabled()) {
-                log.debug("Update attempt {} of {} for query {}", attempts, retry.getMaxAttempts(), update.getMetric().getQueryId());
+                log.debug("Bulk update attempt {} of {}", attempts, retry.getMaxAttempts());
             }
             
-            success = sendMessage(update);
+            // send all of the remaining metric updates
+            success = sendMessages(updates, failedUpdates, updatesById) && awaitConfirmAcks(updatesById, failedUpdates);
             currentTime = System.currentTimeMillis();
         } while (!success && (currentTime - updateStartTime) < retry.getFailTimeoutMillis() && attempts < retry.getMaxAttempts());
         
         if (!success) {
-            log.warn("Update for query {} failed. {attempts = {}, elapsedMillis = {}}", update.getMetric().getQueryId(), attempts,
-                            (currentTime - updateStartTime));
+            log.warn("Bulk update failed. {attempts = {}, elapsedMillis = {}}", attempts, (currentTime - updateStartTime));
         } else {
-            log.info("Update for query {} successful. {attempts = {}, elapsedMillis = {}}", update.getMetric().getQueryId(), attempts,
-                            (currentTime - updateStartTime));
+            log.info("Bulk update successful. {attempts = {}, elapsedMillis = {}}", attempts, (currentTime - updateStartTime));
         }
         
         return success;
     }
     
+    private boolean updateMetric(QueryMetricUpdate update) {
+        return updateMetrics(Lists.newArrayList(update));
+    }
+    
     /**
      * Passes query metric messages to the messaging infrastructure.
-     * <p>
-     * The metric ID is used as a correlation ID in order to ensure that a producer confirm ack is received. If a producer confirm ack is not received within
-     * the specified amount of time, a 500 Internal Server Error will be returned to the caller.
      *
-     * @param update
-     *            The query metric update to be sent
+     * @param updates
+     *            The query metric updates to be sent, not null
+     * @param failedUpdates
+     *            A list that will be populated with the failed metric updates, not null
+     * @param updatesById
+     *            A map that will be populated with the correlation ids and associated metric updates, not null
+     * @return true if all messages were successfully sent, false otherwise
      */
-    private boolean sendMessage(QueryMetricUpdate update) {
-        String correlationId = UUID.randomUUID().toString();
+    private boolean sendMessages(List<QueryMetricUpdate> updates, List<QueryMetricUpdate> failedUpdates, Map<String,QueryMetricUpdate> updatesById) {
+        failedUpdates.clear();
         
-        CountDownLatch latch = null;
-        if (queryMetricProperties.isConfirmAckEnabled()) {
-            latch = new CountDownLatch(1);
-            correlationLatchMap.put(correlationId, latch);
+        boolean success = true;
+        // send all of the remaining metric updates
+        for (QueryMetricUpdate update : updates) {
+            String correlationId = UUID.randomUUID().toString();
+            if (sendMessage(correlationId, update)) {
+                if (queryMetricProperties.isConfirmAckEnabled()) {
+                    updatesById.put(correlationId, update);
+                }
+            } else {
+                // if it failed, add it to the failed list
+                failedUpdates.add(update);
+                success = false;
+            }
         }
         
-        boolean success = queryMetricSupplier.send(MessageBuilder.withPayload(update).setCorrelationId(correlationId).build());
+        updates.retainAll(failedUpdates);
         
+        return success;
+    }
+    
+    private boolean sendMessage(String correlationId, QueryMetricUpdate update) {
+        boolean success = false;
+        if (queryMetricSupplier.send(MessageBuilder.withPayload(update).setCorrelationId(correlationId).build())) {
+            success = true;
+            if (queryMetricProperties.isConfirmAckEnabled()) {
+                correlationLatchMap.put(correlationId, new CountDownLatch(1));
+            }
+        }
+        return success;
+    }
+    
+    /**
+     * Waits for the producer confirm acks to be received for the updates that were sent. If a producer confirm ack is not received within the specified amount
+     * of time, a 500 Internal Server Error will be returned to the caller.
+     * 
+     * @param updatesById
+     *            A map of query metric updates keyed by their correlation id, not null
+     * @param failedUpdates
+     *            A list that will be populated with the failed metric updates, not null
+     * @return true if all confirm acks were successfully received, false otherwise
+     */
+    private boolean awaitConfirmAcks(Map<String,QueryMetricUpdate> updatesById, List<QueryMetricUpdate> failedUpdates) {
+        boolean success = true;
+        // wait for the confirm acks only after all sends are successful
+        if (queryMetricProperties.isConfirmAckEnabled()) {
+            for (String correlationId : updatesById.keySet()) {
+                if (!awaitConfirmAck(correlationId)) {
+                    failedUpdates.add(updatesById.remove(correlationId));
+                    success = false;
+                }
+            }
+        }
+        return success;
+    }
+    
+    private boolean awaitConfirmAck(String correlationId) {
+        boolean success = false;
         if (queryMetricProperties.isConfirmAckEnabled()) {
             try {
-                success = success && latch.await(queryMetricProperties.getConfirmAckTimeoutMillis(), TimeUnit.MILLISECONDS);
+                success = correlationLatchMap.get(correlationId).await(queryMetricProperties.getConfirmAckTimeoutMillis(), TimeUnit.MILLISECONDS);
             } catch (InterruptedException e) {
-                success = false;
+                log.warn("Interrupted waiting for confirm ack {}", correlationId);
             } finally {
                 correlationLatchMap.remove(correlationId);
             }
         }
-        
         return success;
     }
     
