@@ -83,7 +83,7 @@ public class NonWebApplicationMessagingTest {
 
         @Bean
         public QueryMetricOperationsStats queryMetricOperationStats() {
-            return new QueryMetricOperationsStats(new TimelyProperties(), null, queryMetricCacheManager(), null);
+            return new QueryMetricOperationsStats(new TimelyProperties(), null, queryMetricCacheManager(), null, null);
         }
 
         @Bean

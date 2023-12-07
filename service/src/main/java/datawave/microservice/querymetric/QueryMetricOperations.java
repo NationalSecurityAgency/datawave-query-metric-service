@@ -2,10 +2,8 @@ package datawave.microservice.querymetric;
 
 import static datawave.microservice.querymetric.QueryMetricOperations.DEFAULT_DATETIME.BEGIN;
 import static datawave.microservice.querymetric.QueryMetricOperations.DEFAULT_DATETIME.END;
-import static datawave.microservice.querymetric.QueryMetricOperationsStats.METERS;
 import static datawave.microservice.querymetric.QueryMetricOperationsStats.TIMERS;
 import static datawave.microservice.querymetric.config.HazelcastMetricCacheConfiguration.INCOMING_METRICS;
-import static datawave.microservice.querymetric.config.HazelcastMetricCacheConfiguration.LAST_WRITTEN_METRICS;
 
 import java.net.InetAddress;
 import java.text.ParseException;
@@ -14,8 +12,10 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TimeZone;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -98,12 +98,13 @@ public class QueryMetricOperations {
     private QueryGeometryHandler geometryHandler;
     private CacheManager cacheManager;
     private Cache incomingQueryMetricsCache;
-    private Cache lastWrittenQueryMetricCache;
     private MarkingFunctions markingFunctions;
     private BaseQueryMetricListResponseFactory queryMetricListResponseFactory;
     private MergeLockLifecycleListener mergeLock;
+    private Correlator correlator;
     private MetricUpdateEntryProcessorFactory entryProcessorFactory;
     private QueryMetricOperationsStats stats;
+    private static Set<String> inProcess = Collections.synchronizedSet(new HashSet<>());
     
     private final QueryMetricSupplier queryMetricSupplier;
     private final DnUtils dnUtils;
@@ -153,7 +154,7 @@ public class QueryMetricOperations {
     @Autowired
     public QueryMetricOperations(QueryMetricProperties queryMetricProperties, @Named("queryMetricCacheManager") CacheManager cacheManager,
                     ShardTableQueryMetricHandler handler, QueryGeometryHandler geometryHandler, MarkingFunctions markingFunctions,
-                    BaseQueryMetricListResponseFactory queryMetricListResponseFactory, MergeLockLifecycleListener mergeLock,
+                    BaseQueryMetricListResponseFactory queryMetricListResponseFactory, MergeLockLifecycleListener mergeLock, Correlator correlator,
                     MetricUpdateEntryProcessorFactory entryProcessorFactory, QueryMetricOperationsStats stats, QueryMetricSupplier queryMetricSupplier,
                     DnUtils dnUtils) {
         this.queryMetricProperties = queryMetricProperties;
@@ -161,10 +162,10 @@ public class QueryMetricOperations {
         this.geometryHandler = geometryHandler;
         this.cacheManager = cacheManager;
         this.incomingQueryMetricsCache = cacheManager.getCache(INCOMING_METRICS);
-        this.lastWrittenQueryMetricCache = cacheManager.getCache(LAST_WRITTEN_METRICS);
         this.markingFunctions = markingFunctions;
         this.queryMetricListResponseFactory = queryMetricListResponseFactory;
         this.mergeLock = mergeLock;
+        this.correlator = correlator;
         this.entryProcessorFactory = entryProcessorFactory;
         this.stats = stats;
         this.queryMetricSupplier = queryMetricSupplier;
@@ -173,8 +174,33 @@ public class QueryMetricOperations {
     
     @PreDestroy
     public void shutdown() {
+        if (this.correlator.isEnabled()) {
+            this.correlator.shutdown(true);
+            ensureUpdatesProcessed();
+        }
         this.stats.queueAggregatedQueryStatsForTimely();
         this.stats.writeQueryStatsToTimely();
+    }
+    
+    @Scheduled(fixedDelay = 2000)
+    public void ensureUpdatesProcessed() {
+        if (this.correlator.isEnabled()) {
+            List<QueryMetricUpdate> correlatedUpdates;
+            do {
+                correlatedUpdates = this.correlator.getMetricUpdates(QueryMetricOperations.inProcess);
+                if (correlatedUpdates != null && !correlatedUpdates.isEmpty()) {
+                    try {
+                        String queryId = correlatedUpdates.get(0).getMetric().getQueryId();
+                        QueryMetricType metricType = correlatedUpdates.get(0).getMetricType();
+                        QueryMetricUpdateHolder metricUpdate = combineMetricUpdates(correlatedUpdates, metricType);
+                        log.debug("storing correlated updates for {}", queryId);
+                        storeMetricUpdates(metricUpdate);
+                    } catch (Exception e) {
+                        log.error("exception while combining correlated updates: " + e.getMessage(), e);
+                    }
+                }
+            } while (correlatedUpdates != null && !correlatedUpdates.isEmpty());
+        }
     }
     
     /**
@@ -197,19 +223,27 @@ public class QueryMetricOperations {
         if (!this.mergeLock.isAllowedReadLock()) {
             throw new IllegalStateException("service unavailable");
         }
-        stats.getMeter(METERS.REST).mark(queryMetrics.size());
-        VoidResponse response = new VoidResponse();
-        for (BaseQueryMetric m : queryMetrics) {
-            if (log.isTraceEnabled()) {
-                log.trace("received metric update via REST: " + m.toString());
-            } else {
-                log.debug("received metric update via REST: " + m.getQueryId());
+        Timer.Context restTimer = this.stats.getTimer(TIMERS.REST).time();
+        try {
+            for (BaseQueryMetric m : queryMetrics) {
+                if (log.isTraceEnabled()) {
+                    log.trace("received metric update via REST: " + m.toString());
+                } else {
+                    log.debug("received metric update via REST: " + m.getQueryId());
+                }
+                Timer.Context messageSendTimer = this.stats.getTimer(TIMERS.MESSAGE_SEND).time();
+                try {
+                    if (!updateMetric(new QueryMetricUpdate<>(m, metricType))) {
+                        throw new RuntimeException("Unable to process query metric update for query [" + m.getQueryId() + "]");
+                    }
+                } finally {
+                    messageSendTimer.stop();
+                }
             }
-            if (!updateMetric(new QueryMetricUpdate<>(m, metricType))) {
-                throw new RuntimeException("Unable to process query metric update for query [" + m.getQueryId() + "]");
-            }
+        } finally {
+            restTimer.stop();
         }
-        return response;
+        return new VoidResponse();
     }
     
     /**
@@ -232,14 +266,23 @@ public class QueryMetricOperations {
         if (!this.mergeLock.isAllowedReadLock()) {
             throw new IllegalStateException("service unavailable");
         }
-        stats.getMeter(METERS.REST).mark();
-        if (log.isTraceEnabled()) {
-            log.trace("received metric update via REST: " + queryMetric.toString());
-        } else {
-            log.debug("received metric update via REST: " + queryMetric.getQueryId());
-        }
-        if (!updateMetric(new QueryMetricUpdate(queryMetric, metricType))) {
-            throw new RuntimeException("Unable to process query metric update for query [" + queryMetric.getQueryId() + "]");
+        Timer.Context restTimer = this.stats.getTimer(TIMERS.REST).time();
+        try {
+            if (log.isTraceEnabled()) {
+                log.trace("received metric update via REST: " + queryMetric.toString());
+            } else {
+                log.debug("received metric update via REST: " + queryMetric.getQueryId());
+            }
+            Timer.Context messageSendTimer = this.stats.getTimer(TIMERS.MESSAGE_SEND).time();
+            try {
+                if (!updateMetric(new QueryMetricUpdate(queryMetric, metricType))) {
+                    throw new RuntimeException("Unable to process query metric update for query [" + queryMetric.getQueryId() + "]");
+                }
+            } finally {
+                messageSendTimer.stop();
+            }
+        } finally {
+            restTimer.stop();
         }
         return new VoidResponse();
     }
@@ -337,37 +380,45 @@ public class QueryMetricOperations {
         return success;
     }
     
-    /**
-     * Handle event.
-     *
-     * @param update
-     *            the query metric update
-     */
-    public void storeMetric(QueryMetricUpdate update) {
-        stats.getMeter(METERS.MESSAGE).mark();
-        String queryId = update.getMetric().getQueryId();
-        this.stats.queueTimelyMetrics(update);
-        log.debug("storing update for {}", queryId);
-        if (update.getMetric().getPositiveSelectors() == null) {
-            this.handler.populateMetricSelectors(update.getMetric());
-        }
-        storeMetricUpdate(new QueryMetricUpdateHolder(update));
-    }
-    
     private String getClusterLocalMemberUuid() {
         return ((HazelcastCacheManager) this.cacheManager).getHazelcastInstance().getCluster().getLocalMember().getUuid().toString();
     }
     
-    private void storeMetricUpdate(QueryMetricUpdateHolder metricUpdate) {
+    public QueryMetricUpdateHolder combineMetricUpdates(List<QueryMetricUpdate> updates, QueryMetricType metricType) throws Exception {
+        BaseQueryMetric combinedMetric = null;
+        BaseQueryMetric.Lifecycle lowestLifecycle = null;
+        for (QueryMetricUpdate u : updates) {
+            this.stats.queueTimelyMetrics(u);
+            if (combinedMetric == null) {
+                combinedMetric = u.getMetric();
+                lowestLifecycle = u.getMetric().getLifecycle();
+            } else {
+                if (u.getMetric().getLifecycle().ordinal() < lowestLifecycle.ordinal()) {
+                    lowestLifecycle = u.getMetric().getLifecycle();
+                }
+                combinedMetric = this.handler.combineMetrics(u.getMetric(), combinedMetric, metricType);
+            }
+        }
+        QueryMetricUpdateHolder metricUpdateHolder = new QueryMetricUpdateHolder(combinedMetric, metricType);
+        metricUpdateHolder.updateLowestLifecycle(lowestLifecycle);
+        return metricUpdateHolder;
+    }
+    
+    public void storeMetricUpdates(QueryMetricUpdateHolder metricUpdate) {
         Timer.Context storeTimer = this.stats.getTimer(TIMERS.STORE).time();
         String queryId = metricUpdate.getMetric().getQueryId();
         try {
             IMap<String,QueryMetricUpdateHolder> incomingQueryMetricsCacheHz = ((IMap<String,QueryMetricUpdateHolder>) incomingQueryMetricsCache
                             .getNativeCache());
+            if (metricUpdate.getMetric().getPositiveSelectors() == null) {
+                this.handler.populateMetricSelectors(metricUpdate.getMetric());
+            }
             this.mergeLock.lock();
+            QueryMetricOperations.inProcess.add(queryId);
             try {
                 incomingQueryMetricsCacheHz.executeOnKey(queryId, this.entryProcessorFactory.createEntryProcessor(metricUpdate));
             } finally {
+                QueryMetricOperations.inProcess.remove(queryId);
                 this.mergeLock.unlock();
             }
         } catch (Exception e) {
@@ -380,8 +431,13 @@ public class QueryMetricOperations {
             }
             // fail the handling of the message
             throw new RuntimeException(e.getMessage());
+        } finally {
+            storeTimer.stop();
         }
-        storeTimer.stop();
+    }
+    
+    public static Set<String> getInProcess() {
+        return inProcess;
     }
     
     /**
@@ -407,10 +463,10 @@ public class QueryMetricOperations {
         try {
             BaseQueryMetric metric;
             QueryMetricUpdateHolder metricUpdate = incomingQueryMetricsCache.get(queryId, QueryMetricUpdateHolder.class);
-            if (metricUpdate != null && metricUpdate.isNewMetric()) {
-                metric = metricUpdate.getMetric();
-            } else {
+            if (metricUpdate == null) {
                 metric = this.handler.getQueryMetric(queryId);
+            } else {
+                metric = metricUpdate.getMetric();
             }
             if (metric != null) {
                 boolean allowAllMetrics = false;
@@ -611,8 +667,6 @@ public class QueryMetricOperations {
         CacheStats cacheStats = new CacheStats();
         IMap<Object,Object> incomingCacheHz = ((IMap<Object,Object>) incomingQueryMetricsCache.getNativeCache());
         cacheStats.setIncomingQueryMetrics(this.stats.getLocalMapStats(incomingCacheHz.getLocalMapStats()));
-        IMap<Object,Object> lastWrittenCacheHz = ((IMap<Object,Object>) lastWrittenQueryMetricCache.getNativeCache());
-        cacheStats.setLastWrittenQueryMetrics(this.stats.getLocalMapStats(lastWrittenCacheHz.getLocalMapStats()));
         cacheStats.setServiceStats(this.stats.formatStats(this.stats.getServiceStats(), true));
         cacheStats.setMemberUuid(getClusterLocalMemberUuid());
         try {
