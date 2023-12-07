@@ -3,8 +3,6 @@ package datawave.microservice.querymetric;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
-import java.util.Collections;
-
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -28,21 +26,6 @@ public class HazelcastCachingTest extends QueryMetricTestBase {
     @AfterEach
     public void cleanup() {
         super.cleanup();
-    }
-    
-    @Test
-    public void TestReadThroughCache() {
-        
-        try {
-            String queryId = createQueryId();
-            BaseQueryMetric m = createMetric(queryId);
-            shardTableQueryMetricHandler.writeMetric(m, Collections.emptyList(), m.getCreateDate().getTime(), false);
-            BaseQueryMetric metricFromReadThroughCache = lastWrittenQueryMetricCache.get(queryId, QueryMetricUpdate.class).getMetric();
-            metricAssertEquals("read through cache failed", m, metricFromReadThroughCache);
-        } catch (Exception e) {
-            log.error(e.getMessage(), e);
-            fail(e.getMessage());
-        }
     }
     
     @Test

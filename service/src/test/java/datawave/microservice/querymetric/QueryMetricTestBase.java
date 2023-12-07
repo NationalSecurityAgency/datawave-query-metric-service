@@ -1,7 +1,6 @@
 package datawave.microservice.querymetric;
 
 import static datawave.microservice.querymetric.config.HazelcastMetricCacheConfiguration.INCOMING_METRICS;
-import static datawave.microservice.querymetric.config.HazelcastMetricCacheConfiguration.LAST_WRITTEN_METRICS;
 import static datawave.security.authorization.DatawaveUser.UserType.USER;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -129,8 +128,11 @@ public class QueryMetricTestBase {
     @Autowired
     private DnUtils dnUtils;
     
-    protected Cache incomingQueryMetricsCache;
+    @Autowired
+    @Qualifier("lastWrittenQueryMetrics")
     protected Cache lastWrittenQueryMetricCache;
+    
+    protected Cache incomingQueryMetricsCache;
     
     @LocalServerPort
     protected int webServicePort;
@@ -169,7 +171,6 @@ public class QueryMetricTestBase {
         QueryMetricTestBase.isHazelCast = cacheManager instanceof HazelcastCacheManager;
         QueryMetricTestBase.staticCacheManager = cacheManager;
         this.incomingQueryMetricsCache = cacheManager.getCache(INCOMING_METRICS);
-        this.lastWrittenQueryMetricCache = cacheManager.getCache(LAST_WRITTEN_METRICS);
         this.shardTableQueryMetricHandler.verifyTables();
         BaseQueryMetric m = createMetric();
         // this is to ensure that the QueryMetrics_m table
@@ -532,9 +533,8 @@ public class QueryMetricTestBase {
         MapStoreConfig mapStoreConfig = config.getMapConfig(incomingCache.getName()).getMapStoreConfig();
         int writeDelaySeconds = Math.min(mapStoreConfig.getWriteDelaySeconds(), 1000);
         boolean found = false;
-        IMap<Object,Object> hzCache = ((IMap<Object,Object>) lastWrittenCache.getNativeCache());
         while (!found && System.currentTimeMillis() < (now + (1000 * (writeDelaySeconds + 1)))) {
-            found = hzCache.containsKey(queryId);
+            found = lastWrittenCache.get(queryId) != null;
             if (!found) {
                 try {
                     Thread.sleep(250);
@@ -627,7 +627,7 @@ public class QueryMetricTestBase {
             return new QueryMetricSupplier() {
                 @Override
                 public boolean send(Message<QueryMetricUpdate> queryMetricUpdate) {
-                    queryMetricOperations.storeMetric(queryMetricUpdate.getPayload());
+                    queryMetricOperations.storeMetricUpdates(new QueryMetricUpdateHolder(queryMetricUpdate.getPayload()));
                     return true;
                 }
             };

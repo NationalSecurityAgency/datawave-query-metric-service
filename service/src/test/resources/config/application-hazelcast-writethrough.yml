@@ -31,21 +31,4 @@ hazelcast:
             <write-batch-size>1000</write-batch-size>
           </map-store>
         </map>
-        <map name="lastWrittenQueryMetrics">
-          <in-memory-format>OBJECT</in-memory-format>
-          <!-- Keep 1 backup copy of data (so we have 2 copies total) -->
-          <backup-count>1</backup-count>
-          <!-- Maximum time in seconds for each entry to stay idle in the map. (no get, put, EntryProcessor.process or
-               containsKey is called.  Valid values are integers between 0 and Integer.MAX VALUE. Default is 0 / infinite -->
-          <max-idle-seconds>3600</max-idle-seconds>
-          <!-- No matter what, entries get evicted after this time. -->
-          <time-to-live-seconds>7200</time-to-live-seconds>
-          <merge-policy>com.hazelcast.spi.merge.LatestUpdateMergePolicy</merge-policy>
-          <per-entry-stats-enabled>true</per-entry-stats-enabled>
-          <!-- Evict the least frequently used entries first if we run out of space and allow 2GB for each cluster node to store data -->
-          <eviction eviction-policy="LRU" max-size-policy="USED_HEAP_SIZE" size="2048"/>
-          <map-store enabled="true" initial-mode="LAZY">
-            <factory-class-name>datawave.microservice.querymetric.persistence.AccumuloMapLoader$Factory</factory-class-name>
-          </map-store>
-        </map>
       </hazelcast>

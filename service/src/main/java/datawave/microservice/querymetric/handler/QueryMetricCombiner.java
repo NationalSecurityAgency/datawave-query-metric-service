@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,6 +25,11 @@ public class QueryMetricCombiner<T extends BaseQueryMetric> implements Serializa
         if (cachedQueryMetric != null) {
             // duplicate cachedQueryMetric so that we leave that object unchanged and return a combined metric
             combinedMetric = (T) cachedQueryMetric.duplicate();
+            
+            boolean inOrderUpdate = true;
+            if (updatedQueryMetric.getLastUpdated() != null && cachedQueryMetric.getLastUpdated() != null) {
+                inOrderUpdate = updatedQueryMetric.getLastUpdated().after(cachedQueryMetric.getLastUpdated());
+            }
             
             // only update once
             if (combinedMetric.getQueryType() == null && updatedQueryMetric.getQueryType() != null) {
@@ -49,6 +55,7 @@ public class QueryMetricCombiner<T extends BaseQueryMetric> implements Serializa
             if (combinedMetric.getQuery() == null && updatedQueryMetric.getQuery() != null) {
                 combinedMetric.setQuery(updatedQueryMetric.getQuery());
             }
+            
             // only update once
             if (combinedMetric.getHost() == null && updatedQueryMetric.getHost() != null) {
                 combinedMetric.setHost(updatedQueryMetric.getHost());
@@ -111,7 +118,9 @@ public class QueryMetricCombiner<T extends BaseQueryMetric> implements Serializa
                 combinedMetric.setErrorCode(updatedQueryMetric.getErrorCode());
             }
             // use updated lifecycle unless trying to update a final lifecycle with a non-final lifecycle
-            if ((combinedMetric.isLifecycleFinal() && !updatedQueryMetric.isLifecycleFinal()) == false) {
+            // or if updating with a lifecycle that is less than the current
+            if ((combinedMetric.isLifecycleFinal() && !updatedQueryMetric.isLifecycleFinal()) == false
+                            && updatedQueryMetric.getLifecycle().compareTo(combinedMetric.getLifecycle()) > 0) {
                 combinedMetric.setLifecycle(updatedQueryMetric.getLifecycle());
             }
             // only update once
@@ -184,8 +193,8 @@ public class QueryMetricCombiner<T extends BaseQueryMetric> implements Serializa
                 combinedMetric.setDocRanges(updatedQueryMetric.getDocRanges());
                 combinedMetric.setFiRanges(updatedQueryMetric.getFiRanges());
             }
-            // only update once
-            if (combinedMetric.getPlan() == null && updatedQueryMetric.getPlan() != null) {
+            // update if the update is in-order and the value changed
+            if (inOrderUpdate && isChanged(updatedQueryMetric.getPlan(), combinedMetric.getPlan())) {
                 combinedMetric.setPlan(updatedQueryMetric.getPlan());
             }
             // only update once
@@ -249,5 +258,13 @@ public class QueryMetricCombiner<T extends BaseQueryMetric> implements Serializa
             pm.setLoginTime(updated.getLoginTime());
         }
         return pm;
+    }
+    
+    protected boolean isChanged(String updated, String stored) {
+        if ((StringUtils.isBlank(stored) && StringUtils.isNotBlank(updated)) || (stored != null && updated != null && !stored.equals(updated))) {
+            return true;
+        } else {
+            return false;
+        }
     }
 }
