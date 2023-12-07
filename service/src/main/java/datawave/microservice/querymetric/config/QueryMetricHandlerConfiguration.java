@@ -38,7 +38,7 @@ import java.util.Map;
 import java.util.Set;
 
 @Configuration
-@EnableConfigurationProperties({QueryMetricHandlerProperties.class, TimelyProperties.class})
+@EnableConfigurationProperties({QueryMetricProperties.class, QueryMetricHandlerProperties.class, TimelyProperties.class})
 public class QueryMetricHandlerConfiguration {
     
     @Bean

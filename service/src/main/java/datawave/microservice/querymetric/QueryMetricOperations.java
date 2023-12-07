@@ -6,6 +6,8 @@ import com.hazelcast.core.IMap;
 import com.hazelcast.spring.cache.HazelcastCacheManager;
 import datawave.marking.MarkingFunctions;
 import datawave.microservice.authorization.user.ProxiedUserDetails;
+import datawave.microservice.querymetric.config.QueryMetricProperties;
+import datawave.microservice.querymetric.config.QueryMetricProperties.Retry;
 import datawave.microservice.querymetric.config.QueryMetricSinkConfiguration.QueryMetricSinkBinding;
 import datawave.microservice.querymetric.factory.BaseQueryMetricListResponseFactory;
 import datawave.microservice.querymetric.handler.QueryGeometryHandler;
@@ -77,6 +79,7 @@ public class QueryMetricOperations {
     
     private Logger log = LoggerFactory.getLogger(QueryMetricOperations.class);
     
+    private QueryMetricProperties queryMetricProperties;
     private ShardTableQueryMetricHandler handler;
     private QueryGeometryHandler geometryHandler;
     private CacheManager cacheManager;
@@ -110,6 +113,8 @@ public class QueryMetricOperations {
     /**
      * Instantiates a new QueryMetricOperations.
      *
+     * @param queryMetricProperties
+     *            the query metric properties
      * @param cacheManager
      *            the CacheManager
      * @param handler
@@ -128,10 +133,11 @@ public class QueryMetricOperations {
      *            the stats
      */
     @Autowired
-    public QueryMetricOperations(@Named("queryMetricCacheManager") CacheManager cacheManager, ShardTableQueryMetricHandler handler,
-                    QueryGeometryHandler geometryHandler, MarkingFunctions markingFunctions, BaseQueryMetricListResponseFactory queryMetricListResponseFactory,
-                    MergeLockLifecycleListener mergeLock, Correlator correlator, MetricUpdateEntryProcessorFactory entryProcessorFactory,
-                    QueryMetricOperationsStats stats) {
+    public QueryMetricOperations(QueryMetricProperties queryMetricProperties, @Named("queryMetricCacheManager") CacheManager cacheManager,
+                    ShardTableQueryMetricHandler handler, QueryGeometryHandler geometryHandler, MarkingFunctions markingFunctions,
+                    BaseQueryMetricListResponseFactory queryMetricListResponseFactory, MergeLockLifecycleListener mergeLock, Correlator correlator,
+                    MetricUpdateEntryProcessorFactory entryProcessorFactory, QueryMetricOperationsStats stats) {
+        this.queryMetricProperties = queryMetricProperties;
         this.handler = handler;
         this.geometryHandler = geometryHandler;
         this.cacheManager = cacheManager;
@@ -194,17 +200,27 @@ public class QueryMetricOperations {
         if (!this.mergeLock.isAllowedReadLock()) {
             throw new IllegalStateException("service unavailable");
         }
-        stats.getMeter(METERS.REST).mark(queryMetrics.size());
-        VoidResponse response = new VoidResponse();
-        for (BaseQueryMetric m : queryMetrics) {
-            if (log.isTraceEnabled()) {
-                log.trace("received metric update via REST: " + m.toString());
-            } else {
-                log.debug("received metric update via REST: " + m.getQueryId());
+        Timer.Context restTimer = this.stats.getTimer(TIMERS.REST).time();
+        try {
+            for (BaseQueryMetric m : queryMetrics) {
+                if (log.isTraceEnabled()) {
+                    log.trace("received metric update via REST: " + m.toString());
+                } else {
+                    log.debug("received metric update via REST: " + m.getQueryId());
+                }
+                Timer.Context messageSendTimer = this.stats.getTimer(TIMERS.MESSAGE_SEND).time();
+                try {
+                    if (!updateMetric(new QueryMetricUpdate<>(m, metricType))) {
+                        throw new RuntimeException("Unable to process query metric update for query [" + m.getQueryId() + "]");
+                    }
+                } finally {
+                    messageSendTimer.stop();
+                }
             }
-            output.send(MessageBuilder.withPayload(new QueryMetricUpdate(m, metricType)).build());
+        } finally {
+            restTimer.stop();
         }
-        return response;
+        return new VoidResponse();
     }
     
     /**
@@ -226,15 +242,73 @@ public class QueryMetricOperations {
         if (!this.mergeLock.isAllowedReadLock()) {
             throw new IllegalStateException("service unavailable");
         }
-        stats.getMeter(METERS.REST).mark();
-        if (log.isTraceEnabled()) {
-            log.trace("received metric update via REST: " + queryMetric.toString());
-        } else {
-            log.debug("received metric update via REST: " + queryMetric.getQueryId());
+        Timer.Context restTimer = this.stats.getTimer(TIMERS.REST).time();
+        try {
+            if (log.isTraceEnabled()) {
+                log.trace("received metric update via REST: " + queryMetric.toString());
+            } else {
+                log.debug("received metric update via REST: " + queryMetric.getQueryId());
+            }
+            Timer.Context messageSendTimer = this.stats.getTimer(TIMERS.MESSAGE_SEND).time();
+            try {
+                if (!updateMetric(new QueryMetricUpdate(queryMetric, metricType))) {
+                    throw new RuntimeException("Unable to process query metric update for query [" + queryMetric.getQueryId() + "]");
+                }
+            } finally {
+                messageSendTimer.stop();
+            }
+        } finally {
+            restTimer.stop();
         }
-        output.send(MessageBuilder.withPayload(new QueryMetricUpdate(queryMetric, metricType)).build());
         return new VoidResponse();
     }
+    
+    private boolean updateMetric(QueryMetricUpdate update) {
+        
+        boolean success;
+        final long updateStartTime = System.currentTimeMillis();
+        long currentTime;
+        int attempts = 0;
+        
+        Retry retry = queryMetricProperties.getRetry();
+        
+        do {
+            if (attempts++ > 0) {
+                try {
+                    Thread.sleep(retry.getBackoffIntervalMillis());
+                } catch (InterruptedException e) {
+                    // Ignore -- we'll just end up retrying a little too fast
+                }
+            }
+            
+            if (log.isDebugEnabled()) {
+                log.debug("Update attempt {} of {} for query {}", attempts, retry.getMaxAttempts(), update.getMetric().getQueryId());
+            }
+            
+            success = output.send(MessageBuilder.withPayload(update).build());
+            currentTime = System.currentTimeMillis();
+        } while (!success && (currentTime - updateStartTime) < retry.getFailTimeoutMillis() && attempts < retry.getMaxAttempts());
+        
+        if (!success) {
+            log.warn("Update for query {} failed. {attempts = {}, elapsedMillis = {}}", update.getMetric().getQueryId(), attempts,
+                            (currentTime - updateStartTime));
+        } else {
+            log.info("Update for query {} successful. {attempts = {}, elapsedMillis = {}}", update.getMetric().getQueryId(), attempts,
+                            (currentTime - updateStartTime));
+        }
+        
+        return success;
+    }
+    
+    /**
+     * Passes query metric messages to the messaging infrastructure.
+     * <p>
+     * The metric ID is used as a correlation ID in order to ensure that a producer confirm ack is received. If a producer confirm ack is not received within
+     * the specified amount of time, a 500 Internal Server Error will be returned to the caller.
+     *
+     * @param update
+     *            The query metric update to be sent
+     */
     
     private boolean shouldCorrelate(QueryMetricUpdate update) {
         // add the first update for a metric to get it into the cache
@@ -256,7 +330,7 @@ public class QueryMetricOperations {
      */
     @StreamListener(QueryMetricSinkBinding.SINK_NAME)
     public void handleEvent(QueryMetricUpdate update) {
-        stats.getMeter(METERS.MESSAGE).mark();
+        stats.getMeter(METERS.MESSAGE_RECEIVE).mark();
         if (shouldCorrelate(update)) {
             log.debug("adding update for {} to correlator", update.getMetric().getQueryId());
             this.correlator.addMetricUpdate(update);
@@ -334,8 +408,9 @@ public class QueryMetricOperations {
             }
             // fail the handling of the message
             throw new RuntimeException(e.getMessage());
+        } finally {
+            storeTimer.stop();
         }
-        storeTimer.stop();
     }
     
     /**
