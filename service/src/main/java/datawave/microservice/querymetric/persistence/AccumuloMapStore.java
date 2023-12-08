@@ -2,12 +2,11 @@ package datawave.microservice.querymetric.persistence;
 
 import com.codahale.metrics.SlidingTimeWindowArrayReservoir;
 import com.codahale.metrics.Timer;
-import com.google.common.cache.CacheBuilder;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.hazelcast.core.MapLoader;
 import com.hazelcast.core.MapStore;
 import com.hazelcast.core.MapStoreFactory;
 import datawave.microservice.querymetric.BaseQueryMetric;
-import datawave.microservice.querymetric.MergeLockLifecycleListener;
 import datawave.microservice.querymetric.QueryMetricType;
 import datawave.microservice.querymetric.QueryMetricUpdateHolder;
 import datawave.microservice.querymetric.handler.ShardTableQueryMetricHandler;
@@ -29,7 +28,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 import static java.util.concurrent.TimeUnit.MINUTES;
@@ -53,9 +51,9 @@ public class AccumuloMapStore<T extends BaseQueryMetric> extends AccumuloMapLoad
     private static AccumuloMapStore instance;
     private Logger log = LoggerFactory.getLogger(AccumuloMapStore.class);
     private Cache lastWrittenQueryMetricCache;
-    private MergeLockLifecycleListener mergeLock;
-    private com.google.common.cache.Cache failures;
+    private com.github.benmanes.caffeine.cache.Cache failures;
     private Timer writeTimer = new Timer(new SlidingTimeWindowArrayReservoir(1, MINUTES));
+    private Timer readTimer = new Timer(new SlidingTimeWindowArrayReservoir(1, MINUTES));
     private boolean shuttingDown = false;
     
     public static class Factory implements MapStoreFactory<String,BaseQueryMetric> {
@@ -66,10 +64,13 @@ public class AccumuloMapStore<T extends BaseQueryMetric> extends AccumuloMapLoad
     }
     
     @Autowired
-    public AccumuloMapStore(ShardTableQueryMetricHandler handler, MergeLockLifecycleListener mergeLock) {
+    public AccumuloMapStore(ShardTableQueryMetricHandler handler) {
         this.handler = handler;
-        this.mergeLock = mergeLock;
-        this.failures = CacheBuilder.newBuilder().expireAfterWrite(10, TimeUnit.MINUTES).build();
+        // @formatter:off
+        this.failures = Caffeine.newBuilder()
+                .expireAfterWrite(60, TimeUnit.MINUTES)
+                .build();
+        // @formatter:on
         AccumuloMapStore.instance = this;
     }
     
@@ -130,14 +131,19 @@ public class AccumuloMapStore<T extends BaseQueryMetric> extends AccumuloMapLoad
             if (!queryMetricUpdate.isNewMetric()) {
                 lastQueryMetricUpdate = (QueryMetricUpdateHolder<T>) lastWrittenQueryMetricCache.get(queryId, () -> {
                     log.debug("getting metric {} from accumulo", queryId);
-                    T m = handler.getQueryMetric(queryId, ignoreFieldsOnQuery);
-                    if (m == null) {
-                        return null;
-                    } else {
-                        // these fields will not be populated in the returned metric,
-                        // so we should not compare them later for writing mutations
-                        ignoredFields.addAll(ignoreFieldsOnWrite);
-                        return new QueryMetricUpdateHolder(m, metricType);
+                    Timer.Context readTimerContext = readTimer.time();
+                    try {
+                        T m = handler.getQueryMetric(queryId, ignoreFieldsOnQuery);
+                        if (m == null) {
+                            return null;
+                        } else {
+                            // these fields will not be populated in the returned metric,
+                            // so we should not compare them later for writing mutations
+                            ignoredFields.addAll(ignoreFieldsOnWrite);
+                            return new QueryMetricUpdateHolder(m, metricType);
+                        }
+                    } finally {
+                        readTimerContext.stop();
                     }
                 });
             }
@@ -208,8 +214,8 @@ public class AccumuloMapStore<T extends BaseQueryMetric> extends AccumuloMapLoad
         String queryId = update.getMetric().getQueryId();
         Integer numFailures = 1;
         try {
-            numFailures = (Integer) this.failures.get(queryId, () -> 0) + 1;
-        } catch (ExecutionException e1) {
+            numFailures = (Integer) this.failures.get(queryId, o -> 0) + 1;
+        } catch (Exception e1) {
             log.error(e1.getMessage(), e1);
         }
         if (numFailures < 3) {
@@ -264,5 +270,9 @@ public class AccumuloMapStore<T extends BaseQueryMetric> extends AccumuloMapLoad
     
     public Timer getWriteTimer() {
         return writeTimer;
+    }
+    
+    public Timer getReadTimer() {
+        return readTimer;
     }
 }
