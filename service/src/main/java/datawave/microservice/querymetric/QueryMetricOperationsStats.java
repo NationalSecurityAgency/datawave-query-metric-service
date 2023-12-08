@@ -234,7 +234,8 @@ public class QueryMetricOperationsStats {
     public Map<String,Double> getServiceStats() {
         Map<String,Double> stats = new LinkedHashMap<>();
         addTimerStats("store", getTimer(TIMERS.STORE), stats);
-        addTimerStats("accumulo", this.mapStore.getWriteTimer(), stats);
+        addTimerStats("accumulo.write", this.mapStore.getWriteTimer(), stats);
+        addTimerStats("accumulo.read", this.mapStore.getReadTimer(), stats);
         addTimerStats("message.send", getTimer(TIMERS.MESSAGE_SEND), stats);
         addTimerStats("rest", getTimer(TIMERS.REST), stats);
         addMeterStats("message.receive", getMeter(METERS.MESSAGE_RECEIVE), stats);

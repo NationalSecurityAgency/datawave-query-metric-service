@@ -83,8 +83,8 @@ datawave:
         maxReadMilliseconds: 10000
       cache:
         lastWrittenQueryMetrics:
-          maximumSize: 100
-          ttlSeconds: 60
+          maximumSize: 5000
+          ttlSeconds: 600
       client:
         enabled: true
         transport: message
