@@ -86,6 +86,7 @@ datawave:
         transport: message
         host: localhost
         port: ${server.port}
+        confirmAckEnabled: false
       timely:
         enabled: false
         host: localhost
@@ -96,6 +97,7 @@ datawave:
         logServiceStatsRateMs: 300000
         publishServiceStatsToTimelyRateMs: 60000
         publishQueryStatsToTimelyRateMs: 60000
+      confirmAckEnabled: false
 
   metadata:
     all-metadata-auths:
