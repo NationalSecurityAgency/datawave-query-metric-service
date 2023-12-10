@@ -14,6 +14,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.cache.Cache;
 import org.springframework.cloud.consul.discovery.ConsulDiscoveryProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -25,7 +26,6 @@ import com.hazelcast.config.InMemoryFormat;
 import com.hazelcast.config.JoinConfig;
 import com.hazelcast.config.ListenerConfig;
 import com.hazelcast.config.MapConfig;
-import com.hazelcast.config.MapStoreConfig;
 import com.hazelcast.config.TcpIpConfig;
 import com.hazelcast.config.XmlConfigBuilder;
 import com.hazelcast.core.Hazelcast;
@@ -49,7 +49,6 @@ import datawave.microservice.querymetric.persistence.MetricMapListener;
 public class HazelcastMetricCacheConfiguration {
     
     private Logger log = LoggerFactory.getLogger(HazelcastMetricCacheConfiguration.class);
-    public static final String LAST_WRITTEN_METRICS = "lastWrittenQueryMetrics";
     public static final String INCOMING_METRICS = "incomingQueryMetrics";
     
     @Value("${hazelcast.clusterName:${spring.application.name}}")
@@ -63,7 +62,7 @@ public class HazelcastMetricCacheConfiguration {
     @Bean
     @Qualifier("metrics")
     HazelcastInstance hazelcastInstance(Config config, @Qualifier("store") AccumuloMapStore mapStore, @Qualifier("loader") AccumuloMapLoader mapLoader,
-                    MergeLockLifecycleListener lifecycleListener) {
+                    MergeLockLifecycleListener lifecycleListener, @Qualifier("lastWrittenQueryMetrics") Cache lastWrittenCache) {
         // Autowire both the AccumuloMapStore and AccumuloMapLoader so that they both get created
         // Ensure that the lastWrittenQueryMetricCache is set into the MapStore before the instance is active and the writeLock is released
         lifecycleListener.writeLockRunnable.lock(LifecycleEvent.LifecycleState.STARTING);
@@ -72,18 +71,10 @@ public class HazelcastMetricCacheConfiguration {
         try {
             HazelcastCacheManager cacheManager = new HazelcastCacheManager(instance);
             
-            HazelcastCache lastWrittenQueryMetricsCache = (HazelcastCache) cacheManager.getCache(LAST_WRITTEN_METRICS);
-            lastWrittenQueryMetricsCache.getNativeCache().addEntryListener(new MetricMapListener(LAST_WRITTEN_METRICS), true);
-            
             HazelcastCache incomingMetricsCache = (HazelcastCache) cacheManager.getCache(INCOMING_METRICS);
             incomingMetricsCache.getNativeCache().addEntryListener(new MetricMapListener(INCOMING_METRICS), true);
             
-            MapStoreConfig mapStoreConfig = config.getMapConfigs().get(LAST_WRITTEN_METRICS).getMapStoreConfig();
-            if (mapStoreConfig.getInitialLoadMode().equals(MapStoreConfig.InitialLoadMode.LAZY)) {
-                // prompts loading all keys otherwise we are getting a deadlock
-                lastWrittenQueryMetricsCache.getNativeCache().size();
-            }
-            mapStore.setLastWrittenQueryMetricCache(lastWrittenQueryMetricsCache);
+            mapStore.setLastWrittenQueryMetricCache(lastWrittenCache);
             System.setProperty("hzAddress", instance.getCluster().getLocalMember().getAddress().toString());
             System.setProperty("hzUuid", instance.getCluster().getLocalMember().getUuid().toString());
         } catch (Exception e) {

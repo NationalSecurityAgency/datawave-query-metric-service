@@ -31,9 +31,11 @@ import datawave.core.common.connection.AccumuloClientPool;
 import datawave.core.query.result.event.DefaultResponseObjectFactory;
 import datawave.marking.MarkingFunctions;
 import datawave.microservice.querymetric.BaseQueryMetric;
+import datawave.microservice.querymetric.Correlator;
 import datawave.microservice.querymetric.QueryMetricFactory;
 import datawave.microservice.querymetric.QueryMetricFactoryImpl;
 import datawave.microservice.querymetric.QueryMetricOperations;
+import datawave.microservice.querymetric.QueryMetricOperationsStats;
 import datawave.microservice.querymetric.factory.BaseQueryMetricListResponseFactory;
 import datawave.microservice.querymetric.factory.QueryMetricListResponseFactory;
 import datawave.microservice.querymetric.factory.QueryMetricQueryLogicFactory;
@@ -60,8 +62,8 @@ import datawave.webservice.query.result.event.ResponseObjectFactory;
 public class QueryMetricHandlerConfiguration {
     
     @Bean
-    public QueryMetricConsumer queryMetricSink(QueryMetricOperations queryMetricOperations) {
-        return new QueryMetricConsumer(queryMetricOperations);
+    public QueryMetricConsumer queryMetricSink(QueryMetricOperations queryMetricOperations, Correlator correlator, QueryMetricOperationsStats stats) {
+        return new QueryMetricConsumer(queryMetricOperations, correlator, stats);
     }
     
     @Bean

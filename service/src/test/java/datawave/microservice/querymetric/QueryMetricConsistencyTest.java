@@ -131,6 +131,41 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
     }
     
     @Test
+    public void ChangePlanTest() throws Exception {
+        int port = this.webServicePort;
+        String queryId = createQueryId();
+        BaseQueryMetric m = createMetric(queryId);
+        UriComponents metricUri = UriComponentsBuilder.newInstance().scheme("https").host("localhost").port(port).path(String.format(getMetricsUrl, queryId))
+                        .build();
+        m.setPlan("InitialPlan");
+        // @formatter:off
+        client.submit(new QueryMetricClient.Request.Builder()
+                .withMetric(m)
+                .withMetricType(QueryMetricType.COMPLETE)
+                .withUser(this.adminUser)
+                .build());
+        // @formatter:on
+        m.setPlan("RevisedPlan");
+        m.setLastUpdated(new Date(m.getLastUpdated().getTime() + 1));
+        // @formatter:off
+        client.submit(new QueryMetricClient.Request.Builder()
+                .withMetric(m)
+                .withMetricType(QueryMetricType.COMPLETE)
+                .withUser(this.adminUser)
+                .build());
+        // @formatter:on
+        
+        HttpEntity metricRequestEntity = createRequestEntity(null, this.adminUser, null);
+        ResponseEntity<BaseQueryMetricListResponse> metricResponse = this.restTemplate.exchange(metricUri.toUri(), HttpMethod.GET, metricRequestEntity,
+                        BaseQueryMetricListResponse.class);
+        
+        assertEquals(1, metricResponse.getBody().getNumResults());
+        BaseQueryMetric returnedMetric = (BaseQueryMetric) metricResponse.getBody().getResult().get(0);
+        assertEquals(m.getPlan(), returnedMetric.getPlan(), "plan incorrect");
+        assertNoDuplicateFields(queryId);
+    }
+    
+    @Test
     public void DistributedUpdateTest() throws Exception {
         int port = this.webServicePort;
         String queryId = createQueryId();
@@ -313,7 +348,7 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
         String queryId = createQueryId();
         QueryMetric storedQueryMetric = (QueryMetric) createMetric(queryId);
         QueryMetric updatedQueryMetric = (QueryMetric) storedQueryMetric.duplicate();
-        updatedQueryMetric.setLifecycle(BaseQueryMetric.Lifecycle.CLOSED);
+        updatedQueryMetric.setLifecycle(BaseQueryMetric.Lifecycle.RESULTS);
         updatedQueryMetric.setNumResults(2000);
         updatedQueryMetric.setDocRanges(400);
         updatedQueryMetric.setNextCount(400);
