@@ -81,6 +81,10 @@ datawave:
         remoteQueryTimeout: 10
         remoteQueryTimeUnit: SECONDS
         maxReadMilliseconds: 10000
+      cache:
+        lastWrittenQueryMetrics:
+          maximumSize: 5000
+          ttlSeconds: 600
       client:
         enabled: true
         transport: message
@@ -98,6 +102,8 @@ datawave:
         publishServiceStatsToTimelyRateMs: 60000
         publishQueryStatsToTimelyRateMs: 60000
       confirmAckEnabled: false
+      correlator:
+        enabled: false
 
   metadata:
     all-metadata-auths:
