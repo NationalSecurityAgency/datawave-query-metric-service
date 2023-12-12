@@ -401,7 +401,7 @@ public class QueryMetricTestBase {
             found = hzCache.containsKey(queryId);
             if (!found) {
                 try {
-                    Thread.sleep(250);
+                    Thread.sleep(50);
                 } catch (InterruptedException e) {}
             }
         }
@@ -414,10 +414,10 @@ public class QueryMetricTestBase {
         int writeDelaySeconds = Math.min(mapStoreConfig.getWriteDelaySeconds(), 1000);
         boolean found = false;
         while (!found && System.currentTimeMillis() < (now + (1000 * (writeDelaySeconds + 1)))) {
-            found = lastWrittenCache.get(queryId) != null;
+            found = lastWrittenCache.get(queryId, QueryMetricUpdateHolder.class) != null;
             if (!found) {
                 try {
-                    Thread.sleep(250);
+                    Thread.sleep(50);
                 } catch (InterruptedException e) {}
             }
         }

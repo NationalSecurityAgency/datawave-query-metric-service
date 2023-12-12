@@ -60,6 +60,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.TimeZone;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static datawave.microservice.querymetric.QueryMetricOperations.DEFAULT_DATETIME.BEGIN;
 import static datawave.microservice.querymetric.QueryMetricOperations.DEFAULT_DATETIME.END;
@@ -88,6 +89,7 @@ public class QueryMetricOperations {
     private BaseQueryMetricListResponseFactory queryMetricListResponseFactory;
     private MergeLockLifecycleListener mergeLock;
     private Correlator correlator;
+    private AtomicBoolean timedCorrelationInProgress = new AtomicBoolean(false);
     private MetricUpdateEntryProcessorFactory entryProcessorFactory;
     private QueryMetricOperationsStats stats;
     private static Set<String> inProcess = Collections.synchronizedSet(new HashSet<>());
@@ -154,14 +156,40 @@ public class QueryMetricOperations {
     public void shutdown() {
         if (this.correlator.isEnabled()) {
             this.correlator.shutdown(true);
-            ensureUpdatesProcessed();
+            // we've locked out the timer thread, but need to
+            // wait for it to complete the last write
+            while (isTimedCorrelationInProgress()) {
+                try {
+                    Thread.sleep(200);
+                } catch (InterruptedException e) {
+                    
+                }
+            }
+            ensureUpdatesProcessed(false);
         }
         this.stats.queueAggregatedQueryStatsForTimely();
         this.stats.writeQueryStatsToTimely();
     }
     
+    public boolean isTimedCorrelationInProgress() {
+        return this.timedCorrelationInProgress.get();
+    }
+    
     @Scheduled(fixedDelay = 2000)
-    public void ensureUpdatesProcessed() {
+    public void ensureUpdatesProcessedScheduled() {
+        // don't write metrics from this thread while shutting down,
+        // so we can make sure that the process completes
+        if (!this.correlator.isShuttingDown()) {
+            this.timedCorrelationInProgress.set(true);
+            try {
+                ensureUpdatesProcessed(true);
+            } finally {
+                this.timedCorrelationInProgress.set(false);
+            }
+        }
+    }
+    
+    public void ensureUpdatesProcessed(boolean scheduled) {
         if (this.correlator.isEnabled()) {
             List<QueryMetricUpdate> correlatedUpdates;
             do {
@@ -177,7 +205,7 @@ public class QueryMetricOperations {
                         log.error("exception while combining correlated updates: " + e.getMessage(), e);
                     }
                 }
-            } while (correlatedUpdates != null && !correlatedUpdates.isEmpty());
+            } while (!(scheduled && this.correlator.isShuttingDown()) && correlatedUpdates != null && !correlatedUpdates.isEmpty());
         }
     }
     
