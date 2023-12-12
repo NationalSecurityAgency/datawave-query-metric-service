@@ -132,23 +132,24 @@ public class AccumuloMapStore<T extends BaseQueryMetric> extends AccumuloMapLoad
             
             final List<String> ignoredFields = new ArrayList<>();
             if (!queryMetricUpdate.isNewMetric()) {
-                lastQueryMetricUpdate = (QueryMetricUpdateHolder<T>) lastWrittenQueryMetricCache.get(queryId, () -> {
+                lastQueryMetricUpdate = lastWrittenQueryMetricCache.get(queryId, QueryMetricUpdateHolder.class);
+                if (lastQueryMetricUpdate == null) {
                     log.debug("getting metric {} from accumulo", queryId);
                     Timer.Context readTimerContext = readTimer.time();
                     try {
                         T m = handler.getQueryMetric(queryId, ignoreFieldsOnQuery);
-                        if (m == null) {
-                            return null;
-                        } else {
+                        if (m != null) {
                             // these fields will not be populated in the returned metric,
                             // so we should not compare them later for writing mutations
                             ignoredFields.addAll(ignoreFieldsOnWrite);
-                            return new QueryMetricUpdateHolder(m, metricType);
+                            lastQueryMetricUpdate = new QueryMetricUpdateHolder(m, metricType);
                         }
+                    } catch (Exception e) {
+                        log.error(e.getMessage(), e);
                     } finally {
                         readTimerContext.stop();
                     }
-                });
+                }
             }
             
             if (lastQueryMetricUpdate != null) {
