@@ -1,21 +1,23 @@
 package datawave.microservice.querymetric.persistence;
 
-import com.hazelcast.core.MapLoader;
-import com.hazelcast.core.MapStoreFactory;
-import datawave.microservice.querymetric.BaseQueryMetric;
-import datawave.microservice.querymetric.QueryMetricUpdate;
-import datawave.microservice.querymetric.QueryMetricUpdateHolder;
-import datawave.microservice.querymetric.handler.ShardTableQueryMetricHandler;
+import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Properties;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
-import java.util.Collection;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Properties;
+import com.hazelcast.map.MapLoader;
+import com.hazelcast.map.MapStoreFactory;
+
+import datawave.microservice.querymetric.BaseQueryMetric;
+import datawave.microservice.querymetric.QueryMetricUpdate;
+import datawave.microservice.querymetric.QueryMetricUpdateHolder;
+import datawave.microservice.querymetric.handler.ShardTableQueryMetricHandler;
 
 @Component("loader")
 @ConditionalOnProperty(name = "hazelcast.server.enabled", havingValue = "true")

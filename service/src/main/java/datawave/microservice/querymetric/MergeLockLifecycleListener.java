@@ -1,19 +1,21 @@
 package datawave.microservice.querymetric;
 
-import com.hazelcast.core.HazelcastInstance;
-import com.hazelcast.core.HazelcastInstanceAware;
-import com.hazelcast.core.HazelcastInstanceNotActiveException;
-import com.hazelcast.core.LifecycleEvent;
-import com.hazelcast.core.LifecycleListener;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.annotation.PreDestroy;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+
+import javax.annotation.PreDestroy;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.hazelcast.core.HazelcastInstance;
+import com.hazelcast.core.HazelcastInstanceAware;
+import com.hazelcast.core.HazelcastInstanceNotActiveException;
+import com.hazelcast.core.LifecycleEvent;
+import com.hazelcast.core.LifecycleListener;
 
 public class MergeLockLifecycleListener implements LifecycleListener, HazelcastInstanceAware {
     
@@ -62,7 +64,7 @@ public class MergeLockLifecycleListener implements LifecycleListener, HazelcastI
     private String getLocalMemberUuid() {
         try {
             if (this.instance != null) {
-                this.localMemberUuid = this.instance.getCluster().getLocalMember().getUuid();
+                this.localMemberUuid = this.instance.getCluster().getLocalMember().getUuid().toString();
             }
         } catch (HazelcastInstanceNotActiveException e) {
             // this.instance.getCluster() will throw an exception during shutdown
@@ -89,12 +91,12 @@ public class MergeLockLifecycleListener implements LifecycleListener, HazelcastI
         switch (event.getState()) {
             case MERGING:
                 // lock for a maximum time so that we don't lock forever
-                this.writeLockRunnable.lock(120000, event.getState());
+                this.writeLockRunnable.lock(event.getState(), 5, TimeUnit.MINUTES);
                 log.info(event + " [" + getLocalMemberUuid() + "]");
                 break;
             case SHUTTING_DOWN:
                 // lock for a maximum time so that we don't lock forever
-                this.writeLockRunnable.lock(60000, event.getState());
+                this.writeLockRunnable.lock(event.getState(), 60, TimeUnit.SECONDS);
                 makeServiceUnavailable();
                 log.info(event + " [" + getLocalMemberUuid() + "]");
                 break;
@@ -176,6 +178,11 @@ public class MergeLockLifecycleListener implements LifecycleListener, HazelcastI
                 } else {
                     try {
                         Thread.sleep(100);
+                        // If a write lock timed out and the clusterLock is no longer locked when requestUnlock
+                        // happens, we should reset requestUnlock to false and allow the requesting thread to continue
+                        if (this.requestUnlock.get() == true && !this.clusterLock.isWriteLocked()) {
+                            this.requestUnlock.set(false);
+                        }
                     } catch (InterruptedException e) {
                         log.error(e.getMessage(), e);
                     }
@@ -183,11 +190,19 @@ public class MergeLockLifecycleListener implements LifecycleListener, HazelcastI
             }
         }
         
-        public void lock(long maxLockMilliseconds, LifecycleEvent.LifecycleState state) {
+        public void lock(LifecycleEvent.LifecycleState state) {
+            lock(state, -1, TimeUnit.MILLISECONDS);
+        }
+        
+        public void lock(LifecycleEvent.LifecycleState state, long maxDuration, TimeUnit timeUnit) {
             log.info("locking for write [" + state + "]");
             // prompt run() method to lock the writeLock
             if (this.requestLock.compareAndSet(false, true)) {
-                this.scheduledUnlockTime = System.currentTimeMillis() + maxLockMilliseconds;
+                if (maxDuration >= 0) {
+                    this.scheduledUnlockTime = System.currentTimeMillis() + TimeUnit.MILLISECONDS.convert(maxDuration, timeUnit);
+                } else {
+                    this.scheduledUnlockTime = Long.MAX_VALUE;
+                }
                 // wait until run() method locks the writeLock and sets requestLock to false
                 while (requestLock.get() == true && !isShuttingDown()) {
                     try {

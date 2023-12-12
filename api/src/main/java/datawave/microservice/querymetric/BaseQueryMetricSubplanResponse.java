@@ -1,13 +1,5 @@
 package datawave.microservice.querymetric;
 
-import datawave.webservice.HtmlProvider;
-import datawave.webservice.query.QueryImpl;
-import datawave.webservice.result.BaseResponse;
-import org.apache.commons.text.StringEscapeUtils;
-
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlElementWrapper;
-import javax.xml.bind.annotation.XmlTransient;
 import java.text.SimpleDateFormat;
 import java.util.Collections;
 import java.util.Date;
@@ -15,6 +7,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlElementWrapper;
+import javax.xml.bind.annotation.XmlTransient;
+
+import org.apache.commons.text.StringEscapeUtils;
+
+import datawave.webservice.HtmlProvider;
+import datawave.webservice.query.QueryImpl;
+import datawave.webservice.result.BaseResponse;
 
 public abstract class BaseQueryMetricSubplanResponse<T extends BaseQueryMetric> extends BaseResponse implements HtmlProvider {
     

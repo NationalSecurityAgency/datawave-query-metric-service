@@ -1,46 +1,42 @@
 package datawave.microservice.querymetric;
 
-import datawave.microservice.querymetric.config.QueryMetricHandlerProperties;
-import datawave.microservice.querymetric.handler.AccumuloClientTracking;
-import datawave.microservice.querymetric.handler.ShardTableQueryMetricHandler;
-import datawave.webservice.common.connection.AccumuloClientPool;
-import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.client.Connector;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.cache.Cache;
-import org.springframework.cache.CacheManager;
-import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
+import static datawave.microservice.querymetric.QueryMetricTestBase.metricAssertEquals;
 
-import javax.inject.Named;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static datawave.microservice.querymetric.config.HazelcastMetricCacheConfiguration.INCOMING_METRICS;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.cache.CacheManager;
+import org.springframework.cache.caffeine.CaffeineCacheManager;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
+import org.springframework.context.annotation.Profile;
+import org.springframework.messaging.Message;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
+
+import datawave.marking.MarkingFunctions;
+import datawave.microservice.querymetric.config.TimelyProperties;
+import datawave.microservice.querymetric.function.QueryMetricSupplier;
 
 /*
  * This class tests that a QueryMetricClient can be created and used with messaging
  * when a JWTTokenHandler is not AutoWired due to SpringBootTest.WebEnvironment.NONE
  * and ConditionalOnWebApplication in JWTConfiguration
  */
-@RunWith(SpringRunner.class)
+@ExtendWith(SpringExtension.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
-@DirtiesContext
-@ActiveProfiles({"NonWebApplicationMessagingTest", "QueryMetricTest", "hazelcast-writethrough"})
+@ActiveProfiles({"NonWebApplicationMessagingTest", "QueryMetricTest"})
+@ContextConfiguration(classes = {NonWebApplicationMessagingTest.QueryMetricHttpTestConfiguration.class, QueryMetricService.class})
 public class NonWebApplicationMessagingTest {
-    
-    private Logger log = LoggerFactory.getLogger(getClass());
     
     @Autowired
     private QueryMetricClient client;
@@ -49,55 +45,15 @@ public class NonWebApplicationMessagingTest {
     private QueryMetricFactory queryMetricFactory;
     
     @Autowired
-    private MergeLockLifecycleListener mergeLockLifecycleListener;
+    public List<QueryMetricUpdate> storedMetricUpdates;
     
-    @Autowired
-    protected QueryMetricHandlerProperties queryMetricHandlerProperties;
+    private Map<String,String> metricMarkings;
     
-    @Autowired
-    private ShardTableQueryMetricHandler shardTableQueryMetricHandler;
-    
-    @Autowired
-    protected @Qualifier("warehouse") AccumuloClientPool accumuloClientPool;
-    
-    @Autowired
-    @Named("queryMetricCacheManager")
-    protected CacheManager cacheManager;
-    
-    private Cache incomingQueryMetricsCache;
-    
-    @Before
+    @BeforeEach
     public void setup() {
-        this.incomingQueryMetricsCache = cacheManager.getCache(INCOMING_METRICS);
-        this.mergeLockLifecycleListener.setAllowReadLock(true);
-        
-        BaseQueryMetric m = queryMetricFactory.createMetric();
-        m.setQueryId(QueryMetricTestBase.createQueryId());
-        // this is to ensure that the QueryMetrics_m table
-        // is populated so that queries work properly
-        try {
-            this.shardTableQueryMetricHandler.writeMetric(m, Collections.emptyList(), m.getCreateDate().getTime(), false);
-            this.shardTableQueryMetricHandler.flush();
-        } catch (Exception e) {
-            log.error(e.getMessage(), e);
-        }
-        List<String> auths = Arrays.asList("PUBLIC", "A", "B", "C");
-        List<String> tables = new ArrayList<>();
-        tables.add(queryMetricHandlerProperties.getIndexTableName());
-        tables.add(queryMetricHandlerProperties.getReverseIndexTableName());
-        tables.add(queryMetricHandlerProperties.getShardTableName());
-        AccumuloClient accumuloClient = null;
-        try {
-            Map<String,String> trackingMap = AccumuloClientTracking.getTrackingMap(Thread.currentThread().getStackTrace());
-            accumuloClient = this.accumuloClientPool.borrowObject(trackingMap);
-            QueryMetricTestBase.deleteAccumuloEntries(accumuloClient, tables, auths);
-        } catch (Exception e) {
-            log.error(e.getMessage(), e);
-        } finally {
-            if (accumuloClient != null) {
-                this.accumuloClientPool.returnObject(accumuloClient);
-            }
-        }
+        this.metricMarkings = new HashMap<>();
+        this.metricMarkings.put(MarkingFunctions.Default.COLUMN_VISIBILITY, "A&C");
+        this.storedMetricUpdates.clear();
     }
     
     /*
@@ -113,7 +69,38 @@ public class NonWebApplicationMessagingTest {
                 .withMetric(m)
                 .withMetricType(QueryMetricType.COMPLETE)
                 .build());
-        QueryMetricUpdateHolder metricUpdate = this.incomingQueryMetricsCache.get(queryId, QueryMetricUpdateHolder.class);
-        QueryMetricTestBase.assertEquals("", metricUpdate.getMetric(), m);
+        QueryMetricUpdate metricUpdate = this.storedMetricUpdates.stream().filter(x -> x.getMetric().getQueryId().equals(queryId)).findAny().orElse(null);
+        metricAssertEquals("", metricUpdate.getMetric(), m);
+    }
+
+    @Configuration
+    @Profile("NonWebApplicationMessagingTest")
+    public static class QueryMetricHttpTestConfiguration {
+        @Bean(name = "queryMetricCacheManager")
+        public CacheManager queryMetricCacheManager() {
+            return new CaffeineCacheManager();
+        }
+
+        @Bean
+        public QueryMetricOperationsStats queryMetricOperationStats() {
+            return new QueryMetricOperationsStats(new TimelyProperties(), null, queryMetricCacheManager(), null, null);
+        }
+
+        @Bean
+        public List<QueryMetricUpdate> storedMetricUpdates() {
+            return new ArrayList<>();
+        }
+
+        @Primary
+        @Bean
+        public QueryMetricSupplier testQueryMetricSource() {
+            return new QueryMetricSupplier() {
+                @Override
+                public boolean send(Message<QueryMetricUpdate> queryMetricUpdate) {
+                    storedMetricUpdates().add(queryMetricUpdate.getPayload());
+                    return true;
+                }
+            };
+        }
     }
 }

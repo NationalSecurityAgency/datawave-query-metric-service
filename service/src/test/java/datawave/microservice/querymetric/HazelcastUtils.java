@@ -1,17 +1,11 @@
 package datawave.microservice.querymetric;
 
-import com.hazelcast.core.Cluster;
-import com.hazelcast.core.HazelcastInstance;
-import com.hazelcast.core.Member;
-import com.hazelcast.core.Partition;
-import com.hazelcast.core.PartitionService;
-import com.hazelcast.instance.HazelcastInstanceImpl;
-import com.hazelcast.instance.HazelcastInstanceProxy;
-import com.hazelcast.instance.Node;
-import com.hazelcast.internal.cluster.impl.ClusterServiceImpl;
-import com.hazelcast.internal.partition.InternalPartitionService;
-import com.hazelcast.util.UuidUtil;
-import org.junit.Assert;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.NANOSECONDS;
+
+import static com.hazelcast.internal.util.ExceptionUtil.rethrow;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.Collection;
 import java.util.Random;
@@ -19,9 +13,19 @@ import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import static com.hazelcast.util.ExceptionUtil.rethrow;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.concurrent.TimeUnit.NANOSECONDS;
+import org.junit.jupiter.api.Assertions;
+
+import com.hazelcast.cluster.Cluster;
+import com.hazelcast.cluster.Member;
+import com.hazelcast.core.HazelcastInstance;
+import com.hazelcast.instance.impl.HazelcastInstanceImpl;
+import com.hazelcast.instance.impl.HazelcastInstanceProxy;
+import com.hazelcast.instance.impl.Node;
+import com.hazelcast.internal.cluster.impl.ClusterServiceImpl;
+import com.hazelcast.internal.partition.InternalPartitionService;
+import com.hazelcast.internal.util.UuidUtil;
+import com.hazelcast.partition.Partition;
+import com.hazelcast.partition.PartitionService;
 
 public class HazelcastUtils {
     
@@ -101,7 +105,7 @@ public class HazelcastUtils {
         for (int i = 0; i < instances.length; i++) {
             int clusterSize = getClusterSize(instances[i]);
             if (expectedSize != clusterSize) {
-                Assert.fail(String.format("Cluster size is not correct. Expected: %d, actual: %d, instance index: %d", expectedSize, clusterSize, i));
+                fail(String.format("Cluster size is not correct. Expected: %d, actual: %d, instance index: %d", expectedSize, clusterSize, i));
             }
         }
     }
@@ -153,7 +157,7 @@ public class HazelcastUtils {
         if (error != null) {
             throw error;
         }
-        Assert.fail("assertTrueEventually() failed without AssertionError! " + message);
+        fail("assertTrueEventually() failed without AssertionError! " + message);
     }
     
     public static void assertTrueEventually(AssertTask task, long timeoutSeconds) {
@@ -175,7 +179,7 @@ public class HazelcastUtils {
     public static void assertOpenEventually(Latch latch, long timeoutSeconds) {
         try {
             boolean completed = latch.await(timeoutSeconds, TimeUnit.SECONDS);
-            Assert.assertTrue(String.format("failed to complete within %d seconds, count left: %d", timeoutSeconds, latch.getCount()), completed);
+            assertTrue(completed, String.format("failed to complete within %d seconds, count left: %d", timeoutSeconds, latch.getCount()));
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }

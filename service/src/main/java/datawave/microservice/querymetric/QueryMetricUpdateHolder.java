@@ -1,19 +1,19 @@
 package datawave.microservice.querymetric;
 
-import datawave.microservice.querymetric.BaseQueryMetric.Lifecycle;
-
 import java.util.HashMap;
 import java.util.Map;
+
+import datawave.microservice.querymetric.BaseQueryMetric.Lifecycle;
 
 public class QueryMetricUpdateHolder<T extends BaseQueryMetric> extends QueryMetricUpdate<T> {
     
     private boolean persisted = false;
-    private Lifecycle lowestLifecycleSincePersist;
+    private Lifecycle lowestLifecycle;
     private Map<String,Long> values = new HashMap<>();
     
     public QueryMetricUpdateHolder(T metric, QueryMetricType metricType) {
         super(metric, metricType);
-        this.lowestLifecycleSincePersist = this.metric.getLifecycle();
+        this.lowestLifecycle = this.metric.getLifecycle();
     }
     
     public QueryMetricUpdateHolder(T metric) {
@@ -27,7 +27,7 @@ public class QueryMetricUpdateHolder<T extends BaseQueryMetric> extends QueryMet
     // If we know that this metric has been persisted by the AccumuloMapStore, then it is not new
     // Because the metric can be ejected from the incoming cache, we also track the lowest lifecycle
     public boolean isNewMetric() {
-        return !persisted && (lowestLifecycleSincePersist == null || lowestLifecycleSincePersist.equals(Lifecycle.DEFINED));
+        return !persisted && (lowestLifecycle == null || lowestLifecycle.equals(Lifecycle.DEFINED));
     }
     
     public void addValue(String key, Long value) {
@@ -46,21 +46,29 @@ public class QueryMetricUpdateHolder<T extends BaseQueryMetric> extends QueryMet
         }
     }
     
-    public void persisted() {
+    public void setPersisted() {
         persisted = true;
         values.clear();
-        lowestLifecycleSincePersist = null;
+        lowestLifecycle = null;
     }
     
-    public Lifecycle getLowestLifecycleSincePersist() {
-        return lowestLifecycleSincePersist;
+    public Lifecycle getLowestLifecycle() {
+        return lowestLifecycle;
+    }
+    
+    public void updateLowestLifecycle(Lifecycle lifecycle) {
+        if (!persisted && lifecycle != null) {
+            if (this.lowestLifecycle == null || (lifecycle.ordinal() < this.lowestLifecycle.ordinal())) {
+                this.lowestLifecycle = lifecycle;
+            }
+        }
     }
     
     @Override
     public void setMetric(T metric) {
         super.setMetric(metric);
-        if (this.lowestLifecycleSincePersist == null || this.metric.getLifecycle().ordinal() < this.lowestLifecycleSincePersist.ordinal()) {
-            this.lowestLifecycleSincePersist = this.metric.getLifecycle();
+        if (this.lowestLifecycle == null || this.metric.getLifecycle().ordinal() < this.lowestLifecycle.ordinal()) {
+            this.lowestLifecycle = this.metric.getLifecycle();
         }
     }
 }

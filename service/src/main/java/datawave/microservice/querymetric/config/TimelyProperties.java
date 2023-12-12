@@ -1,9 +1,9 @@
 package datawave.microservice.querymetric.config;
 
-import org.springframework.boot.context.properties.ConfigurationProperties;
-
 import java.util.LinkedHashMap;
 import java.util.Map;
+
+import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @ConfigurationProperties(prefix = "datawave.query.metric.timely")
 public class TimelyProperties {

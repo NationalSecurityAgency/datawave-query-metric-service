@@ -1,45 +1,31 @@
 package datawave.microservice.querymetric;
 
-import com.hazelcast.core.IMap;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import java.util.Collections;
+import com.hazelcast.map.IMap;
 
-@RunWith(SpringRunner.class)
+@ExtendWith(SpringExtension.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles({"HazelcastCachingTest", "QueryMetricTest", "hazelcast-writethrough"})
 public class HazelcastCachingTest extends QueryMetricTestBase {
     
-    @Before
+    @BeforeEach
     public void setup() {
         super.setup();
     }
     
-    @After
+    @AfterEach
     public void cleanup() {
         super.cleanup();
-    }
-    
-    @Test
-    public void TestReadThroughCache() {
-        
-        try {
-            String queryId = createQueryId();
-            BaseQueryMetric m = createMetric(queryId);
-            shardTableQueryMetricHandler.writeMetric(m, Collections.emptyList(), m.getCreateDate().getTime(), false);
-            BaseQueryMetric metricFromReadThroughCache = lastWrittenQueryMetricCache.get(queryId, QueryMetricUpdate.class).getMetric();
-            assertEquals("read through cache failed", m, metricFromReadThroughCache);
-        } catch (Exception e) {
-            log.error(e.getMessage(), e);
-            Assert.fail(e.getMessage());
-        }
     }
     
     @Test
@@ -55,16 +41,16 @@ public class HazelcastCachingTest extends QueryMetricTestBase {
             do {
                 metricFromAccumulo = shardTableQueryMetricHandler.getQueryMetric(queryId);
             } while (metricFromAccumulo == null);
-            assertEquals("write through cache failed", m, metricFromAccumulo);
+            metricAssertEquals("write through cache failed", m, metricFromAccumulo);
         } catch (Exception e) {
             log.error(e.getMessage(), e);
-            Assert.fail(e.getMessage());
+            fail(e.getMessage());
         }
     }
     
     @Test
     public void InMemoryAccumuloAndCachesReset() {
         // ensure that the Hazelcast caches and in-memory Accumulo are being reset between each test
-        Assert.assertEquals("accumulo not empty", 0, getAllAccumuloEntries().size());
+        assertEquals(0, getAllAccumuloEntries().size(), "accumulo not empty");
     }
 }

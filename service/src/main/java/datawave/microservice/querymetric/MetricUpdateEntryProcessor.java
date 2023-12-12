@@ -1,11 +1,12 @@
 package datawave.microservice.querymetric;
 
-import com.hazelcast.map.AbstractEntryProcessor;
-import datawave.microservice.querymetric.handler.QueryMetricCombiner;
-
 import java.util.Map;
 
-public class MetricUpdateEntryProcessor extends AbstractEntryProcessor<String,QueryMetricUpdateHolder> {
+import com.hazelcast.map.EntryProcessor;
+
+import datawave.microservice.querymetric.handler.QueryMetricCombiner;
+
+public class MetricUpdateEntryProcessor implements EntryProcessor<String,QueryMetricUpdateHolder,Long> {
     
     private QueryMetricCombiner combiner;
     private QueryMetricUpdateHolder metricUpdate;
@@ -17,33 +18,34 @@ public class MetricUpdateEntryProcessor extends AbstractEntryProcessor<String,Qu
     
     @Override
     public Long process(Map.Entry<String,QueryMetricUpdateHolder> entry) {
-        QueryMetricUpdateHolder updatedHolder;
+        QueryMetricUpdateHolder storedHolder;
         QueryMetricType metricType = this.metricUpdate.getMetricType();
         BaseQueryMetric updatedMetric = this.metricUpdate.getMetric();
         long start = System.currentTimeMillis();
         if (entry.getValue() == null) {
-            updatedHolder = this.metricUpdate;
+            storedHolder = this.metricUpdate;
         } else {
-            updatedHolder = entry.getValue();
-            BaseQueryMetric storedMetric = entry.getValue().getMetric();
+            storedHolder = entry.getValue();
+            BaseQueryMetric storedMetric = storedHolder.getMetric();
             BaseQueryMetric combinedMetric;
             combinedMetric = this.combiner.combineMetrics(updatedMetric, storedMetric, metricType);
-            updatedHolder.setMetric(combinedMetric);
-            updatedHolder.setMetricType(metricType);
+            storedHolder.setMetric(combinedMetric);
+            storedHolder.setMetricType(metricType);
+            storedHolder.updateLowestLifecycle(this.metricUpdate.getLowestLifecycle());
         }
         
         if (metricType.equals(QueryMetricType.DISTRIBUTED) && updatedMetric != null) {
             // these values are added incrementally in a distributed update. Because we can not be sure
             // exactly when the incomingQueryMetricCache value is stored, it would otherwise be possible
             // for updates to be included twice. These values are reset after being used in the AccumuloMapStore
-            updatedHolder.addValue("sourceCount", updatedMetric.getSourceCount());
-            updatedHolder.addValue("nextCount", updatedMetric.getNextCount());
-            updatedHolder.addValue("seekCount", updatedMetric.getSeekCount());
-            updatedHolder.addValue("yieldCount", updatedMetric.getYieldCount());
-            updatedHolder.addValue("docRanges", updatedMetric.getDocRanges());
-            updatedHolder.addValue("fiRanges", updatedMetric.getFiRanges());
+            storedHolder.addValue("sourceCount", updatedMetric.getSourceCount());
+            storedHolder.addValue("nextCount", updatedMetric.getNextCount());
+            storedHolder.addValue("seekCount", updatedMetric.getSeekCount());
+            storedHolder.addValue("yieldCount", updatedMetric.getYieldCount());
+            storedHolder.addValue("docRanges", updatedMetric.getDocRanges());
+            storedHolder.addValue("fiRanges", updatedMetric.getFiRanges());
         }
-        entry.setValue(updatedHolder);
+        entry.setValue(storedHolder);
         return Long.valueOf(System.currentTimeMillis() - start);
     }
 }

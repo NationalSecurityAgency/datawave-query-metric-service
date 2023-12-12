@@ -4,37 +4,36 @@
     <parent>
         <groupId>gov.nsa.datawave.microservice</groupId>
         <artifactId>datawave-microservice-service-parent</artifactId>
-        <version>2.1</version>
-        <relativePath />
+        <version>4.0.0</version>
+        <relativePath>../../../microservice-service-parent/pom.xml</relativePath>
     </parent>
     <artifactId>query-metric-service</artifactId>
-    <version>2.1.4-SNAPSHOT</version>
+    <version>3.0.3-SNAPSHOT</version>
     <description>DATAWAVE Query Metric Microservice</description>
     <url>https://code.nsa.gov/datawave-query-metric-service</url>
     <scm>
         <connection>scm:git:https://github.com/NationalSecurityAgency/datawave-query-metric-service.git</connection>
         <developerConnection>scm:git:git@github.com:NationalSecurityAgency/datawave-query-metric-service.git</developerConnection>
+        <tag>HEAD</tag>
         <url>https://github.com/NationalSecurityAgency/datawave-query-metric-service</url>
     </scm>
     <properties>
         <spotbugs.excludes.file>${basedir}/spotbugs-exclude.xml</spotbugs.excludes.file>
         <start-class>datawave.microservice.querymetric.QueryMetricService</start-class>
-        <version.base-rest-responses>2.1.0</version.base-rest-responses>
+        <version.accumulo-utils>3.0.1</version.accumulo-utils>
+        <version.base-rest-responses>3.0.0</version.base-rest-responses>
         <version.cache-api>1.1.1</version.cache-api>
-        <version.datawave>5.9.1</version.datawave>
-        <version.hazelcast-kubernetes>1.4</version.hazelcast-kubernetes>
-        <version.in-memory-accumulo>2.1.0</version.in-memory-accumulo>
-        <version.log4j12>2.17.1</version.log4j12>
-        <version.microservice.accumulo-api>2.1.2</version.microservice.accumulo-api>
-        <version.microservice.accumulo-utils>2.1.2</version.microservice.accumulo-utils>
-        <version.microservice.hazelcast>2.1.1</version.microservice.hazelcast>
-        <version.microservice.metadata-utils>2.1.7</version.microservice.metadata-utils>
-        <version.microservice.query-metric-api>${project.version}</version.microservice.query-metric-api>
-        <version.microservice.starter>2.1.1</version.microservice.starter>
-        <version.microservice.starter-datawave-query-metric>1.5.5</version.microservice.starter-datawave-query-metric>
-        <version.microservice.type-utils>1.15</version.microservice.type-utils>
+        <version.datawave>6.4.0-SNAPSHOT</version.datawave>
+        <version.hazelcast-kubernetes>2.2.3</version.hazelcast-kubernetes>
+        <version.in-memory-accumulo>3.0.1</version.in-memory-accumulo>
+        <version.microservice.accumulo-api>3.0.0</version.microservice.accumulo-api>
+        <version.microservice.hazelcast>3.0.0</version.microservice.hazelcast>
+        <version.microservice.query-metric-api>3.0.3-SNAPSHOT</version.microservice.query-metric-api>
+        <version.microservice.starter>3.0.0</version.microservice.starter>
+        <version.microservice.starter-datawave-query-metric>2.0.0</version.microservice.starter-datawave-query-metric>
+        <version.microservice.starter-metadata>2.0.0</version.microservice.starter-metadata>
+        <version.microservice.type-utils>2.0.0</version.microservice.type-utils>
         <version.protobuf-java>3.7.1</version.protobuf-java>
-        <version.spring.cloud.stream>2.1.4.RELEASE</version.spring.cloud.stream>
         <version.validation-api>2.0.2</version.validation-api>
         <version.webjars.bootstrap>4.3.1</version.webjars.bootstrap>
         <version.webjars.jquery>3.4.1</version.webjars.jquery>
@@ -56,6 +55,25 @@
             </dependency>
             <dependency>
                 <groupId>gov.nsa.datawave</groupId>
+                <artifactId>datawave-in-memory-accumulo</artifactId>
+                <version>${version.in-memory-accumulo}</version>
+                <exclusions>
+                    <exclusion>
+                        <artifactId>log4j</artifactId>
+                        <groupId>log4j</groupId>
+                    </exclusion>
+                    <exclusion>
+                        <artifactId>slf4j-reload4j</artifactId>
+                        <groupId>org.slf4j</groupId>
+                    </exclusion>
+                    <exclusion>
+                        <artifactId>hadoop-client</artifactId>
+                        <groupId>org.apache.hadoop</groupId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>gov.nsa.datawave</groupId>
                 <artifactId>datawave-ingest-configuration</artifactId>
                 <version>${version.datawave}</version>
                 <exclusions>
@@ -66,6 +84,10 @@
                     <exclusion>
                         <artifactId>*</artifactId>
                         <groupId>org.eclipse.jetty</groupId>
+                    </exclusion>
+                    <exclusion>
+                        <artifactId>slf4j-reload4j</artifactId>
+                        <groupId>org.slf4j</groupId>
                     </exclusion>
                 </exclusions>
             </dependency>
@@ -87,7 +109,7 @@
                         <groupId>gov.nsa.datawave.webservices</groupId>
                     </exclusion>
                     <exclusion>
-                        <artifactId>*</artifactId>
+                        <artifactId>slf4j-reload4j</artifactId>
                         <groupId>org.slf4j</groupId>
                     </exclusion>
                     <exclusion>
@@ -123,19 +145,12 @@
                         <groupId>org.eclipse.jetty</groupId>
                     </exclusion>
                     <exclusion>
-                        <artifactId>xercesImpl</artifactId>
+                        <artifactId>*</artifactId>
                         <groupId>xerces</groupId>
                     </exclusion>
-                </exclusions>
-            </dependency>
-            <dependency>
-                <groupId>gov.nsa.datawave.contrib</groupId>
-                <artifactId>datawave-in-memory-accumulo</artifactId>
-                <version>${version.in-memory-accumulo}</version>
-                <exclusions>
                     <exclusion>
-                        <artifactId>log4j</artifactId>
-                        <groupId>log4j</groupId>
+                        <artifactId>*</artifactId>
+                        <groupId>junit</groupId>
                     </exclusion>
                 </exclusions>
             </dependency>
@@ -147,7 +162,7 @@
             <dependency>
                 <groupId>gov.nsa.datawave.microservice</groupId>
                 <artifactId>accumulo-utils</artifactId>
-                <version>${version.microservice.accumulo-utils}</version>
+                <version>${version.accumulo-utils}</version>
                 <exclusions>
                     <exclusion>
                         <artifactId>*</artifactId>
@@ -167,17 +182,16 @@
             </dependency>
             <dependency>
                 <groupId>gov.nsa.datawave.microservice</groupId>
-                <artifactId>metadata-utils</artifactId>
-                <version>${version.microservice.metadata-utils}</version>
-            </dependency>
-            <dependency>
-                <groupId>gov.nsa.datawave.microservice</groupId>
                 <artifactId>query-metric-api</artifactId>
                 <version>${version.microservice.query-metric-api}</version>
                 <exclusions>
                     <exclusion>
                         <artifactId>log4j</artifactId>
                         <groupId>log4j</groupId>
+                    </exclusion>
+                    <exclusion>
+                        <artifactId>slf4j-reload4j</artifactId>
+                        <groupId>org.slf4j</groupId>
                     </exclusion>
                 </exclusions>
             </dependency>
@@ -194,6 +208,11 @@
             </dependency>
             <dependency>
                 <groupId>gov.nsa.datawave.microservice</groupId>
+                <artifactId>spring-boot-starter-datawave-metadata</artifactId>
+                <version>${version.microservice.starter-metadata}</version>
+            </dependency>
+            <dependency>
+                <groupId>gov.nsa.datawave.microservice</groupId>
                 <artifactId>spring-boot-starter-datawave-query-metric</artifactId>
                 <version>${version.microservice.starter-datawave-query-metric}</version>
             </dependency>
@@ -205,6 +224,18 @@
                     <exclusion>
                         <artifactId>log4j</artifactId>
                         <groupId>log4j</groupId>
+                    </exclusion>
+                    <exclusion>
+                        <artifactId>slf4j-reload4j</artifactId>
+                        <groupId>org.slf4j</groupId>
+                    </exclusion>
+                    <exclusion>
+                        <artifactId>reload4j</artifactId>
+                        <groupId>ch.qos.reload4j</groupId>
+                    </exclusion>
+                    <exclusion>
+                        <artifactId>avro</artifactId>
+                        <groupId>org.apache.avro</groupId>
                     </exclusion>
                 </exclusions>
             </dependency>
@@ -245,39 +276,19 @@
                 <version>${version.cache-api}</version>
             </dependency>
             <dependency>
-                <groupId>org.apache.logging.log4j</groupId>
-                <artifactId>log4j-1.2-api</artifactId>
-                <version>${version.log4j12}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.logging.log4j</groupId>
-                <artifactId>log4j-api</artifactId>
-                <version>${version.log4j12}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.logging.log4j</groupId>
-                <artifactId>log4j-core</artifactId>
-                <version>${version.log4j12}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.logging.log4j</groupId>
-                <artifactId>log4j-jul</artifactId>
-                <version>${version.log4j12}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.logging.log4j</groupId>
-                <artifactId>log4j-slf4j-impl</artifactId>
-                <version>${version.log4j12}</version>
-            </dependency>
-            <dependency>
                 <groupId>org.apache.zookeeper</groupId>
                 <artifactId>zookeeper</artifactId>
                 <version>${version.zookeeper}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.springframework.cloud</groupId>
-                <artifactId>spring-cloud-stream-test-support</artifactId>
-                <version>${version.spring.cloud.stream}</version>
+                <exclusions>
+                    <exclusion>
+                        <artifactId>slf4j-log4j12</artifactId>
+                        <groupId>org.slf4j</groupId>
+                    </exclusion>
+                    <exclusion>
+                        <artifactId>log4j</artifactId>
+                        <groupId>log4j</groupId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>org.webjars</groupId>
@@ -305,12 +316,6 @@
                 <version>${version.microservice.starter}</version>
                 <type>pom</type>
                 <scope>import</scope>
-                <exclusions>
-                    <exclusion>
-                        <artifactId>log4j-slf4j-impl</artifactId>
-                        <groupId>org.apache.logging.log4j</groupId>
-                    </exclusion>
-                </exclusions>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -321,15 +326,15 @@
         </dependency>
         <dependency>
             <groupId>gov.nsa.datawave</groupId>
+            <artifactId>datawave-in-memory-accumulo</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>gov.nsa.datawave</groupId>
             <artifactId>datawave-ingest-configuration</artifactId>
         </dependency>
         <dependency>
             <groupId>gov.nsa.datawave</groupId>
             <artifactId>datawave-query-core</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>gov.nsa.datawave.contrib</groupId>
-            <artifactId>datawave-in-memory-accumulo</artifactId>
         </dependency>
         <dependency>
             <groupId>gov.nsa.datawave.microservice</groupId>
@@ -342,6 +347,10 @@
         <dependency>
             <groupId>gov.nsa.datawave.microservice</groupId>
             <artifactId>spring-boot-starter-datawave</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>gov.nsa.datawave.microservice</groupId>
+            <artifactId>spring-boot-starter-datawave-metadata</artifactId>
         </dependency>
         <dependency>
             <groupId>gov.nsa.datawave.microservice</groupId>
@@ -368,16 +377,8 @@
             <artifactId>cache-api</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-1.2-api</artifactId>
-        </dependency>
-        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-cache</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.cloud</groupId>
-            <artifactId>spring-cloud-stream</artifactId>
         </dependency>
         <dependency>
             <groupId>org.webjars</groupId>
@@ -396,8 +397,8 @@
             <artifactId>webjars-locator-core</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.springframework.cloud</groupId>
-            <artifactId>spring-cloud-stream-test-support</artifactId>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-engine</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -422,7 +423,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-enforcer-plugin</artifactId>
-                <version>1.4.1</version>
+                <version>3.0.0</version>
                 <executions>
                     <execution>
                         <id>enforce-banned-dependencies</id>
@@ -465,6 +466,11 @@
     <profiles>
         <profile>
             <id>docker</id>
+            <activation>
+                <property>
+                    <name>microservice-docker</name>
+                </property>
+            </activation>
             <build>
                 <plugins>
                     <plugin>

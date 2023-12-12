@@ -1,8 +1,7 @@
 package datawave.microservice.querymetric;
 
-import datawave.webservice.HtmlProvider;
-import datawave.webservice.query.exception.QueryExceptionType;
-import datawave.webservice.result.BaseResponse;
+import java.text.NumberFormat;
+import java.util.List;
 
 import javax.xml.bind.annotation.XmlAccessOrder;
 import javax.xml.bind.annotation.XmlAccessType;
@@ -10,8 +9,10 @@ import javax.xml.bind.annotation.XmlAccessorOrder;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
-import java.text.NumberFormat;
-import java.util.List;
+
+import datawave.webservice.HtmlProvider;
+import datawave.webservice.query.exception.QueryExceptionType;
+import datawave.webservice.result.BaseResponse;
 
 @XmlRootElement(name = "QueryMetricsSummaryResponse")
 @XmlAccessorType(XmlAccessType.NONE)

@@ -1,56 +1,11 @@
 package datawave.microservice.querymetric;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.module.SimpleModule;
-import com.hazelcast.config.Config;
-import com.hazelcast.config.MapStoreConfig;
-import com.hazelcast.core.IMap;
-import com.hazelcast.spring.cache.HazelcastCacheManager;
-import datawave.ingest.protobuf.Uid;
-import datawave.marking.MarkingFunctions;
-import datawave.microservice.authorization.preauth.ProxiedEntityX509Filter;
-import datawave.microservice.authorization.user.ProxiedUserDetails;
-import datawave.microservice.querymetric.config.QueryMetricClientProperties;
-import datawave.microservice.querymetric.config.QueryMetricHandlerProperties;
-import datawave.microservice.querymetric.handler.AccumuloClientTracking;
-import datawave.microservice.querymetric.handler.QueryMetricCombiner;
-import datawave.microservice.querymetric.handler.ShardTableQueryMetricHandler;
-import datawave.security.authorization.DatawaveUser;
-import datawave.security.authorization.JWTTokenHandler;
-import datawave.security.authorization.SubjectIssuerDNPair;
-import datawave.security.util.DnUtils;
-import datawave.webservice.common.connection.AccumuloClientPool;
-import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.client.BatchDeleter;
-import org.apache.accumulo.core.client.BatchScanner;
-import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.security.Authorizations;
-import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.lang.RandomStringUtils;
-import org.apache.commons.lang.time.DateUtils;
-import org.apache.hadoop.io.Text;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.Before;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.boot.web.client.RestTemplateBuilder;
-import org.springframework.boot.web.server.LocalServerPort;
-import org.springframework.cache.Cache;
-import org.springframework.cache.CacheManager;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.web.client.RestTemplate;
+import static datawave.microservice.querymetric.config.HazelcastMetricCacheConfiguration.INCOMING_METRICS;
+import static datawave.security.authorization.DatawaveUser.UserType.USER;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
-import javax.inject.Named;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -64,9 +19,69 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static datawave.microservice.querymetric.config.HazelcastMetricCacheConfiguration.INCOMING_METRICS;
-import static datawave.microservice.querymetric.config.HazelcastMetricCacheConfiguration.LAST_WRITTEN_METRICS;
-import static datawave.security.authorization.DatawaveUser.UserType.USER;
+import javax.inject.Named;
+
+import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.BatchDeleter;
+import org.apache.accumulo.core.client.BatchScanner;
+import org.apache.accumulo.core.client.BatchWriterConfig;
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.Authorizations;
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang.RandomStringUtils;
+import org.apache.commons.lang.time.DateUtils;
+import org.apache.hadoop.io.Text;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.context.annotation.Primary;
+import org.springframework.context.annotation.Profile;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.messaging.Message;
+import org.springframework.web.client.RestTemplate;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.hazelcast.config.Config;
+import com.hazelcast.config.MapStoreConfig;
+import com.hazelcast.map.IMap;
+import com.hazelcast.spring.cache.HazelcastCacheManager;
+
+import datawave.ingest.protobuf.Uid;
+import datawave.marking.MarkingFunctions;
+import datawave.microservice.authorization.preauth.ProxiedEntityX509Filter;
+import datawave.microservice.authorization.user.DatawaveUserDetails;
+import datawave.microservice.querymetric.config.QueryMetricClientProperties;
+import datawave.microservice.querymetric.config.QueryMetricHandlerProperties;
+import datawave.microservice.querymetric.function.QueryMetricSupplier;
+import datawave.microservice.querymetric.handler.AccumuloClientTracking;
+import datawave.microservice.querymetric.handler.QueryMetricCombiner;
+import datawave.microservice.querymetric.handler.ShardTableQueryMetricHandler;
+import datawave.microservice.security.util.DnUtils;
+import datawave.security.authorization.DatawaveUser;
+import datawave.security.authorization.JWTTokenHandler;
+import datawave.security.authorization.SubjectIssuerDNPair;
+import datawave.webservice.common.connection.AccumuloClientPool;
+import datawave.webservice.query.result.event.DefaultEvent;
+import datawave.webservice.query.result.event.DefaultField;
+import datawave.webservice.query.result.event.EventBase;
 
 public class QueryMetricTestBase {
     
@@ -111,41 +126,52 @@ public class QueryMetricTestBase {
     @Autowired
     private QueryMetricClientProperties queryMetricClientProperties;
     
-    protected Cache incomingQueryMetricsCache;
+    @Autowired
+    private DnUtils dnUtils;
+    
+    @Autowired
+    @Qualifier("lastWrittenQueryMetrics")
     protected Cache lastWrittenQueryMetricCache;
+    
+    protected Cache incomingQueryMetricsCache;
     
     @LocalServerPort
     protected int webServicePort;
     
     protected RestTemplate restTemplate;
-    protected ProxiedUserDetails adminUser;
-    protected ProxiedUserDetails nonAdminUser;
+    protected DatawaveUserDetails adminUser;
+    protected DatawaveUserDetails nonAdminUser;
+    protected static boolean isHazelCast;
     protected static CacheManager staticCacheManager;
-    protected Map<String,String> metricMarkings;
+    protected static Map<String,String> metricMarkings;
     protected List<String> tables;
     protected Collection<String> auths;
     protected AccumuloClient accumuloClient;
     
-    @AfterClass
+    static {
+        metricMarkings = new HashMap<>();
+        metricMarkings.put(MarkingFunctions.Default.COLUMN_VISIBILITY, "A&C");
+    }
+    
+    @AfterAll
     public static void afterClass() {
         ((HazelcastCacheManager) staticCacheManager).getHazelcastInstance().shutdown();
     }
     
-    @Before
+    @BeforeEach
     public void setup() {
         this.queryMetricClientProperties.setPort(webServicePort);
         this.restTemplate = restTemplateBuilder.build(RestTemplate.class);
         this.auths = Arrays.asList("PUBLIC", "A", "B", "C");
-        this.metricMarkings = new HashMap<>();
-        this.metricMarkings.put(MarkingFunctions.Default.COLUMN_VISIBILITY, "A&C");
+        
         Collection<String> roles = Arrays.asList("Administrator");
         DatawaveUser adminDWUser = new DatawaveUser(ALLOWED_CALLER, USER, null, auths, roles, null, System.currentTimeMillis());
         DatawaveUser nonAdminDWUser = new DatawaveUser(ALLOWED_CALLER, USER, null, auths, null, null, System.currentTimeMillis());
-        this.adminUser = new ProxiedUserDetails(Collections.singleton(adminDWUser), adminDWUser.getCreationTime());
-        this.nonAdminUser = new ProxiedUserDetails(Collections.singleton(nonAdminDWUser), nonAdminDWUser.getCreationTime());
+        this.adminUser = new DatawaveUserDetails(Collections.singleton(adminDWUser), adminDWUser.getCreationTime());
+        this.nonAdminUser = new DatawaveUserDetails(Collections.singleton(nonAdminDWUser), nonAdminDWUser.getCreationTime());
+        QueryMetricTestBase.isHazelCast = cacheManager instanceof HazelcastCacheManager;
         QueryMetricTestBase.staticCacheManager = cacheManager;
         this.incomingQueryMetricsCache = cacheManager.getCache(INCOMING_METRICS);
-        this.lastWrittenQueryMetricCache = cacheManager.getCache(LAST_WRITTEN_METRICS);
         this.shardTableQueryMetricHandler.verifyTables();
         BaseQueryMetric m = createMetric();
         // this is to ensure that the QueryMetrics_m table
@@ -167,13 +193,13 @@ public class QueryMetricTestBase {
             log.error(e.getMessage(), e);
         }
         deleteAccumuloEntries(this.accumuloClient, this.tables, this.auths);
-        Assert.assertTrue("metadata table empty", getMetadataEntries().size() > 0);
+        assertTrue(getMetadataEntries().size() > 0, "metadata table empty");
         SimpleModule baseQueryMetricDeserializer = new SimpleModule(BaseQueryMetricListResponse.class.getName());
         baseQueryMetricDeserializer.addAbstractTypeMapping(BaseQueryMetricListResponse.class, QueryMetricListResponse.class);
         this.objectMapper.registerModule(baseQueryMetricDeserializer);
     }
     
-    @After
+    @AfterEach
     public void cleanup() {
         deleteAccumuloEntries(this.accumuloClient, this.tables, this.auths);
         this.incomingQueryMetricsCache.clear();
@@ -181,21 +207,128 @@ public class QueryMetricTestBase {
         this.accumuloClientPool.returnObject(this.accumuloClient);
     }
     
+    protected EventBase toEvent(BaseQueryMetric metric) {
+        SimpleDateFormat sdf_date_time1 = new SimpleDateFormat("yyyyMMdd HHmmss");
+        SimpleDateFormat sdf_date_time2 = new SimpleDateFormat("yyyyMMdd HHmmss");
+        
+        long createTime = metric.getCreateDate().getTime();
+        
+        DefaultEvent event = new DefaultEvent();
+        List<DefaultField> fields = new ArrayList<>();
+        
+        event.setMarkings(metric.getMarkings());
+        
+        addStringField(fields, "QUERY_ID", metric.getColumnVisibility(), createTime, metric.getQueryId());
+        addDateField(fields, "BEGIN_DATE", metric.getColumnVisibility(), createTime, metric.getBeginDate(), sdf_date_time1);
+        addDateField(fields, "END_DATE", metric.getColumnVisibility(), createTime, metric.getEndDate(), sdf_date_time1);
+        addDateField(fields, "LAST_UPDATED", metric.getColumnVisibility(), createTime, metric.getLastUpdated(), sdf_date_time2);
+        addLongField(fields, "NUM_UPDATES", metric.getColumnVisibility(), createTime, metric.getNumUpdates());
+        addStringField(fields, "QUERY", metric.getColumnVisibility(), createTime, metric.getQuery());
+        addStringField(fields, "QUERY_LOGIC", metric.getColumnVisibility(), createTime, metric.getQueryLogic());
+        addStringField(fields, "HOST", metric.getColumnVisibility(), createTime, metric.getHost());
+        addStringField(fields, "QUERY_TYPE", metric.getColumnVisibility(), createTime, metric.getQueryType());
+        addLifecycleField(fields, "LIFECYCLE", metric.getColumnVisibility(), createTime, metric.getLifecycle());
+        addLongField(fields, "LOGIN_TIME", metric.getColumnVisibility(), createTime, metric.getLoginTime());
+        addDateField(fields, "CREATE_DATE", metric.getColumnVisibility(), createTime, metric.getCreateDate(), sdf_date_time2);
+        addLongField(fields, "CREATE_CALL_TIME", metric.getColumnVisibility(), createTime, metric.getCreateCallTime());
+        addStringField(fields, "AUTHORIZATIONS", metric.getColumnVisibility(), createTime, metric.getQueryAuthorizations());
+        addStringField(fields, "QUERY_NAME", metric.getColumnVisibility(), createTime, metric.getQueryName());
+        addLongField(fields, "DOC_RANGES", metric.getColumnVisibility(), createTime, metric.getDocRanges());
+        addLongField(fields, "FI_RANGES", metric.getColumnVisibility(), createTime, metric.getFiRanges());
+        addStringField(fields, "ERROR_CODE", metric.getColumnVisibility(), createTime, metric.getErrorCode());
+        addStringField(fields, "ERROR_MESSAGE", metric.getColumnVisibility(), createTime, metric.getErrorMessage());
+        addLongField(fields, "SEEK_COUNT", metric.getColumnVisibility(), createTime, metric.getSeekCount());
+        addLongField(fields, "NEXT_COUNT", metric.getColumnVisibility(), createTime, metric.getNextCount());
+        addStringField(fields, "USER", metric.getColumnVisibility(), createTime, metric.getUser());
+        addStringField(fields, "USER_DN", metric.getColumnVisibility(), createTime, metric.getUserDN());
+        addPredictionField(fields, metric.getColumnVisibility(), createTime, metric.getPredictions());
+        addStringField(fields, "PLAN", metric.getColumnVisibility(), createTime, metric.getPlan());
+        addSubPlanField(fields, metric.getColumnVisibility(), createTime, metric.getSubPlans());
+        addPageMetricsField(fields, metric.getColumnVisibility(), createTime, metric.getPageTimes());
+        
+        event.setFields(fields);
+        
+        return event;
+    }
+    
+    protected void addSubPlanField(List<DefaultField> fields, String columnVisibility, long timestamp, Map<String,RangeCounts> subplan) {
+        if (subplan != null) {
+            for (Map.Entry<String,RangeCounts> subp : subplan.entrySet()) {
+                if (subp != null) {
+                    addStringField(fields, "SUBPLAN", columnVisibility, timestamp, String.join(":", subp.getKey(),
+                                    "[" + subp.getValue().getDocumentRangeCount() + "," + subp.getValue().getShardRangeCount() + "]"));
+                }
+            }
+        }
+    }
+    
+    protected void addPageMetricsField(List<DefaultField> fields, String columnVisibility, long timestamp, List<BaseQueryMetric.PageMetric> pageMetrics) {
+        if (pageMetrics != null) {
+            int page = 1;
+            for (BaseQueryMetric.PageMetric pageMetric : pageMetrics) {
+                addStringField(fields, "PAGE_METRICS." + page++, columnVisibility, timestamp, pageMetric.toEventString());
+            }
+        }
+    }
+    
+    protected void addStringField(List<DefaultField> fields, String field, String columnVisibility, long timestamp, String value) {
+        if (value != null) {
+            fields.add(new DefaultField(field, columnVisibility, timestamp, value));
+        }
+    }
+    
+    protected void addLifecycleField(List<DefaultField> fields, String field, String columnVisibility, long timestamp, BaseQueryMetric.Lifecycle value) {
+        if (value != null) {
+            fields.add(new DefaultField(field, columnVisibility, timestamp, value.name()));
+        }
+    }
+    
+    protected void addLongField(List<DefaultField> fields, String field, String columnVisibility, long timestamp, Long value) {
+        if (value != null) {
+            fields.add(new DefaultField(field, columnVisibility, timestamp, Long.toString(value)));
+        }
+    }
+    
+    protected void addDateField(List<DefaultField> fields, String field, String columnVisibility, long timestamp, Date value, SimpleDateFormat sdf) {
+        if (value != null) {
+            fields.add(new DefaultField(field, columnVisibility, timestamp, sdf.format(value)));
+        }
+    }
+    
+    protected void addPredictionField(List<DefaultField> fields, String columnVisibility, long timestamp, Set<BaseQueryMetric.Prediction> value) {
+        if (value != null) {
+            for (BaseQueryMetric.Prediction prediction : value) {
+                if (prediction != null) {
+                    addStringField(fields, "PREDICTION", columnVisibility, timestamp,
+                                    String.join(":", prediction.getName(), Double.toString(prediction.getPrediction())));
+                }
+            }
+        }
+    }
+    
     protected BaseQueryMetric createMetric() {
         return createMetric(createQueryId());
     }
     
+    protected static BaseQueryMetric createMetric(QueryMetricFactory queryMetricFactory) {
+        return createMetric(createQueryId(), queryMetricFactory);
+    }
+    
     protected BaseQueryMetric createMetric(String queryId) {
-        BaseQueryMetric m = this.queryMetricFactory.createMetric();
+        return createMetric(queryId, this.queryMetricFactory);
+    }
+    
+    protected static BaseQueryMetric createMetric(String queryId, QueryMetricFactory queryMetricFactory) {
+        BaseQueryMetric m = queryMetricFactory.createMetric();
         populateMetric(m, queryId);
         return m;
     }
     
-    protected void populateMetric(BaseQueryMetric m, String queryId) {
+    protected static void populateMetric(BaseQueryMetric m, String queryId) {
         long now = System.currentTimeMillis();
         Date nowDate = new Date(now);
         m.setQueryId(queryId);
-        m.setMarkings(this.metricMarkings);
+        m.setMarkings(metricMarkings);
         m.setEndDate(nowDate);
         m.setBeginDate(DateUtils.addDays(nowDate, -1));
         m.setLastUpdated(nowDate);
@@ -227,7 +360,7 @@ public class QueryMetricTestBase {
         return sb.toString();
     }
     
-    protected HttpEntity createRequestEntity(ProxiedUserDetails trustedUser, ProxiedUserDetails jwtUser, Object body) throws JsonProcessingException {
+    protected HttpEntity createRequestEntity(DatawaveUserDetails trustedUser, DatawaveUserDetails jwtUser, Object body) throws JsonProcessingException {
         
         HttpHeaders headers = new HttpHeaders();
         if (this.jwtTokenHandler != null && jwtUser != null) {
@@ -246,16 +379,16 @@ public class QueryMetricTestBase {
         }
     }
     
-    public static void assertEquals(BaseQueryMetric m1, BaseQueryMetric m2) {
-        assertEquals("", m1, m2);
+    public static void metricAssertEquals(BaseQueryMetric m1, BaseQueryMetric m2) {
+        metricAssertEquals("", m1, m2);
     }
     
     /*
      * This method compares the fields of BaseQueryMetric one by one so that the discrepancy is obvious It also rounds all Date objects to
      */
-    public static void assertEquals(String message, BaseQueryMetric m1, BaseQueryMetric m2) {
+    public static void metricAssertEquals(String message, BaseQueryMetric m1, BaseQueryMetric m2) {
         if (null == m2) {
-            Assert.fail(message + ": actual metric is null");
+            fail(message + ": actual metric is null");
         } else if (m1 == m2) {
             return;
         } else {
@@ -264,39 +397,39 @@ public class QueryMetricTestBase {
             } else {
                 message = message + ": ";
             }
-            Assert.assertTrue(message + "queryId", assertObjectsEqual(m1.getQueryId(), m2.getQueryId()));
-            Assert.assertTrue(message + "queryType", assertObjectsEqual(m1.getQueryType(), m2.getQueryType()));
-            Assert.assertTrue(message + "queryAuthorizations", assertObjectsEqual(m1.getQueryAuthorizations(), m2.getQueryAuthorizations()));
-            Assert.assertTrue(message + "columnVisibility", assertObjectsEqual(m1.getColumnVisibility(), m2.getColumnVisibility()));
-            Assert.assertEquals(message + "markings", m1.getMarkings(), m2.getMarkings());
-            Assert.assertTrue(message + "beginDate", assertObjectsEqual(m1.getBeginDate(), m2.getBeginDate()));
-            Assert.assertTrue(message + "endDate", assertObjectsEqual(m1.getEndDate(), m2.getEndDate()));
-            Assert.assertEquals(message + "createDate", m1.getCreateDate(), m2.getCreateDate());
-            Assert.assertEquals(message + "setupTime", m1.getSetupTime(), m2.getSetupTime());
-            Assert.assertEquals(message + "createCallTime", m1.getCreateCallTime(), m2.getCreateCallTime());
-            Assert.assertTrue(message + "user", assertObjectsEqual(m1.getUser(), m2.getUser()));
-            Assert.assertTrue(message + "userDN", assertObjectsEqual(m1.getUserDN(), m2.getUserDN()));
-            Assert.assertTrue(message + "query", assertObjectsEqual(m1.getQuery(), m2.getQuery()));
-            Assert.assertTrue(message + "queryLogic", assertObjectsEqual(m1.getQueryLogic(), m2.getQueryLogic()));
-            Assert.assertTrue(message + "queryName", assertObjectsEqual(m1.getQueryName(), m2.getQueryName()));
-            Assert.assertTrue(message + "parameters", assertObjectsEqual(m1.getParameters(), m2.getParameters()));
-            Assert.assertTrue(message + "host", assertObjectsEqual(m1.getHost(), m2.getHost()));
-            Assert.assertTrue(message + "pageTimes", assertObjectsEqual(m1.getPageTimes(), m2.getPageTimes()));
-            Assert.assertTrue(message + "proxyServers", assertObjectsEqual(m1.getProxyServers(), m2.getProxyServers()));
-            Assert.assertTrue(message + "lifecycle", assertObjectsEqual(m1.getLifecycle(), m2.getLifecycle()));
-            Assert.assertTrue(message + "errorMessage", assertObjectsEqual(m1.getErrorMessage(), m2.getErrorMessage()));
-            Assert.assertTrue(message + "errorCode", assertObjectsEqual(m1.getErrorCode(), m2.getErrorCode()));
-            Assert.assertEquals(message + "sourceCount", m1.getSourceCount(), m2.getSourceCount());
-            Assert.assertEquals(message + "nextCount", m1.getNextCount(), m2.getNextCount());
-            Assert.assertEquals(message + "seekCount", m1.getSeekCount(), m2.getSeekCount());
-            Assert.assertEquals(message + "yieldCount", m1.getYieldCount(), m2.getYieldCount());
-            Assert.assertEquals(message + "docRanges", m1.getDocRanges(), m2.getDocRanges());
-            Assert.assertEquals(message + "fiRanges", m1.getFiRanges(), m2.getFiRanges());
-            Assert.assertTrue(message + "plan", assertObjectsEqual(m1.getPlan(), m2.getPlan()));
-            Assert.assertTrue(message + "subPlans", assertObjectsEqual(m1.getSubPlans(), m2.getSubPlans()));
-            Assert.assertEquals(message + "loginTime", m1.getLoginTime(), m2.getLoginTime());
-            Assert.assertTrue(message + "predictions", assertObjectsEqual(m1.getPredictions(), m2.getPredictions()));
-            Assert.assertEquals(message + "versionMap", m1.getVersionMap(), m2.getVersionMap());
+            assertTrue(assertObjectsEqual(m1.getQueryId(), m2.getQueryId()), message + "queryId");
+            assertTrue(assertObjectsEqual(m1.getQueryType(), m2.getQueryType()), message + "queryType");
+            assertTrue(assertObjectsEqual(m1.getQueryAuthorizations(), m2.getQueryAuthorizations()), message + "queryAuthorizatio1ns");
+            assertTrue(assertObjectsEqual(m1.getColumnVisibility(), m2.getColumnVisibility()), message + "columnVisibility");
+            assertEquals(m1.getMarkings(), m2.getMarkings(), message + "markings");
+            assertTrue(assertObjectsEqual(m1.getBeginDate(), m2.getBeginDate()), message + "beginDate");
+            assertTrue(assertObjectsEqual(m1.getEndDate(), m2.getEndDate()), message + "endDate");
+            assertEquals(m1.getCreateDate(), m2.getCreateDate(), message + "createDate");
+            assertEquals(m1.getSetupTime(), m2.getSetupTime(), message + "setupTime");
+            assertEquals(m1.getCreateCallTime(), m2.getCreateCallTime(), message + "createCallTime");
+            assertTrue(assertObjectsEqual(m1.getUser(), m2.getUser()), message + "user");
+            assertTrue(assertObjectsEqual(m1.getUserDN(), m2.getUserDN()), message + "userDN");
+            assertTrue(assertObjectsEqual(m1.getQuery(), m2.getQuery()), message + "query");
+            assertTrue(assertObjectsEqual(m1.getQueryLogic(), m2.getQueryLogic()), message + "queryLogic");
+            assertTrue(assertObjectsEqual(m1.getQueryName(), m2.getQueryName()), message + "queryName");
+            assertTrue(assertObjectsEqual(m1.getParameters(), m2.getParameters()), message + "parameters");
+            assertTrue(assertObjectsEqual(m1.getHost(), m2.getHost()), message + "host");
+            assertTrue(assertObjectsEqual(m1.getPageTimes(), m2.getPageTimes()), message + "pageTimes");
+            assertTrue(assertObjectsEqual(m1.getProxyServers(), m2.getProxyServers()), message + "proxyServers");
+            assertTrue(assertObjectsEqual(m1.getLifecycle(), m2.getLifecycle()), message + "lifecycle");
+            assertTrue(assertObjectsEqual(m1.getErrorMessage(), m2.getErrorMessage()), message + "errorMessage");
+            assertTrue(assertObjectsEqual(m1.getErrorCode(), m2.getErrorCode()), message + "errorCode");
+            assertEquals(m1.getSourceCount(), m2.getSourceCount(), message + "sourceCount");
+            assertEquals(m1.getNextCount(), m2.getNextCount(), message + "nextCount");
+            assertEquals(m1.getSeekCount(), m2.getSeekCount(), message + "seekCount");
+            assertEquals(m1.getYieldCount(), m2.getYieldCount(), message + "yieldCount");
+            assertEquals(m1.getDocRanges(), m2.getDocRanges(), message + "docRanges");
+            assertEquals(m1.getFiRanges(), m2.getFiRanges(), message + "fiRanges");
+            assertTrue(assertObjectsEqual(m1.getPlan(), m2.getPlan()), message + "plan");
+            assertTrue(assertObjectsEqual(m1.getSubPlans(), m2.getSubPlans()), message + "subPlans");
+            assertEquals(m1.getLoginTime(), m2.getLoginTime(), message + "loginTime");
+            assertTrue(assertObjectsEqual(m1.getPredictions(), m2.getPredictions()), message + "predictions");
+            assertEquals(m1.getVersionMap(), m2.getVersionMap(), message + "versionMap");
         }
     }
     
@@ -414,9 +547,8 @@ public class QueryMetricTestBase {
         MapStoreConfig mapStoreConfig = config.getMapConfig(incomingCache.getName()).getMapStoreConfig();
         int writeDelaySeconds = Math.min(mapStoreConfig.getWriteDelaySeconds(), 1000);
         boolean found = false;
-        IMap<Object,Object> hzCache = ((IMap<Object,Object>) lastWrittenCache.getNativeCache());
         while (!found && System.currentTimeMillis() < (now + (1000 * (writeDelaySeconds + 1)))) {
-            found = hzCache.containsKey(queryId);
+            found = lastWrittenCache.get(queryId) != null;
             if (!found) {
                 try {
                     Thread.sleep(250);
@@ -495,7 +627,24 @@ public class QueryMetricTestBase {
             for (Map.Entry<Key,Value> e : entries) {
                 System.out.println(e.getKey().toString());
             }
-            Assert.fail("Duplicate field values found for:" + duplicateFields);
+            fail("Duplicate field values found for:" + duplicateFields);
+        }
+    }
+    
+    @Configuration
+    @Profile("MessageRouting")
+    @ComponentScan(basePackages = "datawave.microservice")
+    public static class MessagingTestConfiguration {
+        @Primary
+        @Bean
+        public QueryMetricSupplier testQueryMetricSource(@Lazy QueryMetricOperations queryMetricOperations) {
+            return new QueryMetricSupplier() {
+                @Override
+                public boolean send(Message<QueryMetricUpdate> queryMetricUpdate) {
+                    queryMetricOperations.storeMetricUpdates(new QueryMetricUpdateHolder(queryMetricUpdate.getPayload()));
+                    return true;
+                }
+            };
         }
     }
 }

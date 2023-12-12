@@ -1,29 +1,12 @@
 package datawave.microservice.querymetric.config;
 
-import com.hazelcast.config.Config;
-import com.hazelcast.config.ConfigurationException;
-import com.hazelcast.config.DiscoveryStrategyConfig;
-import com.hazelcast.config.InMemoryFormat;
-import com.hazelcast.config.JoinConfig;
-import com.hazelcast.config.ListenerConfig;
-import com.hazelcast.config.MapConfig;
-import com.hazelcast.config.MapStoreConfig;
-import com.hazelcast.config.TcpIpConfig;
-import com.hazelcast.config.XmlConfigBuilder;
-import com.hazelcast.core.Hazelcast;
-import com.hazelcast.core.HazelcastInstance;
-import com.hazelcast.core.IMap;
-import com.hazelcast.core.LifecycleEvent;
-import com.hazelcast.kubernetes.HazelcastKubernetesDiscoveryStrategyFactory;
-import com.hazelcast.kubernetes.KubernetesProperties;
-import com.hazelcast.spi.discovery.integration.DiscoveryServiceProvider;
-import com.hazelcast.spring.cache.HazelcastCache;
-import com.hazelcast.spring.cache.HazelcastCacheManager;
-import datawave.microservice.querymetric.ClusterMembershipListener;
-import datawave.microservice.querymetric.MergeLockLifecycleListener;
-import datawave.microservice.querymetric.persistence.AccumuloMapLoader;
-import datawave.microservice.querymetric.persistence.AccumuloMapStore;
-import datawave.microservice.querymetric.persistence.MetricMapListener;
+import static java.nio.charset.StandardCharsets.UTF_8;
+
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.util.Collection;
+import java.util.Map;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -31,17 +14,34 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.cache.Cache;
 import org.springframework.cloud.consul.discovery.ConsulDiscoveryProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.util.Collection;
-import java.util.Map;
+import com.hazelcast.config.Config;
+import com.hazelcast.config.DiscoveryStrategyConfig;
+import com.hazelcast.config.InMemoryFormat;
+import com.hazelcast.config.JoinConfig;
+import com.hazelcast.config.ListenerConfig;
+import com.hazelcast.config.MapConfig;
+import com.hazelcast.config.TcpIpConfig;
+import com.hazelcast.config.XmlConfigBuilder;
+import com.hazelcast.core.Hazelcast;
+import com.hazelcast.core.HazelcastInstance;
+import com.hazelcast.core.LifecycleEvent;
+import com.hazelcast.kubernetes.HazelcastKubernetesDiscoveryStrategyFactory;
+import com.hazelcast.kubernetes.KubernetesProperties;
+import com.hazelcast.spi.discovery.integration.DiscoveryServiceProvider;
+import com.hazelcast.spring.cache.HazelcastCache;
+import com.hazelcast.spring.cache.HazelcastCacheManager;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
+import datawave.microservice.querymetric.ClusterMembershipListener;
+import datawave.microservice.querymetric.MergeLockLifecycleListener;
+import datawave.microservice.querymetric.persistence.AccumuloMapLoader;
+import datawave.microservice.querymetric.persistence.AccumuloMapStore;
+import datawave.microservice.querymetric.persistence.MetricMapListener;
 
 @Configuration
 @ConditionalOnProperty(name = "hazelcast.server.enabled", havingValue = "true")
@@ -49,10 +49,9 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 public class HazelcastMetricCacheConfiguration {
     
     private Logger log = LoggerFactory.getLogger(HazelcastMetricCacheConfiguration.class);
-    public static final String LAST_WRITTEN_METRICS = "lastWrittenQueryMetrics";
     public static final String INCOMING_METRICS = "incomingQueryMetrics";
     
-    @Value("${spring.application.name}")
+    @Value("${hazelcast.clusterName:${spring.application.name}}")
     private String clusterName;
     
     @Bean(name = "queryMetricCacheManager")
@@ -63,29 +62,21 @@ public class HazelcastMetricCacheConfiguration {
     @Bean
     @Qualifier("metrics")
     HazelcastInstance hazelcastInstance(Config config, @Qualifier("store") AccumuloMapStore mapStore, @Qualifier("loader") AccumuloMapLoader mapLoader,
-                    MergeLockLifecycleListener lifecycleListener) {
+                    MergeLockLifecycleListener lifecycleListener, @Qualifier("lastWrittenQueryMetrics") Cache lastWrittenCache) {
         // Autowire both the AccumuloMapStore and AccumuloMapLoader so that they both get created
         // Ensure that the lastWrittenQueryMetricCache is set into the MapStore before the instance is active and the writeLock is released
-        lifecycleListener.writeLockRunnable.lock(60000, LifecycleEvent.LifecycleState.STARTING);
+        lifecycleListener.writeLockRunnable.lock(LifecycleEvent.LifecycleState.STARTING);
         HazelcastInstance instance = Hazelcast.newHazelcastInstance(config);
         
         try {
             HazelcastCacheManager cacheManager = new HazelcastCacheManager(instance);
             
-            HazelcastCache lastWrittenQueryMetricsCache = (HazelcastCache) cacheManager.getCache(LAST_WRITTEN_METRICS);
-            lastWrittenQueryMetricsCache.getNativeCache().addEntryListener(new MetricMapListener(LAST_WRITTEN_METRICS), true);
-            
             HazelcastCache incomingMetricsCache = (HazelcastCache) cacheManager.getCache(INCOMING_METRICS);
             incomingMetricsCache.getNativeCache().addEntryListener(new MetricMapListener(INCOMING_METRICS), true);
             
-            MapStoreConfig mapStoreConfig = config.getMapConfigs().get(LAST_WRITTEN_METRICS).getMapStoreConfig();
-            if (mapStoreConfig.getInitialLoadMode().equals(MapStoreConfig.InitialLoadMode.LAZY)) {
-                // prompts loading all keys otherwise we are getting a deadlock
-                lastWrittenQueryMetricsCache.getNativeCache().size();
-            }
-            mapStore.setLastWrittenQueryMetricCache(lastWrittenQueryMetricsCache);
+            mapStore.setLastWrittenQueryMetricCache(lastWrittenCache);
             System.setProperty("hzAddress", instance.getCluster().getLocalMember().getAddress().toString());
-            System.setProperty("hzUuid", instance.getCluster().getLocalMember().getUuid());
+            System.setProperty("hzUuid", instance.getCluster().getLocalMember().getUuid().toString());
         } catch (Exception e) {
             log.error(e.getMessage(), e);
         } finally {
@@ -98,6 +89,9 @@ public class HazelcastMetricCacheConfiguration {
     @Profile("consul")
     public Config consulConfig(HazelcastMetricCacheProperties serverProperties, DiscoveryServiceProvider discoveryServiceProvider,
                     ConsulDiscoveryProperties consulDiscoveryProperties, MergeLockLifecycleListener lifecycleListener) {
+        consulDiscoveryProperties.getMetadata().put("hzHost", System.getProperty("hazelcast.cluster.host"));
+        consulDiscoveryProperties.getMetadata().put("hzPort", System.getProperty("hazelcast.cluster.port"));
+        
         consulDiscoveryProperties.getTags().add("hzHost=" + System.getProperty("hazelcast.cluster.host"));
         consulDiscoveryProperties.getTags().add("hzPort=" + System.getProperty("hazelcast.cluster.port"));
         
@@ -178,7 +172,7 @@ public class HazelcastMetricCacheConfiguration {
         
         // Set up some default configuration. Do this after we read the XML configuration (which is really intended just to be cache configurations).
         if (!cacheProperties.isSkipDefaultConfiguration()) {
-            config.getGroupConfig().setName(clusterName); // Set the cluster name
+            config.setClusterName(clusterName); // Set the cluster name
             config.setProperty("hazelcast.logging.type", "slf4j"); // Override the default log handler
             config.setProperty("hazelcast.rest.enabled", Boolean.TRUE.toString()); // Enable the REST endpoints so we can test/debug on them
             config.setProperty("hazelcast.phone.home.enabled", Boolean.FALSE.toString()); // Don't try to send stats back to Hazelcast

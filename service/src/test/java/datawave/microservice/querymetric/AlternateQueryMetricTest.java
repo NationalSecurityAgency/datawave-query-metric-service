@@ -1,26 +1,28 @@
 package datawave.microservice.querymetric;
 
-import datawave.microservice.querymetric.config.AlternateQueryMetric;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-@RunWith(SpringRunner.class)
+import datawave.microservice.querymetric.config.AlternateQueryMetric;
+
+@ExtendWith(SpringExtension.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ActiveProfiles({"AlternateQueryMetricTest", "QueryMetricTest", "hazelcast-writethrough"})
+@ActiveProfiles({"AlternateQueryMetricTest", "QueryMetricTest", "MessageRouting", "hazelcast-writethrough"})
 public class AlternateQueryMetricTest extends QueryMetricTestBase {
     
-    @Before
+    @BeforeEach
     public void setup() {
         super.setup();
     }
     
-    @After
+    @AfterEach
     public void cleanup() {
         super.cleanup();
     }
@@ -39,10 +41,10 @@ public class AlternateQueryMetricTest extends QueryMetricTestBase {
                 .withUser(adminUser)
                 .build());
         // @formatter:on
-        assertEquals("incomingQueryMetricsCache metric wrong", m, incomingQueryMetricsCache.get(queryId, QueryMetricUpdate.class).getMetric());
-        assertEquals("lastWrittenQueryMetricCache metric wrong", m, lastWrittenQueryMetricCache.get(queryId, QueryMetricUpdate.class).getMetric());
+        metricAssertEquals("incomingQueryMetricsCache metric wrong", m, incomingQueryMetricsCache.get(queryId, QueryMetricUpdate.class).getMetric());
+        metricAssertEquals("lastWrittenQueryMetricCache metric wrong", m, lastWrittenQueryMetricCache.get(queryId, QueryMetricUpdate.class).getMetric());
         AlternateQueryMetric metricFromAccumulo = (AlternateQueryMetric) shardTableQueryMetricHandler.getQueryMetric(queryId);
-        assertEquals("accumulo metric wrong", m, metricFromAccumulo);
-        Assert.assertEquals("extra field missing/incorrect", m.getExtraField(), metricFromAccumulo.getExtraField());
+        metricAssertEquals("accumulo metric wrong", m, metricFromAccumulo);
+        assertEquals(m.getExtraField(), metricFromAccumulo.getExtraField(), "extra field missing/incorrect");
     }
 }
