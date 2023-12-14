@@ -89,7 +89,6 @@ datawave:
         transport: message
         host: localhost
         port: ${server.port}
-        confirmAckEnabled: false
       timely:
         enabled: false
         host: localhost
