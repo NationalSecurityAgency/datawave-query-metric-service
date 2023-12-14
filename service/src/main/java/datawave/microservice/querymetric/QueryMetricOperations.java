@@ -62,6 +62,7 @@ import com.hazelcast.spring.cache.HazelcastCacheManager;
 
 import datawave.marking.MarkingFunctions;
 import datawave.microservice.authorization.user.DatawaveUserDetails;
+import datawave.microservice.querymetric.QueryGeometryResponse;
 import datawave.microservice.querymetric.config.QueryMetricProperties;
 import datawave.microservice.querymetric.config.QueryMetricProperties.Retry;
 import datawave.microservice.querymetric.factory.BaseQueryMetricListResponseFactory;
@@ -74,7 +75,6 @@ import datawave.query.jexl.visitors.JexlFormattedStringBuildingVisitor;
 import datawave.security.authorization.DatawaveUser;
 import datawave.webservice.query.exception.DatawaveErrorCode;
 import datawave.webservice.query.exception.QueryException;
-import datawave.webservice.query.map.QueryGeometryResponse;
 import datawave.webservice.result.VoidResponse;
 import io.swagger.v3.oas.annotations.ExternalDocumentation;
 import io.swagger.v3.oas.annotations.Operation;
@@ -109,6 +109,7 @@ public class QueryMetricOperations {
     private MetricUpdateEntryProcessorFactory entryProcessorFactory;
     private QueryMetricOperationsStats stats;
     private static Set<String> inProcess = Collections.synchronizedSet(new HashSet<>());
+    private final LinkedHashMap<String,String> pathPrefixMap = new LinkedHashMap<>();
     
     private final QueryMetricSupplier queryMetricSupplier;
     private final DnUtils dnUtils;
@@ -174,6 +175,10 @@ public class QueryMetricOperations {
         this.stats = stats;
         this.queryMetricSupplier = queryMetricSupplier;
         this.dnUtils = dnUtils;
+        this.pathPrefixMap.put("jquery", "/querymetric/webjars/jquery");
+        this.pathPrefixMap.put("leaflet", "/querymetric/webjars/leaflet");
+        this.pathPrefixMap.put("css", "/querymetric/css");
+        this.pathPrefixMap.put("js", "/querymetric/js");
     }
     
     @PreDestroy
@@ -544,6 +549,8 @@ public class QueryMetricOperations {
                     @Parameter(description = "queryId to return") @PathVariable("queryId") String queryId) {
         
         BaseQueryMetricListResponse response = this.queryMetricListResponseFactory.createDetailedResponse();
+        response.setHtmlIncludePaths(this.pathPrefixMap);
+        response.setBaseUrl("/querymetric/v1");
         List<BaseQueryMetric> metricList = new ArrayList<>();
         try {
             BaseQueryMetric metric;
@@ -628,11 +635,13 @@ public class QueryMetricOperations {
     public QueryGeometryResponse map(@AuthenticationPrincipal DatawaveUserDetails currentUser, @PathVariable("queryId") String queryId) {
         QueryGeometryResponse queryGeometryResponse = new QueryGeometryResponse();
         BaseQueryMetricListResponse metricResponse = query(currentUser, queryId);
-        if (!metricResponse.getExceptions().isEmpty()) {
+        if (metricResponse.getExceptions() == null || metricResponse.getExceptions().isEmpty()) {
+            QueryGeometryResponse response = geometryHandler.getQueryGeometryResponse(queryId, metricResponse.getResult());
+            response.setHtmlIncludePaths(pathPrefixMap);
+            return response;
+        } else {
             metricResponse.getExceptions().forEach(e -> queryGeometryResponse.addException(new QueryException(e.getMessage(), e.getCause(), e.getCode())));
             return queryGeometryResponse;
-        } else {
-            return geometryHandler.getQueryGeometryResponse(queryId, metricResponse.getResult());
         }
     }
     
