@@ -33,6 +33,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.junit.Assert.assertNotNull;
+
 @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles({"QueryMetricConsistencyTest", "QueryMetricTest", "hazelcast-writethrough"})
@@ -273,6 +275,26 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
         event.setMarkings(queryMetric.getMarkings());
         BaseQueryMetric newMetric = this.shardTableQueryMetricHandler.toMetric(event);
         QueryMetricTestBase.assertEquals("metrics are not equal", queryMetric, newMetric);
+    }
+    
+    /*
+     * Check that the last updated time (which is used to calculate the elapsed time) does not get changed when being written to Accumulo
+     */
+    @Test
+    public void LastUpdatedTest() {
+        QueryMetric queryMetric = (QueryMetric) createMetric();
+        String queryId = queryMetric.getQueryId();
+        Date lastUpdated = new Date(queryMetric.getCreateDate().getTime() + 60000);
+        queryMetric.setLastUpdated(lastUpdated);
+        queryMetric.setLifecycle(BaseQueryMetric.Lifecycle.CLOSED);
+        incomingQueryMetricsCache.put(queryId, new QueryMetricUpdateHolder(queryMetric.duplicate()));
+        ensureDataWritten(incomingQueryMetricsCache, lastWrittenQueryMetricCache, queryId);
+        
+        QueryMetricUpdateHolder storedMetricHolder = lastWrittenQueryMetricCache.get(queryId, QueryMetricUpdateHolder.class);
+        assertNotNull("storedQueryMetric is null", storedMetricHolder);
+        QueryMetricTestBase.assertEquals("metric should not change", queryMetric, storedMetricHolder.getMetric());
+        Assert.assertEquals("Elapsed time incorrect", 60000, storedMetricHolder.getMetric().getElapsedTime());
+        Assert.assertEquals("Last updated incorrect", lastUpdated, storedMetricHolder.getMetric().getLastUpdated());
     }
     
     @Test
