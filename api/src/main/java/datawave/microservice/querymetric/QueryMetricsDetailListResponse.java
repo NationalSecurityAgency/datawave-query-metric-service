@@ -1,5 +1,6 @@
 package datawave.microservice.querymetric;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import datawave.webservice.query.QueryImpl.Parameter;
 import datawave.microservice.querymetric.BaseQueryMetric.PageMetric;
 import datawave.microservice.querymetric.BaseQueryMetric.Prediction;
@@ -11,6 +12,7 @@ import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorOrder;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.XmlTransient;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -27,6 +29,8 @@ public class QueryMetricsDetailListResponse extends QueryMetricListResponse {
     
     private static final long serialVersionUID = 1L;
     
+    @JsonIgnore
+    @XmlTransient
     @Override
     public String getMainContent() {
         StringBuilder builder = new StringBuilder(), pageTimesBuilder = new StringBuilder();
@@ -79,7 +83,13 @@ public class QueryMetricsDetailListResponse extends QueryMetricListResponse {
             builder.append("<td style=\"min-width:500px !important;\">").append(userDN == null ? "" : userDN).append("</td>");
             String proxyServers = metric.getProxyServers() == null ? "" : StringUtils.join(metric.getProxyServers(), "<BR/>");
             builder.append("<td>").append(proxyServers).append("</td>");
-            builder.append("<td>").append(metric.getQueryId()).append("</td>");
+            if (this.isAdministratorMode()) {
+                builder.append("<td><a href=\"" + BASE_URL + "/user/").append(metric.getUser()).append("/").append(metric.getQueryId()).append("/")
+                                .append("\">").append(metric.getQueryId()).append("</a></td>");
+            } else {
+                builder.append("<td><a href=\"" + BASE_URL + "/id/").append(metric.getQueryId()).append("/").append("\">").append(metric.getQueryId())
+                                .append("</a></td>");
+            }
             builder.append("<td>").append(metric.getQueryType()).append("</td>");
             builder.append("<td>").append(metric.getQueryLogic()).append("</td>");
             builder.append(isJexlQuery(parameters) ? "<td style=\"white-space: pre; word-wrap: break-word;\">" : "<td style=\"word-wrap: break-word;\">")

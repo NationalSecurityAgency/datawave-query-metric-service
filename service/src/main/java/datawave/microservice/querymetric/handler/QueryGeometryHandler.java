@@ -1,7 +1,7 @@
 package datawave.microservice.querymetric.handler;
 
 import datawave.microservice.querymetric.BaseQueryMetric;
-import datawave.webservice.query.map.QueryGeometryResponse;
+import datawave.microservice.querymetric.QueryGeometryResponse;
 
 import java.util.List;
 

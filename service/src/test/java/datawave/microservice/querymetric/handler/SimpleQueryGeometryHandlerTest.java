@@ -1,11 +1,11 @@
 package datawave.microservice.querymetric.handler;
 
+import datawave.microservice.querymetric.QueryGeometry;
+import datawave.microservice.querymetric.QueryGeometryResponse;
 import datawave.microservice.querymetric.QueryMetric;
 import datawave.microservice.querymetric.config.QueryMetricHandlerProperties;
 import datawave.webservice.query.QueryImpl;
 import datawave.webservice.query.exception.QueryExceptionType;
-import datawave.webservice.query.map.QueryGeometry;
-import datawave.webservice.query.map.QueryGeometryResponse;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;

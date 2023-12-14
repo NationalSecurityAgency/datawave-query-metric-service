@@ -17,7 +17,6 @@ import datawave.security.authorization.DatawaveUser;
 import datawave.security.util.DnUtils;
 import datawave.webservice.query.exception.DatawaveErrorCode;
 import datawave.webservice.query.exception.QueryException;
-import datawave.webservice.query.map.QueryGeometryResponse;
 import datawave.webservice.result.VoidResponse;
 import io.swagger.annotations.ApiParam;
 import org.apache.accumulo.core.security.Authorizations;
@@ -57,6 +56,7 @@ import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Set;
 import java.util.TimeZone;
@@ -93,6 +93,7 @@ public class QueryMetricOperations {
     private MetricUpdateEntryProcessorFactory entryProcessorFactory;
     private QueryMetricOperationsStats stats;
     private static Set<String> inProcess = Collections.synchronizedSet(new HashSet<>());
+    private final LinkedHashMap<String,String> pathPrefixMap = new LinkedHashMap<>();
     
     /**
      * The enum Default datetime.
@@ -150,6 +151,10 @@ public class QueryMetricOperations {
         this.correlator = correlator;
         this.entryProcessorFactory = entryProcessorFactory;
         this.stats = stats;
+        this.pathPrefixMap.put("jquery", "/querymetric/webjars/jquery");
+        this.pathPrefixMap.put("leaflet", "/querymetric/webjars/leaflet");
+        this.pathPrefixMap.put("css", "/querymetric/css");
+        this.pathPrefixMap.put("js", "/querymetric/js");
     }
     
     @PreDestroy
@@ -459,6 +464,8 @@ public class QueryMetricOperations {
                     @ApiParam("queryId to return") @PathVariable("queryId") String queryId) {
         
         BaseQueryMetricListResponse response = this.queryMetricListResponseFactory.createDetailedResponse();
+        response.setHtmlIncludePaths(this.pathPrefixMap);
+        response.setBaseUrl("/querymetric/v1");
         List<BaseQueryMetric> metricList = new ArrayList<>();
         try {
             BaseQueryMetric metric;
@@ -526,7 +533,9 @@ public class QueryMetricOperations {
         QueryGeometryResponse queryGeometryResponse = new QueryGeometryResponse();
         BaseQueryMetricListResponse metricResponse = query(currentUser, queryId);
         if (metricResponse.getExceptions() == null || metricResponse.getExceptions().isEmpty()) {
-            return geometryHandler.getQueryGeometryResponse(queryId, metricResponse.getResult());
+            QueryGeometryResponse response = geometryHandler.getQueryGeometryResponse(queryId, metricResponse.getResult());
+            response.setHtmlIncludePaths(pathPrefixMap);
+            return response;
         } else {
             metricResponse.getExceptions().forEach(e -> queryGeometryResponse.addException(new QueryException(e.getMessage(), e.getCause(), e.getCode())));
             return queryGeometryResponse;
