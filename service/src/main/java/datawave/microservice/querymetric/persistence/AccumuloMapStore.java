@@ -179,14 +179,12 @@ public class AccumuloMapStore<T extends BaseQueryMetric> extends AccumuloMapLoad
                 }
                 long writeTimestamp = deleteTimestamp + 1;
                 updatedMetric.setNumUpdates(numUpdates + 1);
-                updatedMetric.setLastUpdated(new Date(updatedMetric.getLastUpdated().getTime() + 1));
                 
                 if (lastQueryMetric.getLastUpdated() != null) {
                     handler.writeMetric(updatedMetric, Collections.singletonList(lastQueryMetric), deleteTimestamp, true, ignoredFields);
                 }
                 handler.writeMetric(updatedMetric, Collections.singletonList(lastQueryMetric), writeTimestamp, false, ignoredFields);
             } else {
-                updatedMetric.setLastUpdated(updatedMetric.getCreateDate());
                 handler.writeMetric(updatedMetric, Collections.emptyList(), updatedMetric.getCreateDate().getTime(), false, ignoredFields);
             }
             if (log.isTraceEnabled()) {
