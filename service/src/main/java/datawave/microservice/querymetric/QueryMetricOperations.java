@@ -229,7 +229,7 @@ public class QueryMetricOperations {
                         QueryMetricType metricType = correlatedUpdates.get(0).getMetricType();
                         QueryMetricUpdateHolder metricUpdate = combineMetricUpdates(correlatedUpdates, metricType);
                         log.debug("storing correlated updates for {}", queryId);
-                        storeMetricUpdates(metricUpdate);
+                        storeMetricUpdate(metricUpdate);
                     } catch (Exception e) {
                         log.error("exception while combining correlated updates: " + e.getMessage(), e);
                     }
@@ -478,7 +478,6 @@ public class QueryMetricOperations {
         BaseQueryMetric combinedMetric = null;
         BaseQueryMetric.Lifecycle lowestLifecycle = null;
         for (QueryMetricUpdate u : updates) {
-            this.stats.queueTimelyMetrics(u);
             if (combinedMetric == null) {
                 combinedMetric = u.getMetric();
                 lowestLifecycle = u.getMetric().getLifecycle();
@@ -494,7 +493,7 @@ public class QueryMetricOperations {
         return metricUpdateHolder;
     }
     
-    public void storeMetricUpdates(QueryMetricUpdateHolder metricUpdate) {
+    public void storeMetricUpdate(QueryMetricUpdateHolder metricUpdate) {
         Timer.Context storeTimer = this.stats.getTimer(TIMERS.STORE).time();
         String queryId = metricUpdate.getMetric().getQueryId();
         try {
