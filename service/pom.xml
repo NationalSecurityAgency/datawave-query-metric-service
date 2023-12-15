@@ -8,13 +8,13 @@
         <relativePath>../../../microservice-service-parent/pom.xml</relativePath>
     </parent>
     <artifactId>query-metric-service</artifactId>
-    <version>3.0.5-SNAPSHOT</version>
+    <version>3.0.5</version>
     <description>DATAWAVE Query Metric Microservice</description>
     <url>https://code.nsa.gov/datawave-query-metric-service</url>
     <scm>
         <connection>scm:git:https://github.com/NationalSecurityAgency/datawave-query-metric-service.git</connection>
         <developerConnection>scm:git:git@github.com:NationalSecurityAgency/datawave-query-metric-service.git</developerConnection>
-        <tag>HEAD</tag>
+        <tag>service-3.0.5</tag>
         <url>https://github.com/NationalSecurityAgency/datawave-query-metric-service</url>
     </scm>
     <properties>
@@ -28,7 +28,7 @@
         <version.in-memory-accumulo>3.0.1</version.in-memory-accumulo>
         <version.microservice.accumulo-api>3.0.0</version.microservice.accumulo-api>
         <version.microservice.hazelcast>3.0.0</version.microservice.hazelcast>
-        <version.microservice.query-metric-api>3.0.4</version.microservice.query-metric-api>
+        <version.microservice.query-metric-api>3.0.5</version.microservice.query-metric-api>
         <version.microservice.starter>3.0.0</version.microservice.starter>
         <version.microservice.starter-datawave-query-metric>2.0.0</version.microservice.starter-datawave-query-metric>
         <version.microservice.starter-metadata>2.0.0</version.microservice.starter-metadata>
