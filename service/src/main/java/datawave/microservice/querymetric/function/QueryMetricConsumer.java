@@ -30,7 +30,7 @@ public class QueryMetricConsumer implements Consumer<QueryMetricUpdate> {
     @Override
     public void accept(QueryMetricUpdate queryMetricUpdate) {
         try {
-            this.stats.queueTimelyMetricUpdate(queryMetricUpdate);
+            this.stats.queueTimelyMetrics(queryMetricUpdate);
             this.stats.getMeter(QueryMetricOperationsStats.METERS.MESSAGE_RECEIVE).mark();
             if (shouldCorrelate(queryMetricUpdate)) {
                 log.debug("adding update for {} to correlator", queryMetricUpdate.getMetric().getQueryId());
