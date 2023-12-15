@@ -36,8 +36,8 @@ public abstract class QueryMetricOperationsTest extends QueryMetricTestBase {
                 .build());
         // @formatter:on
         ensureDataWritten(incomingQueryMetricsCache, lastWrittenQueryMetricCache, queryId);
-        metricAssertEquals("lastWrittenQueryMetricCache metric wrong", m, lastWrittenQueryMetricCache.get(queryId, QueryMetricUpdate.class).getMetric());
-        metricAssertEquals("incomingQueryMetricsCache metric wrong", m, incomingQueryMetricsCache.get(queryId, QueryMetricUpdate.class).getMetric());
+        metricAssertEquals("lastWrittenQueryMetricCache metric wrong", m, lastWrittenQueryMetricCache.get(queryId, QueryMetricUpdateHolder.class).getMetric());
+        metricAssertEquals("incomingQueryMetricsCache metric wrong", m, incomingQueryMetricsCache.get(queryId, QueryMetricUpdateHolder.class).getMetric());
         metricAssertEquals("accumulo metric wrong", m, shardTableQueryMetricHandler.getQueryMetric(queryId));
     }
     
@@ -60,14 +60,15 @@ public abstract class QueryMetricOperationsTest extends QueryMetricTestBase {
         metrics.forEach((m) -> {
             String queryId = m.getQueryId();
             ensureDataWritten(incomingQueryMetricsCache, lastWrittenQueryMetricCache, queryId);
-            metricAssertEquals("lastWrittenQueryMetricCache metric wrong", m, lastWrittenQueryMetricCache.get(queryId, QueryMetricUpdate.class).getMetric());
+            metricAssertEquals("lastWrittenQueryMetricCache metric wrong", m,
+                            lastWrittenQueryMetricCache.get(queryId, QueryMetricUpdateHolder.class).getMetric());
             try {
                 metricAssertEquals("accumulo metric wrong", m, shardTableQueryMetricHandler.getQueryMetric(queryId));
             } catch (Exception e) {
                 log.error(e.getMessage(), e);
                 fail(e.getMessage());
             }
-            metricAssertEquals("incomingQueryMetricsCache metric wrong", m, incomingQueryMetricsCache.get(queryId, QueryMetricUpdate.class).getMetric());
+            metricAssertEquals("incomingQueryMetricsCache metric wrong", m, incomingQueryMetricsCache.get(queryId, QueryMetricUpdateHolder.class).getMetric());
         });
     }
     
@@ -90,8 +91,9 @@ public abstract class QueryMetricOperationsTest extends QueryMetricTestBase {
         metrics.forEach((m) -> {
             String queryId = m.getQueryId();
             ensureDataWritten(incomingQueryMetricsCache, lastWrittenQueryMetricCache, queryId);
-            metricAssertEquals("lastWrittenQueryMetricCache metric wrong", m, lastWrittenQueryMetricCache.get(queryId, QueryMetricUpdate.class).getMetric());
-            metricAssertEquals("incomingQueryMetricsCache metric wrong", m, incomingQueryMetricsCache.get(queryId, QueryMetricUpdate.class).getMetric());
+            metricAssertEquals("lastWrittenQueryMetricCache metric wrong", m,
+                            lastWrittenQueryMetricCache.get(queryId, QueryMetricUpdateHolder.class).getMetric());
+            metricAssertEquals("incomingQueryMetricsCache metric wrong", m, incomingQueryMetricsCache.get(queryId, QueryMetricUpdateHolder.class).getMetric());
             try {
                 metricAssertEquals("accumulo metric wrong", m, shardTableQueryMetricHandler.getQueryMetric(queryId));
             } catch (Exception e) {

@@ -22,7 +22,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.annotation.PreDestroy;
 import javax.annotation.security.PermitAll;
@@ -62,6 +62,7 @@ import com.hazelcast.spring.cache.HazelcastCacheManager;
 
 import datawave.marking.MarkingFunctions;
 import datawave.microservice.authorization.user.DatawaveUserDetails;
+import datawave.microservice.querymetric.QueryGeometryResponse;
 import datawave.microservice.querymetric.config.QueryMetricProperties;
 import datawave.microservice.querymetric.config.QueryMetricProperties.Retry;
 import datawave.microservice.querymetric.factory.BaseQueryMetricListResponseFactory;
@@ -74,7 +75,6 @@ import datawave.query.jexl.visitors.JexlFormattedStringBuildingVisitor;
 import datawave.security.authorization.DatawaveUser;
 import datawave.webservice.query.exception.DatawaveErrorCode;
 import datawave.webservice.query.exception.QueryException;
-import datawave.webservice.query.map.QueryGeometryResponse;
 import datawave.webservice.result.VoidResponse;
 import io.swagger.v3.oas.annotations.ExternalDocumentation;
 import io.swagger.v3.oas.annotations.Operation;
@@ -105,9 +105,11 @@ public class QueryMetricOperations {
     private BaseQueryMetricListResponseFactory queryMetricListResponseFactory;
     private MergeLockLifecycleListener mergeLock;
     private Correlator correlator;
+    private AtomicBoolean timedCorrelationInProgress = new AtomicBoolean(false);
     private MetricUpdateEntryProcessorFactory entryProcessorFactory;
     private QueryMetricOperationsStats stats;
     private static Set<String> inProcess = Collections.synchronizedSet(new HashSet<>());
+    private final LinkedHashMap<String,String> pathPrefixMap = new LinkedHashMap<>();
     
     private final QueryMetricSupplier queryMetricSupplier;
     private final DnUtils dnUtils;
@@ -173,20 +175,50 @@ public class QueryMetricOperations {
         this.stats = stats;
         this.queryMetricSupplier = queryMetricSupplier;
         this.dnUtils = dnUtils;
+        this.pathPrefixMap.put("jquery", "/querymetric/webjars/jquery");
+        this.pathPrefixMap.put("leaflet", "/querymetric/webjars/leaflet");
+        this.pathPrefixMap.put("css", "/querymetric/css");
+        this.pathPrefixMap.put("js", "/querymetric/js");
     }
     
     @PreDestroy
     public void shutdown() {
         if (this.correlator.isEnabled()) {
             this.correlator.shutdown(true);
-            ensureUpdatesProcessed();
+            // we've locked out the timer thread, but need to
+            // wait for it to complete the last write
+            while (isTimedCorrelationInProgress()) {
+                try {
+                    Thread.sleep(200);
+                } catch (InterruptedException e) {
+                    
+                }
+            }
+            ensureUpdatesProcessed(false);
         }
         this.stats.queueAggregatedQueryStatsForTimely();
         this.stats.writeQueryStatsToTimely();
     }
     
+    public boolean isTimedCorrelationInProgress() {
+        return this.timedCorrelationInProgress.get();
+    }
+    
     @Scheduled(fixedDelay = 2000)
-    public void ensureUpdatesProcessed() {
+    public void ensureUpdatesProcessedScheduled() {
+        // don't write metrics from this thread while shutting down,
+        // so we can make sure that the process completes
+        if (!this.correlator.isShuttingDown()) {
+            this.timedCorrelationInProgress.set(true);
+            try {
+                ensureUpdatesProcessed(true);
+            } finally {
+                this.timedCorrelationInProgress.set(false);
+            }
+        }
+    }
+    
+    public void ensureUpdatesProcessed(boolean scheduled) {
         if (this.correlator.isEnabled()) {
             List<QueryMetricUpdate> correlatedUpdates;
             do {
@@ -202,7 +234,7 @@ public class QueryMetricOperations {
                         log.error("exception while combining correlated updates: " + e.getMessage(), e);
                     }
                 }
-            } while (correlatedUpdates != null && !correlatedUpdates.isEmpty());
+            } while (!(scheduled && this.correlator.isShuttingDown()) && correlatedUpdates != null && !correlatedUpdates.isEmpty());
         }
     }
     
@@ -414,7 +446,7 @@ public class QueryMetricOperations {
         boolean success = true;
         // wait for the confirm acks only after all sends are successful
         if (queryMetricProperties.isConfirmAckEnabled()) {
-            for (String correlationId : updatesById.keySet()) {
+            for (String correlationId : new HashSet<>(updatesById.keySet())) {
                 if (!awaitConfirmAck(correlationId)) {
                     failedUpdates.add(updatesById.remove(correlationId));
                     success = false;
@@ -517,6 +549,8 @@ public class QueryMetricOperations {
                     @Parameter(description = "queryId to return") @PathVariable("queryId") String queryId) {
         
         BaseQueryMetricListResponse response = this.queryMetricListResponseFactory.createDetailedResponse();
+        response.setHtmlIncludePaths(this.pathPrefixMap);
+        response.setBaseUrl("/querymetric/v1");
         List<BaseQueryMetric> metricList = new ArrayList<>();
         try {
             BaseQueryMetric metric;
@@ -601,11 +635,13 @@ public class QueryMetricOperations {
     public QueryGeometryResponse map(@AuthenticationPrincipal DatawaveUserDetails currentUser, @PathVariable("queryId") String queryId) {
         QueryGeometryResponse queryGeometryResponse = new QueryGeometryResponse();
         BaseQueryMetricListResponse metricResponse = query(currentUser, queryId);
-        if (!metricResponse.getExceptions().isEmpty()) {
+        if (metricResponse.getExceptions() == null || metricResponse.getExceptions().isEmpty()) {
+            QueryGeometryResponse response = geometryHandler.getQueryGeometryResponse(queryId, metricResponse.getResult());
+            response.setHtmlIncludePaths(pathPrefixMap);
+            return response;
+        } else {
             metricResponse.getExceptions().forEach(e -> queryGeometryResponse.addException(new QueryException(e.getMessage(), e.getCause(), e.getCode())));
             return queryGeometryResponse;
-        } else {
-            return geometryHandler.getQueryGeometryResponse(queryId, metricResponse.getResult());
         }
     }
     
