@@ -446,7 +446,7 @@ public class QueryMetricOperations {
         boolean success = true;
         // wait for the confirm acks only after all sends are successful
         if (queryMetricProperties.isConfirmAckEnabled()) {
-            for (String correlationId : updatesById.keySet()) {
+            for (String correlationId : new HashSet<>(updatesById.keySet())) {
                 if (!awaitConfirmAck(correlationId)) {
                     failedUpdates.add(updatesById.remove(correlationId));
                     success = false;
