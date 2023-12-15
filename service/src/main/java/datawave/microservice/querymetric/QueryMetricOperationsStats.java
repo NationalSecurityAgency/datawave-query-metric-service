@@ -250,46 +250,46 @@ public class QueryMetricOperationsStats {
         return stats;
     }
     
-    public void queueTimelyMetricUpdate(QueryMetricUpdate update) {
-        if (this.timelyProperties.isEnabled()) {
-            String queryType = update.getMetric().getQueryType();
-            if (queryType != null && queryType.equalsIgnoreCase("RunningQuery")) {
-                queueTimelyMetric(update.getMetric());
-            }
-        }
+    public void queueTimelyMetrics(QueryMetricUpdate update) {
+        queueTimelyMetrics(update.getMetric());
     }
     
-    private void queueTimelyMetric(BaseQueryMetric queryMetric) {
-        BaseQueryMetric.Lifecycle lifecycle = queryMetric.getLifecycle();
-        String host = queryMetric.getHost();
-        String user = queryMetric.getUser();
-        String logic = queryMetric.getQueryLogic();
-        if (lifecycle.equals(BaseQueryMetric.Lifecycle.CLOSED) || lifecycle.equals(BaseQueryMetric.Lifecycle.CANCELLED)) {
-            long createDate = queryMetric.getCreateDate().getTime();
-            // write ELAPSED_TIME
-            this.queryStatsToWriteToTimely.add(
-                            "put dw.query.metrics.ELAPSED_TIME " + createDate + " " + queryMetric.getElapsedTime() + " HOST=" + host + getCommonTags() + "\n");
-            this.queryStatsToWriteToTimely.add(
-                            "put dw.query.metrics.ELAPSED_TIME " + createDate + " " + queryMetric.getElapsedTime() + " USER=" + user + getCommonTags() + "\n");
-            this.queryStatsToWriteToTimely.add("put dw.query.metrics.ELAPSED_TIME " + createDate + " " + queryMetric.getElapsedTime() + " QUERY_LOGIC=" + logic
-                            + getCommonTags() + "\n");
-            
-            // write NUM_RESULTS
-            this.queryStatsToWriteToTimely.add(
-                            "put dw.query.metrics.NUM_RESULTS " + createDate + " " + queryMetric.getNumResults() + " HOST=" + host + getCommonTags() + "\n");
-            this.queryStatsToWriteToTimely.add(
-                            "put dw.query.metrics.NUM_RESULTS " + createDate + " " + queryMetric.getNumResults() + " USER=" + user + getCommonTags() + "\n");
-            this.queryStatsToWriteToTimely.add("put dw.query.metrics.NUM_RESULTS " + createDate + " " + queryMetric.getNumResults() + " QUERY_LOGIC=" + logic
-                            + getCommonTags() + "\n");
-        } else if (lifecycle.equals(BaseQueryMetric.Lifecycle.INITIALIZED)) {
-            // aggregate these metrics for later writing to timely
-            synchronized (this.hostCountMap) {
-                Long hostCount = this.hostCountMap.get(host);
-                this.hostCountMap.put(host, hostCount == null ? 1l : hostCount + 1);
-                Long userCount = this.userCountMap.get(user);
-                this.userCountMap.put(user, userCount == null ? 1l : userCount + 1);
-                Long logicCount = this.logicCountMap.get(logic);
-                this.logicCountMap.put(logic, logicCount == null ? 1l : logicCount + 1);
+    public void queueTimelyMetrics(BaseQueryMetric queryMetric) {
+        if (this.timelyProperties.isEnabled()) {
+            String queryType = queryMetric.getQueryType();
+            if (queryType != null && queryType.equalsIgnoreCase("RunningQuery")) {
+                BaseQueryMetric.Lifecycle lifecycle = queryMetric.getLifecycle();
+                String host = queryMetric.getHost();
+                String user = queryMetric.getUser();
+                String logic = queryMetric.getQueryLogic();
+                if (lifecycle.equals(BaseQueryMetric.Lifecycle.CLOSED) || lifecycle.equals(BaseQueryMetric.Lifecycle.CANCELLED)) {
+                    long createDate = queryMetric.getCreateDate().getTime();
+                    // write ELAPSED_TIME
+                    this.queryStatsToWriteToTimely.add("put dw.query.metrics.ELAPSED_TIME " + createDate + " " + queryMetric.getElapsedTime() + " HOST=" + host
+                                    + getCommonTags() + "\n");
+                    this.queryStatsToWriteToTimely.add("put dw.query.metrics.ELAPSED_TIME " + createDate + " " + queryMetric.getElapsedTime() + " USER=" + user
+                                    + getCommonTags() + "\n");
+                    this.queryStatsToWriteToTimely.add("put dw.query.metrics.ELAPSED_TIME " + createDate + " " + queryMetric.getElapsedTime() + " QUERY_LOGIC="
+                                    + logic + getCommonTags() + "\n");
+                    
+                    // write NUM_RESULTS
+                    this.queryStatsToWriteToTimely.add("put dw.query.metrics.NUM_RESULTS " + createDate + " " + queryMetric.getNumResults() + " HOST=" + host
+                                    + getCommonTags() + "\n");
+                    this.queryStatsToWriteToTimely.add("put dw.query.metrics.NUM_RESULTS " + createDate + " " + queryMetric.getNumResults() + " USER=" + user
+                                    + getCommonTags() + "\n");
+                    this.queryStatsToWriteToTimely.add("put dw.query.metrics.NUM_RESULTS " + createDate + " " + queryMetric.getNumResults() + " QUERY_LOGIC="
+                                    + logic + getCommonTags() + "\n");
+                } else if (lifecycle.equals(BaseQueryMetric.Lifecycle.INITIALIZED)) {
+                    // aggregate these metrics for later writing to timely
+                    synchronized (this.hostCountMap) {
+                        Long hostCount = this.hostCountMap.get(host);
+                        this.hostCountMap.put(host, hostCount == null ? 1l : hostCount + 1);
+                        Long userCount = this.userCountMap.get(user);
+                        this.userCountMap.put(user, userCount == null ? 1l : userCount + 1);
+                        Long logicCount = this.logicCountMap.get(logic);
+                        this.logicCountMap.put(logic, logicCount == null ? 1l : logicCount + 1);
+                    }
+                }
             }
         }
     }

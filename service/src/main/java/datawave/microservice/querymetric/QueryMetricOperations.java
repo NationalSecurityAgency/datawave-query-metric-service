@@ -363,7 +363,7 @@ public class QueryMetricOperations {
      */
     @StreamListener(QueryMetricSinkBinding.SINK_NAME)
     public void handleEvent(QueryMetricUpdate update) {
-        this.stats.queueTimelyMetricUpdate(update);
+        this.stats.queueTimelyMetrics(update);
         this.stats.getMeter(METERS.MESSAGE_RECEIVE).mark();
         if (shouldCorrelate(update)) {
             log.debug("adding update for {} to correlator", update.getMetric().getQueryId());
