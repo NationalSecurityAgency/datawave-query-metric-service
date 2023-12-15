@@ -30,13 +30,14 @@ public class QueryMetricConsumer implements Consumer<QueryMetricUpdate> {
     @Override
     public void accept(QueryMetricUpdate queryMetricUpdate) {
         try {
-            stats.getMeter(QueryMetricOperationsStats.METERS.MESSAGE_RECEIVE).mark();
+            this.stats.queueTimelyMetricUpdate(queryMetricUpdate);
+            this.stats.getMeter(QueryMetricOperationsStats.METERS.MESSAGE_RECEIVE).mark();
             if (shouldCorrelate(queryMetricUpdate)) {
                 log.debug("adding update for {} to correlator", queryMetricUpdate.getMetric().getQueryId());
                 this.correlator.addMetricUpdate(queryMetricUpdate);
             } else {
                 log.debug("storing update for {}", queryMetricUpdate.getMetric().getQueryId());
-                queryMetricOperations.storeMetricUpdates(new QueryMetricUpdateHolder(queryMetricUpdate));
+                this.queryMetricOperations.storeMetricUpdate(new QueryMetricUpdateHolder(queryMetricUpdate));
             }
             
             if (this.correlator.isEnabled()) {
@@ -49,7 +50,7 @@ public class QueryMetricConsumer implements Consumer<QueryMetricUpdate> {
                             QueryMetricType metricType = correlatedUpdates.get(0).getMetricType();
                             QueryMetricUpdateHolder metricUpdate = this.queryMetricOperations.combineMetricUpdates(correlatedUpdates, metricType);
                             log.debug("storing correlated updates for {}", queryId);
-                            queryMetricOperations.storeMetricUpdates(metricUpdate);
+                            queryMetricOperations.storeMetricUpdate(metricUpdate);
                         } catch (Exception e) {
                             log.error("exception while combining correlated updates: " + e.getMessage(), e);
                         }

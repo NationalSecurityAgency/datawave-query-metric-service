@@ -627,7 +627,7 @@ public class QueryMetricTestBase {
             return new QueryMetricSupplier() {
                 @Override
                 public boolean send(Message<QueryMetricUpdate> queryMetricUpdate) {
-                    queryMetricOperations.storeMetricUpdates(new QueryMetricUpdateHolder(queryMetricUpdate.getPayload()));
+                    queryMetricOperations.storeMetricUpdate(new QueryMetricUpdateHolder(queryMetricUpdate.getPayload()));
                     return true;
                 }
             };
