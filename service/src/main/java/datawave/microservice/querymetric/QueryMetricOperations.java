@@ -205,7 +205,7 @@ public class QueryMetricOperations {
                         QueryMetricType metricType = correlatedUpdates.get(0).getMetricType();
                         QueryMetricUpdateHolder metricUpdate = combineMetricUpdates(correlatedUpdates, metricType);
                         log.debug("storing correlated updates for {}", queryId);
-                        storeMetricUpdates(metricUpdate);
+                        storeMetricUpdate(metricUpdate);
                     } catch (Exception e) {
                         log.error("exception while combining correlated updates: " + e.getMessage(), e);
                     }
@@ -369,7 +369,7 @@ public class QueryMetricOperations {
             this.correlator.addMetricUpdate(update);
         } else {
             log.debug("storing update for {}", update.getMetric().getQueryId());
-            storeMetricUpdates(new QueryMetricUpdateHolder(update));
+            storeMetricUpdate(new QueryMetricUpdateHolder(update));
         }
         
         if (correlator.isEnabled()) {
@@ -382,7 +382,7 @@ public class QueryMetricOperations {
                         QueryMetricType metricType = correlatedUpdates.get(0).getMetricType();
                         QueryMetricUpdateHolder metricUpdate = combineMetricUpdates(correlatedUpdates, metricType);
                         log.debug("storing correlated updates for {}", queryId);
-                        storeMetricUpdates(metricUpdate);
+                        storeMetricUpdate(metricUpdate);
                     } catch (Exception e) {
                         log.error("exception while combining correlated updates: " + e.getMessage(), e);
                     }
@@ -415,7 +415,7 @@ public class QueryMetricOperations {
         return metricUpdateHolder;
     }
     
-    private void storeMetricUpdates(QueryMetricUpdateHolder metricUpdate) {
+    private void storeMetricUpdate(QueryMetricUpdateHolder metricUpdate) {
         Timer.Context storeTimer = this.stats.getTimer(TIMERS.STORE).time();
         String queryId = metricUpdate.getMetric().getQueryId();
         try {
