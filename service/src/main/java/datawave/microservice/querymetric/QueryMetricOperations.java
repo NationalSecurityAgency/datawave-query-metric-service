@@ -363,7 +363,8 @@ public class QueryMetricOperations {
      */
     @StreamListener(QueryMetricSinkBinding.SINK_NAME)
     public void handleEvent(QueryMetricUpdate update) {
-        stats.getMeter(METERS.MESSAGE_RECEIVE).mark();
+        this.stats.queueTimelyMetricUpdate(update);
+        this.stats.getMeter(METERS.MESSAGE_RECEIVE).mark();
         if (shouldCorrelate(update)) {
             log.debug("adding update for {} to correlator", update.getMetric().getQueryId());
             this.correlator.addMetricUpdate(update);
@@ -372,7 +373,7 @@ public class QueryMetricOperations {
             storeMetricUpdate(new QueryMetricUpdateHolder(update));
         }
         
-        if (correlator.isEnabled()) {
+        if (this.correlator.isEnabled()) {
             List<QueryMetricUpdate> correlatedUpdates;
             do {
                 correlatedUpdates = this.correlator.getMetricUpdates(QueryMetricOperations.inProcess);
@@ -399,7 +400,6 @@ public class QueryMetricOperations {
         BaseQueryMetric combinedMetric = null;
         BaseQueryMetric.Lifecycle lowestLifecycle = null;
         for (QueryMetricUpdate u : updates) {
-            this.stats.queueTimelyMetrics(u);
             if (combinedMetric == null) {
                 combinedMetric = u.getMetric();
                 lowestLifecycle = u.getMetric().getLifecycle();
