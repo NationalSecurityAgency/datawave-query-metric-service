@@ -77,4 +77,8 @@ public class Correlator {
     public void shutdown(boolean isShuttingDown) {
         this.isShuttingDown = isShuttingDown;
     }
+    
+    public boolean isShuttingDown() {
+        return isShuttingDown;
+    }
 }

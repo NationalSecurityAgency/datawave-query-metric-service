@@ -2,6 +2,7 @@ package datawave.microservice.querymetric;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.text.SimpleDateFormat;
@@ -354,6 +355,26 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
         event.setMarkings(queryMetric.getMarkings());
         BaseQueryMetric newMetric = this.shardTableQueryMetricHandler.toMetric(event);
         metricAssertEquals("metrics are not equal", queryMetric, newMetric);
+    }
+    
+    /*
+     * Check that the last updated time (which is used to calculate the elapsed time) does not get changed when being written to Accumulo
+     */
+    @Test
+    public void LastUpdatedTest() {
+        QueryMetric queryMetric = (QueryMetric) createMetric();
+        String queryId = queryMetric.getQueryId();
+        Date lastUpdated = new Date(queryMetric.getCreateDate().getTime() + 60000);
+        queryMetric.setLastUpdated(lastUpdated);
+        queryMetric.setLifecycle(BaseQueryMetric.Lifecycle.CLOSED);
+        incomingQueryMetricsCache.put(queryId, new QueryMetricUpdateHolder(queryMetric.duplicate()));
+        ensureDataWritten(incomingQueryMetricsCache, lastWrittenQueryMetricCache, queryId);
+        
+        QueryMetricUpdateHolder storedMetricHolder = lastWrittenQueryMetricCache.get(queryId, QueryMetricUpdateHolder.class);
+        assertNotNull(storedMetricHolder, "storedQueryMetric is null");
+        metricAssertEquals("metric should not change", queryMetric, storedMetricHolder.getMetric());
+        assertEquals(60000, storedMetricHolder.getMetric().getElapsedTime(), "Elapsed time incorrect");
+        assertEquals(lastUpdated, storedMetricHolder.getMetric().getLastUpdated(), "Last updated incorrect");
     }
     
     @Test

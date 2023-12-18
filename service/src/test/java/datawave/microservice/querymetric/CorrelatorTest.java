@@ -50,6 +50,7 @@ public class CorrelatorTest extends QueryMetricTestBase {
     @AfterEach
     public void cleanup() {
         super.cleanup();
+        this.correlator.shutdown(false);
     }
     
     @Test
@@ -130,25 +131,20 @@ public class CorrelatorTest extends QueryMetricTestBase {
         assertTrue(completed, "executor tasks completed");
         // flush the correlator
         this.correlator.shutdown(true);
-        this.queryMetricOperations.ensureUpdatesProcessed();
-        this.correlator.shutdown(false);
-        
-        long start = System.currentTimeMillis();
+        while (this.queryMetricOperations.isTimedCorrelationInProgress()) {
+            try {
+                Thread.sleep(50);
+            } catch (InterruptedException e) {
+                
+            }
+        }
+        this.queryMetricOperations.ensureUpdatesProcessed(false);
         for (BaseQueryMetric m : metrics) {
             String queryId = m.getQueryId();
             ensureDataStored(incomingQueryMetricsCache, queryId);
-            QueryMetricUpdate metricUpdate;
-            BaseQueryMetric storedMetric = null;
-            do {
-                metricUpdate = incomingQueryMetricsCache.get(queryId, QueryMetricUpdate.class);
-                if (metricUpdate == null && (System.currentTimeMillis() - start) < 5000) {
-                    Thread.sleep(200);
-                } else {
-                    storedMetric = metricUpdate.getMetric();
-                }
-            } while (storedMetric == null);
-            assertNotNull(storedMetric, "missing metric " + queryId);
-            assertEquals(m, storedMetric, "incomingQueryMetricsCache metric wrong for id:" + m.getQueryId());
+            QueryMetricUpdate metricUpdate = incomingQueryMetricsCache.get(queryId, QueryMetricUpdateHolder.class);
+            assertNotNull(metricUpdate, "missing metric " + queryId);
+            assertEquals(m, metricUpdate.getMetric(), "incomingQueryMetricsCache metric wrong for id:" + m.getQueryId());
         }
     }
 }

@@ -33,7 +33,7 @@ public class QueryMetricCacheConfiguration {
                     .maximumSize(lastWrittenQueryMetrics.getMaximumSize())
                     .expireAfterWrite(lastWrittenQueryMetrics.getTtlSeconds(), TimeUnit.SECONDS)
                     .removalListener(new MetricCacheListener(LAST_WRITTEN_METRICS))
-                    .build());
+                    .build(), false);
         // @formatter:on
     }
 }
