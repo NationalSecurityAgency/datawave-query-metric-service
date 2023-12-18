@@ -108,6 +108,7 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
             }
         }
     }
+    
     @Test
     public void SubPlanTest() throws Exception {
         String queryId = createQueryId();
@@ -158,8 +159,8 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
         // @formatter:on
         this.ensureDataWritten(incomingQueryMetricsCache, lastWrittenQueryMetricCache, queryId);
         BaseQueryMetric storedMetric = shardTableQueryMetricHandler.getQueryMetric(queryId);
-        assertEquals(m.getSubPlans().size(), storedMetric.getSubPlans().size());
-        assertEquals(m, storedMetric);
+        assertEquals(m.getSubPlans(), storedMetric.getSubPlans());
+        metricAssertEquals(m, storedMetric);
     }
     
     @Test
