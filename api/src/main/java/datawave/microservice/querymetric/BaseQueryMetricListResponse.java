@@ -163,10 +163,10 @@ public abstract class BaseQueryMetricListResponse<T extends BaseQueryMetric> ext
             String proxyServers = metric.getProxyServers() == null ? "" : StringUtils.join(metric.getProxyServers(), "<BR/>");
             builder.append("<td>").append(proxyServers).append("</td>");
             if (this.isAdministratorMode()) {
-                builder.append("<td><a href=\"/DataWave/Query/Metrics/user/").append(metric.getUser()).append("/").append(metric.getQueryId()).append("/")
+                builder.append("<td><a href=\"" + BASE_URL + "/user/").append(metric.getUser()).append("/").append(metric.getQueryId()).append("/")
                                 .append("\">").append(metric.getQueryId()).append("</a></td>");
             } else {
-                builder.append("<td><a href=\"/DataWave/Query/Metrics/id/").append(metric.getQueryId()).append("/").append("\">").append(metric.getQueryId())
+                builder.append("<td><a href=\"" + BASE_URL + "/id/").append(metric.getQueryId()).append("/").append("\">").append(metric.getQueryId())
                                 .append("</a></td>");
             }
             builder.append("<td>").append(metric.getQueryType()).append("</td>");
