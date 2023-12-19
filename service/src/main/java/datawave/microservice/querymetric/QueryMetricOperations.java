@@ -66,6 +66,7 @@ import datawave.microservice.authorization.user.DatawaveUserDetails;
 import datawave.microservice.querymetric.config.QueryMetricProperties;
 import datawave.microservice.querymetric.config.QueryMetricProperties.Retry;
 import datawave.microservice.querymetric.factory.BaseQueryMetricListResponseFactory;
+import datawave.microservice.querymetric.factory.BaseQueryMetricSubplanResponseFactory;
 import datawave.microservice.querymetric.function.QueryMetricSupplier;
 import datawave.microservice.querymetric.handler.QueryGeometryHandler;
 import datawave.microservice.querymetric.handler.ShardTableQueryMetricHandler;
@@ -103,6 +104,7 @@ public class QueryMetricOperations {
     private Cache incomingQueryMetricsCache;
     private MarkingFunctions markingFunctions;
     private BaseQueryMetricListResponseFactory queryMetricListResponseFactory;
+    private BaseQueryMetricSubplanResponseFactory queryMetricSubplanResponseFactory;
     private MergeLockLifecycleListener mergeLock;
     private Correlator correlator;
     private AtomicBoolean timedCorrelationInProgress = new AtomicBoolean(false);
@@ -159,9 +161,9 @@ public class QueryMetricOperations {
     @Autowired
     public QueryMetricOperations(QueryMetricProperties queryMetricProperties, @Named("queryMetricCacheManager") CacheManager cacheManager,
                     ShardTableQueryMetricHandler handler, QueryGeometryHandler geometryHandler, MarkingFunctions markingFunctions,
-                    BaseQueryMetricListResponseFactory queryMetricListResponseFactory, MergeLockLifecycleListener mergeLock, Correlator correlator,
-                    MetricUpdateEntryProcessorFactory entryProcessorFactory, QueryMetricOperationsStats stats, QueryMetricSupplier queryMetricSupplier,
-                    DnUtils dnUtils) {
+                    BaseQueryMetricListResponseFactory queryMetricListResponseFactory, BaseQueryMetricSubplanResponseFactory queryMetricSubplanResponseFactory,
+                    MergeLockLifecycleListener mergeLock, Correlator correlator, MetricUpdateEntryProcessorFactory entryProcessorFactory,
+                    QueryMetricOperationsStats stats, QueryMetricSupplier queryMetricSupplier, DnUtils dnUtils) {
         this.queryMetricProperties = queryMetricProperties;
         this.handler = handler;
         this.geometryHandler = geometryHandler;
@@ -169,6 +171,7 @@ public class QueryMetricOperations {
         this.incomingQueryMetricsCache = cacheManager.getCache(INCOMING_METRICS);
         this.markingFunctions = markingFunctions;
         this.queryMetricListResponseFactory = queryMetricListResponseFactory;
+        this.queryMetricSubplanResponseFactory = queryMetricSubplanResponseFactory;
         this.mergeLock = mergeLock;
         this.correlator = correlator;
         this.entryProcessorFactory = entryProcessorFactory;
@@ -439,7 +442,7 @@ public class QueryMetricOperations {
     /**
      * Waits for the producer confirm acks to be received for the updates that were sent. If a producer confirm ack is not received within the specified amount
      * of time, a 500 Internal Server Error will be returned to the caller.
-     * 
+     *
      * @param updatesById
      *            A map of query metric updates keyed by their correlation id, not null
      * @param failedUpdates
@@ -541,33 +544,13 @@ public class QueryMetricOperations {
         return inProcess;
     }
     
-    /**
-     * Returns metrics for the current users queries that are identified by the id
-     *
-     * @param currentUser
-     *            the current user
-     * @param queryId
-     *            the query id
-     * @return the base query metric list response
-     * @HTTP 200 success
-     * @HTTP 500 internal server error
-     */
-    @Operation(summary = "Get the metrics for a given query ID.")
-    @PermitAll
-    @RequestMapping(path = "/id/{queryId}", method = {RequestMethod.GET},
-                    produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE, MediaType.TEXT_HTML_VALUE})
-    public BaseQueryMetricListResponse query(@AuthenticationPrincipal DatawaveUserDetails currentUser,
-                    @Parameter(description = "queryId to return") @PathVariable("queryId") String queryId) {
-        
-        BaseQueryMetricListResponse response = this.queryMetricListResponseFactory.createDetailedResponse();
-        response.setHtmlIncludePaths(this.pathPrefixMap);
-        response.setBaseUrl("/querymetric/v1");
+    List<BaseQueryMetric> getMetricList(String queryId, DatawaveUserDetails currentUser, String disallowlistedFields) {
         List<BaseQueryMetric> metricList = new ArrayList<>();
         try {
             BaseQueryMetric metric;
             QueryMetricUpdateHolder metricUpdate = incomingQueryMetricsCache.get(queryId, QueryMetricUpdateHolder.class);
             if (metricUpdate == null) {
-                metric = this.handler.getQueryMetric(queryId);
+                metric = this.handler.getQueryMetric(queryId, Collections.singleton(disallowlistedFields));
             } else {
                 metric = metricUpdate.getMetric();
             }
@@ -599,8 +582,62 @@ public class QueryMetricOperations {
                 }
             }
         } catch (Exception e) {
-            response.addException(new QueryException(e.getMessage(), 500));
+            log.error(e.getMessage(), e);
         }
+        return metricList;
+    }
+    
+    /**
+     * Returns metrics for the current users queries that are identified by the id
+     *
+     * @param currentUser
+     *            the current user
+     * @param queryId
+     *            the query id
+     * @return the base query metric list response
+     * @HTTP 200 success
+     * @HTTP 500 internal server error
+     */
+    @Operation(summary = "Get the metrics for a given query ID.")
+    @PermitAll
+    @RequestMapping(path = "/id/{queryId}", method = {RequestMethod.GET},
+                    produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE, MediaType.TEXT_HTML_VALUE})
+    public BaseQueryMetricListResponse query(@AuthenticationPrincipal DatawaveUserDetails currentUser,
+                    @Parameter(description = "queryId to return") @PathVariable("queryId") String queryId) {
+        
+        BaseQueryMetricListResponse response = this.queryMetricListResponseFactory.createDetailedResponse();
+        response.setHtmlIncludePaths(this.pathPrefixMap);
+        response.setBaseUrl("/querymetric/v1");
+        List<BaseQueryMetric> metricList = getMetricList(queryId, currentUser, "SUBPLAN");
+        addFormattedResults(response, metricList);
+        return response;
+    }
+    
+    /**
+     * Returns subplans for the current users queries that are identified by the id
+     *
+     * @param currentUser
+     *            the current user
+     * @param queryId
+     *            the query id
+     * @return datawave.webservice.result.QueryMetricListResponse base query metric list response
+     * @HTTP 200 success
+     * @HTTP 500 internal server errorsu
+     */
+    @PermitAll
+    @RequestMapping(path = "/id/{queryId}/subplans", method = {RequestMethod.GET},
+                    produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE, MediaType.TEXT_HTML_VALUE})
+    public BaseQueryMetricSubplanResponse subplans(@AuthenticationPrincipal DatawaveUserDetails currentUser,
+                    @Parameter(description = "queryId to return") @PathVariable("queryId") String queryId) {
+        BaseQueryMetricSubplanResponse response = this.queryMetricSubplanResponseFactory.createSubplanResponse();
+        response.setHtmlIncludePaths(this.pathPrefixMap);
+        response.setBaseUrl("/querymetric/v1");
+        List<BaseQueryMetric> metricList = getMetricList(queryId, currentUser, "PAGE_METRICS");
+        addFormattedResults(response, metricList);
+        return response;
+    }
+    
+    private void addFormattedResults(BaseQueryMetricListResponse response, List<BaseQueryMetric> metricList) {
         // Set the result to have the formatted query and query plan
         // StackOverflowErrors seen in JexlFormattedStringBuildingVisitor.formatMetrics, so protect
         // this call for each metric with try/catch and add original metric if formatMetrics fails
@@ -625,7 +662,6 @@ public class QueryMetricOperations {
             response.setGeoQuery(fmtMetricList.stream().anyMatch(SimpleQueryGeometryHandler::isGeoQuery));
             response.setHasResults(true);
         }
-        return response;
     }
     
     /**

@@ -35,8 +35,10 @@ import datawave.microservice.querymetric.QueryMetricFactoryImpl;
 import datawave.microservice.querymetric.QueryMetricOperations;
 import datawave.microservice.querymetric.QueryMetricOperationsStats;
 import datawave.microservice.querymetric.factory.BaseQueryMetricListResponseFactory;
+import datawave.microservice.querymetric.factory.BaseQueryMetricSubplanResponseFactory;
 import datawave.microservice.querymetric.factory.QueryMetricListResponseFactory;
 import datawave.microservice.querymetric.factory.QueryMetricQueryLogicFactory;
+import datawave.microservice.querymetric.factory.QueryMetricSubplanResponseFactory;
 import datawave.microservice.querymetric.function.QueryMetricConsumer;
 import datawave.microservice.querymetric.handler.LocalShardTableQueryMetricHandler;
 import datawave.microservice.querymetric.handler.QueryGeometryHandler;
@@ -122,6 +124,11 @@ public class QueryMetricHandlerConfiguration {
     @Bean
     public BaseQueryMetricListResponseFactory queryMetricListResponseFactory() {
         return new QueryMetricListResponseFactory();
+    }
+    
+    @Bean
+    public BaseQueryMetricSubplanResponseFactory queryMetricSubplanResponseFactory() {
+        return new QueryMetricSubplanResponseFactory();
     }
     
     @Bean
