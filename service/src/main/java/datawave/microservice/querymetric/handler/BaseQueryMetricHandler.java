@@ -14,7 +14,7 @@ import org.apache.log4j.Logger;
 import datawave.microservice.querymetric.BaseQueryMetric;
 import datawave.microservice.querymetric.BaseQueryMetric.Lifecycle;
 import datawave.microservice.querymetric.QueryMetricSummary;
-import datawave.microservice.querymetric.QueryMetricsSummaryResponse;
+import datawave.microservice.querymetric.QueryMetricSummaryResponse;
 import datawave.query.jexl.JexlASTHelper;
 import datawave.query.jexl.visitors.TreeFlatteningRebuildingVisitor;
 import datawave.query.language.parser.jexl.LuceneToJexlQueryParser;
@@ -39,9 +39,9 @@ public abstract class BaseQueryMetricHandler<T extends BaseQueryMetric> implemen
         }
     }
     
-    public QueryMetricsSummaryResponse processQueryMetricsSummary(List<T> queryMetrics, Date end) throws IOException {
+    public QueryMetricSummaryResponse processQueryMetricsSummary(List<T> queryMetrics, Date end) throws IOException {
         
-        QueryMetricsSummaryResponse summary = new QueryMetricsSummaryResponse();
+        QueryMetricSummaryResponse summary = new QueryMetricSummaryResponse();
         Date hour1 = DateUtils.addHours(end, -1);
         Date hour6 = DateUtils.addHours(end, -6);
         Date hour12 = DateUtils.addHours(end, -12);
@@ -62,7 +62,7 @@ public abstract class BaseQueryMetricHandler<T extends BaseQueryMetric> implemen
         return summary;
     }
     
-    public void binSummary(T metric, QueryMetricsSummaryResponse summary, Date hour1, Date hour6, Date hour12, Date day1, Date day7, Date day30, Date day60,
+    public void binSummary(T metric, QueryMetricSummaryResponse summary, Date hour1, Date hour6, Date hour12, Date day1, Date day7, Date day30, Date day60,
                     Date day90) {
         Date d = metric.getCreateDate();
         // Find out which buckets this query belongs to based on query create date.

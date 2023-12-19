@@ -9,8 +9,7 @@ function unhighlight(line) {
 }
 
 // Function to make the provided query or query plan's parenthesis interactive
-function interactiveParens(query = '', isQueryPlan = false) {
-    const metricNum = getMetricNum();
+function interactiveParens(query = '', isQueryPlan = false, metricNum) {
     const lines = query.split(/\r?\n/);
     for (let i = 0; i < lines.length; i++) {
         // If the line is 0 or more spaces followed by and ending with an open paren, find its matching closing paren (on a different line)
@@ -70,7 +69,3 @@ function interactiveParens(query = '', isQueryPlan = false) {
     else
         document.getElementById(`query${metricNum}`).innerHTML = lines.join('\n');
 }
-
-// Call interactiveParens for the query and query plan
-interactiveParens(getQuery(), false);
-interactiveParens(getPlan(), true);

@@ -1,0 +1,26 @@
+<html xmlns:th="http:/>/www.thymeleaf.org">
+<!--/*
+    The HTML page for QueryGeometryResponse
+*/-->
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <title>DATAWAVE - Query Geometry</title>
+
+    <script type='text/javascript' th:text='${"var features = " + geoJsonFeatures + ";"}'/>
+
+    <script type='text/javascript' th:src='${jqueryUrl}'/>
+
+    <link rel='stylesheet' type='text/css' th:href='${leafletPrefix + "/leaflet.css"}'/>
+    <script type='text/javascript' th:src='${leafletPrefix + "/leaflet.js"}'/>
+
+    <script type='text/javascript' th:text="${basemapScript}"/>
+
+    <link rel='stylesheet' type='text/css' th:href='${cssPrefix + "/queryMap.css"}' />
+    <script type='text/javascript' th:src='${jsPrefix + "/queryMap.js"}'/>
+</head>
+<body>
+    <div style='text-align: center'>
+        <div id='map' style='height: calc(100% - 85px); width: 100%; position: fixed; top: 86px; left: 0px;'/>
+    </div>
+</body>
+</html>

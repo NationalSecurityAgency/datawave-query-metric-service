@@ -43,7 +43,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 
@@ -66,8 +65,8 @@ import datawave.microservice.querymetric.BaseQueryMetric.Lifecycle;
 import datawave.microservice.querymetric.BaseQueryMetric.PageMetric;
 import datawave.microservice.querymetric.BaseQueryMetric.Prediction;
 import datawave.microservice.querymetric.QueryMetricFactory;
+import datawave.microservice.querymetric.QueryMetricSummaryResponse;
 import datawave.microservice.querymetric.QueryMetricType;
-import datawave.microservice.querymetric.QueryMetricsSummaryResponse;
 import datawave.microservice.querymetric.config.QueryMetricHandlerProperties;
 import datawave.microservice.querymetric.factory.QueryMetricQueryLogicFactory;
 import datawave.microservice.security.util.DnUtils;
@@ -762,8 +761,8 @@ public abstract class ShardTableQueryMetricHandler<T extends BaseQueryMetric> ex
     }
     
     @Override
-    public QueryMetricsSummaryResponse getQueryMetricsSummary(Date begin, Date end, DatawaveUserDetails currentUser, boolean onlyCurrentUser) {
-        QueryMetricsSummaryResponse response = new QueryMetricsSummaryResponse();
+    public QueryMetricSummaryResponse getQueryMetricsSummary(Date begin, Date end, DatawaveUserDetails currentUser, boolean onlyCurrentUser) {
+        QueryMetricSummaryResponse response = new QueryMetricSummaryResponse();
         try {
             // this method is open to any user
             DatawaveUser datawaveUser = currentUser.getPrimaryUser();

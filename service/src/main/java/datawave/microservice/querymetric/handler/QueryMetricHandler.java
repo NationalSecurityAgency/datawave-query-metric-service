@@ -6,8 +6,8 @@ import java.util.Map;
 
 import datawave.microservice.authorization.user.DatawaveUserDetails;
 import datawave.microservice.querymetric.BaseQueryMetric;
+import datawave.microservice.querymetric.QueryMetricSummaryResponse;
 import datawave.microservice.querymetric.QueryMetricType;
-import datawave.microservice.querymetric.QueryMetricsSummaryResponse;
 import datawave.webservice.query.Query;
 
 public interface QueryMetricHandler<T extends BaseQueryMetric> {
@@ -24,7 +24,7 @@ public interface QueryMetricHandler<T extends BaseQueryMetric> {
     
     void flush() throws Exception;
     
-    QueryMetricsSummaryResponse getQueryMetricsSummary(Date begin, Date end, DatawaveUserDetails currentUser, boolean onlyCurrentUser);
+    QueryMetricSummaryResponse getQueryMetricsSummary(Date begin, Date end, DatawaveUserDetails currentUser, boolean onlyCurrentUser);
     
     /**
      * Tells this handler to reload any dependent resources. This method might be called in the event of a failed write or flush to re-open any connections to

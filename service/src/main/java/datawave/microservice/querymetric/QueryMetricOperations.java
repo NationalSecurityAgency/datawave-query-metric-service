@@ -54,6 +54,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.ModelAndView;
 
 import com.codahale.metrics.Timer;
 import com.google.common.collect.Lists;
@@ -561,14 +562,11 @@ public class QueryMetricOperations {
      */
     @Operation(summary = "Get the metrics for a given query ID.")
     @PermitAll
-    @RequestMapping(path = "/id/{queryId}", method = {RequestMethod.GET},
-                    produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE, MediaType.TEXT_HTML_VALUE})
+    @RequestMapping(path = "/id/{queryId}", method = {RequestMethod.GET}, produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
     public BaseQueryMetricListResponse query(@AuthenticationPrincipal DatawaveUserDetails currentUser,
                     @Parameter(description = "queryId to return") @PathVariable("queryId") String queryId) {
         
-        BaseQueryMetricListResponse response = this.queryMetricListResponseFactory.createDetailedResponse();
-        response.setHtmlIncludePaths(this.pathPrefixMap);
-        response.setBaseUrl("/querymetric/v1");
+        BaseQueryMetricListResponse response = this.queryMetricListResponseFactory.createResponse();
         List<BaseQueryMetric> metricList = new ArrayList<>();
         try {
             BaseQueryMetric metric;
@@ -636,6 +634,32 @@ public class QueryMetricOperations {
     }
     
     /**
+     * Returns metrics for the current users queries that are identified by the id
+     *
+     * @param currentUser
+     *            the current user
+     * @param queryId
+     *            the query id
+     * @return the ModelAndView for the webpage
+     * @HTTP 200 success
+     * @HTTP 500 internal server error
+     */
+    @Operation(summary = "Get the metrics for a given query ID.")
+    @PermitAll
+    @RequestMapping(path = "/id/{queryId}", method = {RequestMethod.GET}, produces = {MediaType.TEXT_HTML_VALUE})
+    public ModelAndView queryWebpage(@AuthenticationPrincipal DatawaveUserDetails currentUser,
+                    @Parameter(description = "queryId to return") @PathVariable("queryId") String queryId,
+                    @Parameter(description = "queryId to return") @RequestParam(name = "display", required = false) String display) {
+        
+        BaseQueryMetricListResponse response = query(currentUser, queryId);
+        response.setBasePath("/querymetric");
+        if (StringUtils.isNotBlank(display) && display.equalsIgnoreCase("horizontal")) {
+            response.setViewName("querymetric-horizontal");
+        }
+        return response.createModelAndView();
+    }
+    
+    /**
      * Get a map for the given query represented by the query ID, if applicable.
      *
      * @param currentUser
@@ -649,18 +673,25 @@ public class QueryMetricOperations {
     @Operation(summary = "Get a map for the given query represented by the query ID, if applicable.")
     @PermitAll
     @RequestMapping(path = "/id/{queryId}/map", method = {RequestMethod.GET, RequestMethod.POST},
-                    produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE, MediaType.TEXT_HTML_VALUE})
+                    produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
     public QueryGeometryResponse map(@AuthenticationPrincipal DatawaveUserDetails currentUser, @PathVariable("queryId") String queryId) {
         QueryGeometryResponse queryGeometryResponse = new QueryGeometryResponse();
         BaseQueryMetricListResponse metricResponse = query(currentUser, queryId);
         if (metricResponse.getExceptions() == null || metricResponse.getExceptions().isEmpty()) {
-            QueryGeometryResponse response = geometryHandler.getQueryGeometryResponse(queryId, metricResponse.getResult());
-            response.setHtmlIncludePaths(pathPrefixMap);
-            return response;
+            return geometryHandler.getQueryGeometryResponse(queryId, metricResponse.getResult());
         } else {
             metricResponse.getExceptions().forEach(e -> queryGeometryResponse.addException(new QueryException(e.getMessage(), e.getCause(), e.getCode())));
             return queryGeometryResponse;
         }
+    }
+    
+    @Operation(summary = "Get a map for the given query represented by the query ID, if applicable.")
+    @PermitAll
+    @RequestMapping(path = "/id/{queryId}/map", method = {RequestMethod.GET, RequestMethod.POST}, produces = {MediaType.TEXT_HTML_VALUE})
+    public ModelAndView mapWebpage(@AuthenticationPrincipal DatawaveUserDetails currentUser, @PathVariable("queryId") String queryId) {
+        QueryGeometryResponse response = map(currentUser, queryId);
+        response.setPathPrefixMap(pathPrefixMap);
+        return response.createModelAndView();
     }
     
     private static Date parseDate(String dateString, DEFAULT_DATETIME defaultDateTime) throws IllegalArgumentException {
@@ -685,7 +716,7 @@ public class QueryMetricOperations {
         }
     }
     
-    private QueryMetricsSummaryResponse queryMetricsSummary(Date begin, Date end, DatawaveUserDetails currentUser, boolean onlyCurrentUser) {
+    private QueryMetricSummaryResponse queryMetricsSummary(Date begin, Date end, DatawaveUserDetails currentUser, boolean onlyCurrentUser) {
         
         if (null == end) {
             end = new Date();
@@ -697,9 +728,9 @@ public class QueryMetricOperations {
             // ninety days before end
             begin = ninetyDaysBeforeEnd.getTime();
         }
-        QueryMetricsSummaryResponse response;
+        QueryMetricSummaryResponse response;
         if (end.before(begin)) {
-            response = new QueryMetricsSummaryResponse();
+            response = new QueryMetricSummaryResponse();
             String s = "begin date can not be after end date";
             response.addException(new QueryException(DatawaveErrorCode.BEGIN_DATE_AFTER_END_DATE, new IllegalArgumentException(s), s));
         } else {
@@ -723,15 +754,65 @@ public class QueryMetricOperations {
      */
     @Operation(summary = "Get a summary of the query metrics.")
     @Secured({"Administrator", "JBossAdministrator", "MetricsAdministrator"})
-    @RequestMapping(path = "/summary/all", method = {RequestMethod.GET},
-                    produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE, MediaType.TEXT_HTML_VALUE})
-    public QueryMetricsSummaryResponse getQueryMetricsSummary(@AuthenticationPrincipal DatawaveUserDetails currentUser,
+    @RequestMapping(path = "/summary/all", method = {RequestMethod.GET}, produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
+    public QueryMetricSummaryResponse getQueryMetricsSummary(@AuthenticationPrincipal DatawaveUserDetails currentUser,
                     @RequestParam(required = false) String begin, @RequestParam(required = false) String end) {
         
         try {
             return queryMetricsSummary(parseDate(begin, BEGIN), parseDate(end, END), currentUser, false);
         } catch (Exception e) {
-            QueryMetricsSummaryResponse response = new QueryMetricsSummaryResponse();
+            QueryMetricSummaryResponse response = new QueryMetricSummaryResponse();
+            response.addException(e);
+            return response;
+        }
+    }
+    
+    /**
+     * Returns a summary of the query metrics
+     *
+     * @param currentUser
+     *            the current user
+     * @param begin
+     *            formatted date/time (yyyyMMdd | yyyyMMdd HHmmss | yyyyMMdd HHmmss.SSS)
+     * @param end
+     *            formatted date/time (yyyyMMdd | yyyyMMdd HHmmss | yyyyMMdd HHmmss.SSS)
+     * @return the query metrics summary
+     * @HTTP 200 success
+     * @HTTP 500 internal server error
+     */
+    @Operation(summary = "Get a summary of the query metrics.")
+    @Secured({"Administrator", "JBossAdministrator", "MetricsAdministrator"})
+    @RequestMapping(path = "/summary/all", method = {RequestMethod.GET}, produces = {MediaType.TEXT_HTML_VALUE})
+    public ModelAndView getQueryMetricsSummaryWebpage(@AuthenticationPrincipal DatawaveUserDetails currentUser, @RequestParam(required = false) String begin,
+                    @RequestParam(required = false) String end) {
+        
+        QueryMetricSummaryResponse response = getQueryMetricsSummary(currentUser, begin, end);
+        response.setBasePath("/querymetric");
+        return response.createModelAndView();
+    }
+    
+    /**
+     * Returns a summary of the requesting user's query metrics
+     *
+     * @param currentUser
+     *            the current user
+     * @param begin
+     *            formatted date/time (yyyyMMdd | yyyyMMdd HHmmss | yyyyMMdd HHmmss.SSS)
+     * @param end
+     *            formatted date/time (yyyyMMdd | yyyyMMdd HHmmss | yyyyMMdd HHmmss.SSS)
+     * @return the query metrics user summary
+     * @HTTP 200 success
+     * @HTTP 500 internal server error
+     */
+    @Operation(summary = "Get a summary of the query metrics for the given user.")
+    @PermitAll
+    @RequestMapping(path = "/summary/user", method = {RequestMethod.GET}, produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
+    public QueryMetricSummaryResponse getQueryMetricsUserSummary(@AuthenticationPrincipal DatawaveUserDetails currentUser,
+                    @RequestParam(required = false) String begin, @RequestParam(required = false) String end) {
+        try {
+            return queryMetricsSummary(parseDate(begin, BEGIN), parseDate(end, END), currentUser, true);
+        } catch (Exception e) {
+            QueryMetricSummaryResponse response = new QueryMetricSummaryResponse();
             response.addException(e);
             return response;
         }
@@ -752,17 +833,13 @@ public class QueryMetricOperations {
      */
     @Operation(summary = "Get a summary of the query metrics for the given user.")
     @PermitAll
-    @RequestMapping(path = "/summary/user", method = {RequestMethod.GET},
-                    produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE, MediaType.TEXT_HTML_VALUE})
-    public QueryMetricsSummaryResponse getQueryMetricsUserSummary(@AuthenticationPrincipal DatawaveUserDetails currentUser,
+    @RequestMapping(path = "/summary/user", method = {RequestMethod.GET}, produces = {MediaType.TEXT_HTML_VALUE})
+    public ModelAndView getQueryMetricsUserSummaryWebpage(@AuthenticationPrincipal DatawaveUserDetails currentUser,
                     @RequestParam(required = false) String begin, @RequestParam(required = false) String end) {
-        try {
-            return queryMetricsSummary(parseDate(begin, BEGIN), parseDate(end, END), currentUser, true);
-        } catch (Exception e) {
-            QueryMetricsSummaryResponse response = new QueryMetricsSummaryResponse();
-            response.addException(e);
-            return response;
-        }
+        
+        QueryMetricSummaryResponse response = getQueryMetricsUserSummary(currentUser, begin, end);
+        response.setBasePath("/querymetric");
+        return response.createModelAndView();
     }
     
     /**
