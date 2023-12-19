@@ -1,7 +1,10 @@
 package datawave.microservice.querymetric;
 
 import java.text.NumberFormat;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.xml.bind.annotation.XmlAccessOrder;
 import javax.xml.bind.annotation.XmlAccessType;
@@ -9,19 +12,19 @@ import javax.xml.bind.annotation.XmlAccessorOrder;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.XmlTransient;
 
-import datawave.webservice.HtmlProvider;
+import org.springframework.web.servlet.ModelAndView;
+
 import datawave.webservice.query.exception.QueryExceptionType;
 import datawave.webservice.result.BaseResponse;
 
 @XmlRootElement(name = "QueryMetricsSummaryResponse")
 @XmlAccessorType(XmlAccessType.NONE)
 @XmlAccessorOrder(XmlAccessOrder.ALPHABETICAL)
-public class QueryMetricsSummaryResponse extends BaseResponse implements HtmlProvider {
+public class QueryMetricsSummaryResponse extends BaseResponse {
     
     private static final long serialVersionUID = 1L;
-    private static final String TITLE = "Query Metrics Summary", EMPTY = "";
-    private static final String START_CELL = "<td>", END_CELL = "</td>";
     
     @XmlElement(name = "OneHour")
     protected QueryMetricSummary hour1 = new QueryMetricSummary();
@@ -41,6 +44,16 @@ public class QueryMetricsSummaryResponse extends BaseResponse implements HtmlPro
     protected QueryMetricSummary day90 = new QueryMetricSummary();
     @XmlElement(name = "All")
     protected QueryMetricSummary all = new QueryMetricSummary();
+    @XmlTransient
+    protected String header;
+    @XmlTransient
+    protected String footer;
+    
+    private String basePath = "/querymetric";
+    
+    public void setBasePath(String basePath) {
+        this.basePath = basePath;
+    }
     
     public QueryMetricSummary getHour1() {
         return hour1;
@@ -114,99 +127,66 @@ public class QueryMetricsSummaryResponse extends BaseResponse implements HtmlPro
         this.all = all;
     }
     
-    @Override
-    public String getTitle() {
-        return TITLE;
-    }
-    
-    /*
-     * (non-Javadoc)
-     *
-     * @see datawave.webservice.HtmlProvider#getPageHeader()
-     */
-    @Override
-    public String getPageHeader() {
-        return (getExceptions() == null || getExceptions().isEmpty()) ? getTitle() : EMPTY;
-    }
-    
-    /*
-     * (non-Javadoc)
-     *
-     * @see datawave.webservice.HtmlProvider#getHeadContent()
-     */
-    @Override
-    public String getHeadContent() {
-        return EMPTY;
-    }
-    
-    protected StringBuilder addSummary(StringBuilder builder, QueryMetricSummary summary, String name, boolean highlight) {
+    protected void addSummary(List<Map<String,String>> summaryTableContent, QueryMetricSummary summary, String interval) {
         NumberFormat formatter = NumberFormat.getInstance();
-        if (highlight) {
-            builder.append("<tr class=\"highlight\">");
-        } else {
-            builder.append("<tr>");
-        }
-        builder.append(START_CELL).append(name).append(END_CELL);
-        builder.append(START_CELL).append(formatter.format(summary.getQueryCount())).append(END_CELL);
-        builder.append(START_CELL).append(formatter.format(summary.getTotalPages())).append(END_CELL);
-        builder.append(START_CELL).append(formatter.format(summary.getTotalPageResultSize())).append(END_CELL);
-        builder.append(START_CELL).append(formatter.format(summary.getMinPageResultSize())).append(END_CELL);
-        builder.append(START_CELL).append(formatter.format(summary.getMaxPageResultSize())).append(END_CELL);
-        builder.append(START_CELL).append(formatter.format(summary.getAvgPageResultSize())).append(END_CELL);
-        builder.append(START_CELL).append(formatter.format(summary.getTotalPageResponseTime())).append(END_CELL);
-        builder.append(START_CELL).append(formatter.format(summary.getMinPageResponseTime())).append(END_CELL);
-        builder.append(START_CELL).append(formatter.format(summary.getMaxPageResponseTime())).append(END_CELL);
-        builder.append(START_CELL).append(formatter.format(summary.getAvgPageResponseTime())).append(END_CELL);
-        builder.append(START_CELL).append(formatter.format(summary.getAverageResultsPerSecond())).append(END_CELL);
-        builder.append(START_CELL).append(formatter.format(summary.getAveragePagesPerSecond())).append(END_CELL);
-        builder.append("</tr>\n");
-        return builder;
+        Map<String,String> summaryData = new HashMap<>();
+        
+        summaryData.put("interval", interval);
+        summaryData.put("queryCount", formatter.format(summary.getQueryCount()));
+        summaryData.put("totalPages", formatter.format(summary.getTotalPages()));
+        summaryData.put("totalPageResultSize", formatter.format(summary.getTotalPageResultSize()));
+        summaryData.put("minPageResultSize", formatter.format(summary.getMinPageResultSize()));
+        summaryData.put("maxPageResultSize", formatter.format(summary.getMaxPageResultSize()));
+        summaryData.put("avgPageResultSize", formatter.format(summary.getAvgPageResultSize()));
+        summaryData.put("totalPageResponseTime", formatter.format(summary.getTotalPageResponseTime()));
+        summaryData.put("minPageResponseTime", formatter.format(summary.getMinPageResponseTime()));
+        summaryData.put("maxPageResponseTime", formatter.format(summary.getMaxPageResponseTime()));
+        summaryData.put("avgPageResponseTime", formatter.format(summary.getAvgPageResponseTime()));
+        summaryData.put("avgResultsPerSecond", formatter.format(summary.getAverageResultsPerSecond()));
+        summaryData.put("avgPagesPerSecond", formatter.format(summary.getAveragePagesPerSecond()));
+        
+        summaryTableContent.add(summaryData);
     }
     
-    @Override
-    public String getMainContent() {
+    public ModelAndView createModelAndView() {
+        List<Map<String,String>> summaryTableContent = new ArrayList<>();
+        ModelAndView mav = new ModelAndView();
         
-        StringBuilder builder = new StringBuilder();
         if (getExceptions() == null || getExceptions().isEmpty()) {
+            mav.setViewName("querymetricsummary");
+            
             NumberFormat formatter = NumberFormat.getInstance();
             formatter.setGroupingUsed(true);
             formatter.setMaximumFractionDigits(2);
             formatter.setParseIntegerOnly(false);
             
-            builder.append("<table>");
-            builder.append("<tr><th>Interval</th>");
-            builder.append("<th>Queries Submitted</th>");
-            builder.append("<th>Pages Returned</th>");
-            builder.append("<th>Total Results</th>");
-            builder.append("<th>Min Page Size</th>");
-            builder.append("<th>Max Page Size</th>");
-            builder.append("<th>Avg Page Size</th>");
-            builder.append("<th>Total Page Response Time (ms)</th>");
-            builder.append("<th>Min Page Response Time (ms)</th>");
-            builder.append("<th>Max Page Response Time (ms)</th>");
-            builder.append("<th>Avg Page Response Time (ms)</th>");
-            builder.append("<th>Avg Results Per Second</th>");
-            builder.append("<th>Avg Pages Per Second</th></tr>");
-            addSummary(builder, hour1, "1 hour", false);
-            addSummary(builder, hour6, "6 hours", true);
-            addSummary(builder, hour12, "12 hours", false);
-            addSummary(builder, day1, "1 day", true);
-            addSummary(builder, day7, "7 day", false);
-            addSummary(builder, day30, "30 days", true);
-            addSummary(builder, day60, "60 days", false);
-            addSummary(builder, day90, "90 days", true);
-            addSummary(builder, all, "all", false);
-            builder.append("</table>");
+            addSummary(summaryTableContent, hour1, "1 hour");
+            addSummary(summaryTableContent, hour6, "6 hours");
+            addSummary(summaryTableContent, hour12, "12 hours");
+            addSummary(summaryTableContent, day1, "1 day");
+            addSummary(summaryTableContent, day7, "7 day");
+            addSummary(summaryTableContent, day30, "30 days");
+            addSummary(summaryTableContent, day60, "60 days");
+            addSummary(summaryTableContent, day90, "90 days");
+            addSummary(summaryTableContent, all, "all");
+            mav.addObject("summaryTableContent", summaryTableContent);
         } else {
-            builder.append("<b>EXCEPTIONS:</b>").append("<br/>");
+            mav.setViewName("querymetricsummaryexceptions");
             List<QueryExceptionType> exceptions = getExceptions();
-            if (exceptions != null) {
-                for (QueryExceptionType exception : exceptions) {
-                    if (exception != null)
-                        builder.append(exception).append(", ").append(QueryExceptionType.getSchema()).append("<br/>");
-                }
-            }
+            mav.addObject("exceptions", exceptions);
+            mav.addObject("schema", QueryExceptionType.getSchema());
         }
-        return builder.toString();
+        mav.addObject("basePath", basePath);
+        mav.addObject("header", header);
+        mav.addObject("footer", footer);
+        return mav;
+    }
+    
+    public void setHeader(String header) {
+        this.header = header;
+    }
+    
+    public void setFooter(String footer) {
+        this.footer = footer;
     }
 }
