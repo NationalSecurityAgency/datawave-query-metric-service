@@ -11,9 +11,27 @@ import org.springframework.validation.annotation.Validated;
 @Validated
 @ConfigurationProperties(prefix = "datawave.query.metric")
 public class QueryMetricProperties {
+    private boolean confirmAckEnabled = true;
+    private long confirmAckTimeoutMillis = 500L;
     
     @Valid
     private Retry retry = new Retry();
+    
+    public boolean isConfirmAckEnabled() {
+        return confirmAckEnabled;
+    }
+    
+    public void setConfirmAckEnabled(boolean confirmAckEnabled) {
+        this.confirmAckEnabled = confirmAckEnabled;
+    }
+    
+    public long getConfirmAckTimeoutMillis() {
+        return confirmAckTimeoutMillis;
+    }
+    
+    public void setConfirmAckTimeoutMillis(long confirmAckTimeoutMillis) {
+        this.confirmAckTimeoutMillis = confirmAckTimeoutMillis;
+    }
     
     public Retry getRetry() {
         return retry;

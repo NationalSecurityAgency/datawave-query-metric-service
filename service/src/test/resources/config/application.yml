@@ -92,6 +92,7 @@ datawave:
         transport: message_test
         host: localhost
         port: ${server.port}
+        confirmAckEnabled: false
       timely:
         enabled: false
         host: localhost
@@ -102,6 +103,7 @@ datawave:
         logServiceStatsRateMs: 300000
         publishServiceStatsToTimelyRateMs: 60000
         publishQueryStatsToTimelyRateMs: 60000
+      confirmAckEnabled: false
       correlator:
         enabled: false
 
