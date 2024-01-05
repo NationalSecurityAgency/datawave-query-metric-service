@@ -390,6 +390,7 @@ public class QueryMetricOperations {
      */
     private boolean sendMessages(List<QueryMetricUpdate> updates, List<QueryMetricUpdate> failedUpdates, Map<String,QueryMetricUpdate> updatesById,
                     Map<String,Timer.Context> timersById) {
+        updates.addAll(failedUpdates);
         failedUpdates.clear();
         
         boolean success = true;
