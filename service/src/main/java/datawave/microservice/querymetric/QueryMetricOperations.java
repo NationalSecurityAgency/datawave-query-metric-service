@@ -346,7 +346,7 @@ public class QueryMetricOperations {
         
         Retry retry = queryMetricProperties.getRetry();
         
-        List<QueryMetricUpdate> failedConfirmAck = new ArrayList<>();
+        List<QueryMetricUpdate> failedConfirmAck = new ArrayList<>(updates.size());
         do {
             if (attempts++ > 0) {
                 try {
@@ -394,8 +394,8 @@ public class QueryMetricOperations {
      */
     private boolean sendMessages(List<QueryMetricUpdate> updates, Map<String,QueryMetricUpdate> updatesById, Map<String,Timer.Context> timersById) {
         
-        List<QueryMetricUpdate> failedSend = new ArrayList<>();
-        
+        List<QueryMetricUpdate> failedSend = new ArrayList<>(updates.size());
+
         boolean success = true;
         // send all of the remaining metric updates
         for (QueryMetricUpdate update : updates) {
