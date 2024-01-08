@@ -336,7 +336,6 @@ public class QueryMetricOperations {
     }
     
     private boolean updateMetrics(List<QueryMetricUpdate> updates) {
-        List<QueryMetricUpdate> failedUpdates = new ArrayList<>(updates.size());
         Map<String,QueryMetricUpdate> updatesById = new LinkedHashMap<>();
         Map<String,Timer.Context> timersById = new LinkedHashMap<>();
         
@@ -361,7 +360,9 @@ public class QueryMetricOperations {
             }
             
             // send all of the remaining metric updates
-            success = sendMessages(updates, failedUpdates, updatesById, timersById) && awaitConfirmAcks(updatesById, failedUpdates, timersById);
+            List<QueryMetricUpdate> failedConfirmAck = new ArrayList<>();
+            success = sendMessages(updates, updatesById, timersById) && awaitConfirmAcks(updatesById, failedConfirmAck, timersById);
+            updates.addAll(failedConfirmAck);
             currentTime = System.currentTimeMillis();
         } while (!success && (currentTime - updateStartTime) < retry.getFailTimeoutMillis() && attempts < retry.getMaxAttempts());
         
@@ -382,16 +383,15 @@ public class QueryMetricOperations {
      *
      * @param updates
      *            The query metric updates to be sent, not null
-     * @param failedUpdates
-     *            A list that will be populated with the failed metric updates, not null
      * @param updatesById
      *            A map that will be populated with the correlation ids and associated metric updates, not null
+     * @param timersById
+     *            A map of dropwizard timers to record the time to send or send/ack each message
      * @return true if all messages were successfully sent, false otherwise
      */
-    private boolean sendMessages(List<QueryMetricUpdate> updates, List<QueryMetricUpdate> failedUpdates, Map<String,QueryMetricUpdate> updatesById,
-                    Map<String,Timer.Context> timersById) {
-        updates.addAll(failedUpdates);
-        failedUpdates.clear();
+    private boolean sendMessages(List<QueryMetricUpdate> updates, Map<String,QueryMetricUpdate> updatesById, Map<String,Timer.Context> timersById) {
+        
+        List<QueryMetricUpdate> failedSend = new ArrayList<>();
         
         boolean success = true;
         // send all of the remaining metric updates
@@ -407,7 +407,7 @@ public class QueryMetricOperations {
                     }
                 } else {
                     // if it failed, add it to the failed list
-                    failedUpdates.add(update);
+                    failedSend.add(update);
                     success = false;
                 }
             } finally {
@@ -421,7 +421,7 @@ public class QueryMetricOperations {
             }
         }
         
-        updates.retainAll(failedUpdates);
+        updates.retainAll(failedSend);
         
         return success;
     }
@@ -443,18 +443,21 @@ public class QueryMetricOperations {
      * 
      * @param updatesById
      *            A map of query metric updates keyed by their correlation id, not null
-     * @param failedUpdates
+     * @param failedConfirmAck
      *            A list that will be populated with the failed metric updates, not null
+     * @param timersById
+     *            A map of dropwizard timers to record the time to send or send/ack each message
      * @return true if all confirm acks were successfully received, false otherwise
      */
-    private boolean awaitConfirmAcks(Map<String,QueryMetricUpdate> updatesById, List<QueryMetricUpdate> failedUpdates, Map<String,Timer.Context> timersById) {
+    private boolean awaitConfirmAcks(Map<String,QueryMetricUpdate> updatesById, List<QueryMetricUpdate> failedConfirmAck,
+                    Map<String,Timer.Context> timersById) {
         boolean success = true;
         // wait for the confirm acks only after all sends are successful
         if (queryMetricProperties.isConfirmAckEnabled()) {
             for (String correlationId : new HashSet<>(updatesById.keySet())) {
                 try {
                     if (!awaitConfirmAck(correlationId)) {
-                        failedUpdates.add(updatesById.remove(correlationId));
+                        failedConfirmAck.add(updatesById.remove(correlationId));
                         success = false;
                     }
                 } finally {
