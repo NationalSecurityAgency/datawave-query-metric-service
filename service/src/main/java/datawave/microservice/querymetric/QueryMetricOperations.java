@@ -23,6 +23,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
 import javax.annotation.PreDestroy;
 import javax.annotation.security.PermitAll;
@@ -62,7 +63,6 @@ import com.hazelcast.spring.cache.HazelcastCacheManager;
 
 import datawave.marking.MarkingFunctions;
 import datawave.microservice.authorization.user.DatawaveUserDetails;
-import datawave.microservice.querymetric.QueryGeometryResponse;
 import datawave.microservice.querymetric.config.QueryMetricProperties;
 import datawave.microservice.querymetric.config.QueryMetricProperties.Retry;
 import datawave.microservice.querymetric.factory.BaseQueryMetricListResponseFactory;
@@ -229,7 +229,7 @@ public class QueryMetricOperations {
                         QueryMetricType metricType = correlatedUpdates.get(0).getMetricType();
                         QueryMetricUpdateHolder metricUpdate = combineMetricUpdates(correlatedUpdates, metricType);
                         log.debug("storing correlated updates for {}", queryId);
-                        storeMetricUpdates(metricUpdate);
+                        storeMetricUpdate(metricUpdate);
                     } catch (Exception e) {
                         log.error("exception while combining correlated updates: " + e.getMessage(), e);
                     }
@@ -258,22 +258,17 @@ public class QueryMetricOperations {
         if (!this.mergeLock.isAllowedReadLock()) {
             throw new IllegalStateException("service unavailable");
         }
+        for (BaseQueryMetric m : queryMetrics) {
+            if (log.isTraceEnabled()) {
+                log.trace("received bulk metric update via REST: " + m.toString());
+            } else {
+                log.debug("received bulk metric update via REST: " + m.getQueryId());
+            }
+        }
         Timer.Context restTimer = this.stats.getTimer(TIMERS.REST).time();
         try {
-            for (BaseQueryMetric m : queryMetrics) {
-                if (log.isTraceEnabled()) {
-                    log.trace("received metric update via REST: " + m.toString());
-                } else {
-                    log.debug("received metric update via REST: " + m.getQueryId());
-                }
-                Timer.Context messageSendTimer = this.stats.getTimer(TIMERS.MESSAGE_SEND).time();
-                try {
-                    if (!updateMetric(new QueryMetricUpdate<>(m, metricType))) {
-                        throw new RuntimeException("Unable to process query metric update for query [" + m.getQueryId() + "]");
-                    }
-                } finally {
-                    messageSendTimer.stop();
-                }
+            if (!updateMetrics(queryMetrics.stream().map(m -> new QueryMetricUpdate<>(m, metricType)).collect(Collectors.toList()))) {
+                throw new RuntimeException("Unable to process bulk query metric update");
             }
         } finally {
             restTimer.stop();
@@ -308,13 +303,8 @@ public class QueryMetricOperations {
             } else {
                 log.debug("received metric update via REST: " + queryMetric.getQueryId());
             }
-            Timer.Context messageSendTimer = this.stats.getTimer(TIMERS.MESSAGE_SEND).time();
-            try {
-                if (!updateMetric(new QueryMetricUpdate(queryMetric, metricType))) {
-                    throw new RuntimeException("Unable to process query metric update for query [" + queryMetric.getQueryId() + "]");
-                }
-            } finally {
-                messageSendTimer.stop();
+            if (!updateMetrics(Lists.newArrayList(new QueryMetricUpdate(queryMetric, metricType)))) {
+                throw new RuntimeException("Unable to process query metric update for query [" + queryMetric.getQueryId() + "]");
             }
         } finally {
             restTimer.stop();
@@ -346,8 +336,8 @@ public class QueryMetricOperations {
     }
     
     private boolean updateMetrics(List<QueryMetricUpdate> updates) {
-        List<QueryMetricUpdate> failedUpdates = new ArrayList<>(updates.size());
         Map<String,QueryMetricUpdate> updatesById = new LinkedHashMap<>();
+        Map<String,Timer.Context> timersById = new LinkedHashMap<>();
         
         boolean success;
         final long updateStartTime = System.currentTimeMillis();
@@ -356,6 +346,7 @@ public class QueryMetricOperations {
         
         Retry retry = queryMetricProperties.getRetry();
         
+        List<QueryMetricUpdate> failedConfirmAck = new ArrayList<>(updates.size());
         do {
             if (attempts++ > 0) {
                 try {
@@ -363,6 +354,10 @@ public class QueryMetricOperations {
                 } catch (InterruptedException e) {
                     // Ignore -- we'll just end up retrying a little too fast
                 }
+                
+                // perform some retry upkeep
+                updates.addAll(failedConfirmAck);
+                failedConfirmAck.clear();
             }
             
             if (log.isDebugEnabled()) {
@@ -370,21 +365,20 @@ public class QueryMetricOperations {
             }
             
             // send all of the remaining metric updates
-            success = sendMessages(updates, failedUpdates, updatesById) && awaitConfirmAcks(updatesById, failedUpdates);
+            success = sendMessages(updates, updatesById, timersById) && awaitConfirmAcks(updatesById, failedConfirmAck, timersById);
             currentTime = System.currentTimeMillis();
         } while (!success && (currentTime - updateStartTime) < retry.getFailTimeoutMillis() && attempts < retry.getMaxAttempts());
+        
+        // stop any timers that remain
+        timersById.values().stream().forEach(timer -> timer.stop());
         
         if (!success) {
             log.warn("Bulk update failed. {attempts = {}, elapsedMillis = {}}", attempts, (currentTime - updateStartTime));
         } else {
-            log.info("Bulk update successful. {attempts = {}, elapsedMillis = {}}", attempts, (currentTime - updateStartTime));
+            log.debug("Bulk update successful. {attempts = {}, elapsedMillis = {}}", attempts, (currentTime - updateStartTime));
         }
         
         return success;
-    }
-    
-    private boolean updateMetric(QueryMetricUpdate update) {
-        return updateMetrics(Lists.newArrayList(update));
     }
     
     /**
@@ -392,31 +386,45 @@ public class QueryMetricOperations {
      *
      * @param updates
      *            The query metric updates to be sent, not null
-     * @param failedUpdates
-     *            A list that will be populated with the failed metric updates, not null
      * @param updatesById
      *            A map that will be populated with the correlation ids and associated metric updates, not null
+     * @param timersById
+     *            A map of dropwizard timers to record the time to send or send/ack each message
      * @return true if all messages were successfully sent, false otherwise
      */
-    private boolean sendMessages(List<QueryMetricUpdate> updates, List<QueryMetricUpdate> failedUpdates, Map<String,QueryMetricUpdate> updatesById) {
-        failedUpdates.clear();
+    private boolean sendMessages(List<QueryMetricUpdate> updates, Map<String,QueryMetricUpdate> updatesById, Map<String,Timer.Context> timersById) {
+        
+        List<QueryMetricUpdate> failedSend = new ArrayList<>(updates.size());
         
         boolean success = true;
         // send all of the remaining metric updates
         for (QueryMetricUpdate update : updates) {
+            Timer.Context timer = this.stats.getTimer(TIMERS.MESSAGE_SEND).time();
             String correlationId = UUID.randomUUID().toString();
-            if (sendMessage(correlationId, update)) {
-                if (queryMetricProperties.isConfirmAckEnabled()) {
-                    updatesById.put(correlationId, update);
+            boolean sendSuccessful = false;
+            try {
+                sendSuccessful = sendMessage(correlationId, update);
+                if (sendSuccessful) {
+                    if (queryMetricProperties.isConfirmAckEnabled()) {
+                        updatesById.put(correlationId, update);
+                    }
+                } else {
+                    // if it failed, add it to the failed list
+                    failedSend.add(update);
+                    success = false;
                 }
-            } else {
-                // if it failed, add it to the failed list
-                failedUpdates.add(update);
-                success = false;
+            } finally {
+                if (sendSuccessful && queryMetricProperties.isConfirmAckEnabled()) {
+                    // message send successful but waiting for confirmAck, so store the timer by correlationId
+                    timersById.put(correlationId, timer);
+                } else {
+                    // either message send successful and not waiting for confirmAck or message send failed
+                    timer.stop();
+                }
             }
         }
         
-        updates.retainAll(failedUpdates);
+        updates.retainAll(failedSend);
         
         return success;
     }
@@ -438,18 +446,29 @@ public class QueryMetricOperations {
      * 
      * @param updatesById
      *            A map of query metric updates keyed by their correlation id, not null
-     * @param failedUpdates
+     * @param failedConfirmAck
      *            A list that will be populated with the failed metric updates, not null
+     * @param timersById
+     *            A map of dropwizard timers to record the time to send or send/ack each message
      * @return true if all confirm acks were successfully received, false otherwise
      */
-    private boolean awaitConfirmAcks(Map<String,QueryMetricUpdate> updatesById, List<QueryMetricUpdate> failedUpdates) {
+    private boolean awaitConfirmAcks(Map<String,QueryMetricUpdate> updatesById, List<QueryMetricUpdate> failedConfirmAck,
+                    Map<String,Timer.Context> timersById) {
         boolean success = true;
         // wait for the confirm acks only after all sends are successful
         if (queryMetricProperties.isConfirmAckEnabled()) {
             for (String correlationId : new HashSet<>(updatesById.keySet())) {
-                if (!awaitConfirmAck(correlationId)) {
-                    failedUpdates.add(updatesById.remove(correlationId));
-                    success = false;
+                try {
+                    if (!awaitConfirmAck(correlationId)) {
+                        failedConfirmAck.add(updatesById.remove(correlationId));
+                        success = false;
+                    }
+                } finally {
+                    // either ack confirmed or we need to resend, so stop the timer for this update
+                    Timer.Context timer = timersById.get(correlationId);
+                    if (timer != null) {
+                        timer.stop();
+                    }
                 }
             }
         }
@@ -478,7 +497,6 @@ public class QueryMetricOperations {
         BaseQueryMetric combinedMetric = null;
         BaseQueryMetric.Lifecycle lowestLifecycle = null;
         for (QueryMetricUpdate u : updates) {
-            this.stats.queueTimelyMetrics(u);
             if (combinedMetric == null) {
                 combinedMetric = u.getMetric();
                 lowestLifecycle = u.getMetric().getLifecycle();
@@ -494,7 +512,7 @@ public class QueryMetricOperations {
         return metricUpdateHolder;
     }
     
-    public void storeMetricUpdates(QueryMetricUpdateHolder metricUpdate) {
+    public void storeMetricUpdate(QueryMetricUpdateHolder metricUpdate) {
         Timer.Context storeTimer = this.stats.getTimer(TIMERS.STORE).time();
         String queryId = metricUpdate.getMetric().getQueryId();
         try {
