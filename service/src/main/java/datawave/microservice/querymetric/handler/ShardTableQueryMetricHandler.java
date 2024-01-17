@@ -9,6 +9,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -74,6 +75,7 @@ import datawave.microservice.querymetric.QueryMetricsSummaryResponse;
 import datawave.microservice.querymetric.config.QueryMetricHandlerProperties;
 import datawave.microservice.querymetric.factory.QueryMetricQueryLogicFactory;
 import datawave.microservice.security.util.DnUtils;
+import datawave.query.QueryParameters;
 import datawave.query.iterator.QueryOptions;
 import datawave.query.language.parser.jexl.LuceneToJexlQueryParser;
 import datawave.security.authorization.DatawaveUser;
@@ -175,7 +177,7 @@ public abstract class ShardTableQueryMetricHandler<T extends BaseQueryMetric> ex
             AbstractColumnBasedHandler<Key> handler = new ContentIndexingColumnBasedHandler() {
                 @Override
                 public AbstractContentIngestHelper getContentIndexingDataTypeHelper() {
-                    return getQueryMetricsIngestHelper(false);
+                    return getQueryMetricsIngestHelper(false, Collections.EMPTY_LIST);
                 }
             };
             Map<String,String> trackingMap = AccumuloClientTracking.getTrackingMap(Thread.currentThread().getStackTrace());
@@ -205,6 +207,11 @@ public abstract class ShardTableQueryMetricHandler<T extends BaseQueryMetric> ex
     }
     
     public void writeMetric(T updatedQueryMetric, List<T> storedQueryMetrics, long timestamp, boolean delete) throws Exception {
+        writeMetric(updatedQueryMetric, storedQueryMetrics, timestamp, delete, Collections.EMPTY_LIST);
+    }
+    
+    public void writeMetric(T updatedQueryMetric, List<T> storedQueryMetrics, long timestamp, boolean delete, Collection<String> ignoredFields)
+                    throws Exception {
         try {
             TaskAttemptID taskId = new TaskAttemptID(new TaskID(new JobID(JOB_ID, 1), TaskType.MAP, 1), 1);
             this.accumuloRecordWriterLock.readLock().lock();
@@ -214,7 +221,7 @@ public abstract class ShardTableQueryMetricHandler<T extends BaseQueryMetric> ex
                 ContentIndexingColumnBasedHandler handler = new ContentIndexingColumnBasedHandler() {
                     @Override
                     public AbstractContentIngestHelper getContentIndexingDataTypeHelper() {
-                        return getQueryMetricsIngestHelper(delete);
+                        return getQueryMetricsIngestHelper(delete, ignoredFields);
                     }
                 };
                 handler.setup(context);
@@ -254,7 +261,7 @@ public abstract class ShardTableQueryMetricHandler<T extends BaseQueryMetric> ex
     public Map<String,String> getEventFields(BaseQueryMetric queryMetric) {
         // ignore duplicates as none are expected
         Map<String,String> eventFields = new HashMap<>();
-        ContentQueryMetricsIngestHelper ingestHelper = getQueryMetricsIngestHelper(false);
+        ContentQueryMetricsIngestHelper ingestHelper = getQueryMetricsIngestHelper(false, Collections.EMPTY_LIST);
         ingestHelper.setup(conf);
         Multimap<String,NormalizedContentInterface> fieldsToWrite = ingestHelper.getEventFieldsToWrite(queryMetric, null);
         for (Entry<String,NormalizedContentInterface> entry : fieldsToWrite.entries()) {
@@ -350,7 +357,11 @@ public abstract class ShardTableQueryMetricHandler<T extends BaseQueryMetric> ex
     }
     
     public T getQueryMetric(final String queryId) throws Exception {
-        List<T> queryMetrics = getQueryMetrics("QUERY_ID == '" + queryId + "'");
+        return getQueryMetric(queryId, Collections.emptySet());
+    }
+    
+    public T getQueryMetric(final String queryId, Collection<String> ignoredFields) throws Exception {
+        List<T> queryMetrics = getQueryMetrics("QUERY_ID == '" + queryId + "'", ignoredFields);
         return queryMetrics.isEmpty() ? null : queryMetrics.get(0);
     }
     
@@ -358,7 +369,7 @@ public abstract class ShardTableQueryMetricHandler<T extends BaseQueryMetric> ex
         return new QueryImpl();
     }
     
-    public List<T> getQueryMetrics(final String query) throws Exception {
+    public List<T> getQueryMetrics(final String query, Collection<String> ignoredFields) throws Exception {
         Date end = new Date();
         Date begin = DateUtils.setYears(end, 2000);
         Query queryImpl = createQuery();
@@ -372,7 +383,13 @@ public abstract class ShardTableQueryMetricHandler<T extends BaseQueryMetric> ex
         queryImpl.setExpirationDate(DateUtils.addDays(new Date(), 1));
         queryImpl.setPagesize(1000);
         queryImpl.setId(UUID.randomUUID());
-        queryImpl.setParameters(ImmutableMap.of(QueryOptions.INCLUDE_GROUPING_CONTEXT, "true"));
+        Map<String,String> parameters = new LinkedHashMap<>();
+        parameters.put(QueryOptions.INCLUDE_GROUPING_CONTEXT, "true");
+        parameters.put(QueryOptions.DATATYPE_FILTER, "querymetrics");
+        if (ignoredFields != null && !ignoredFields.isEmpty()) {
+            parameters.put(QueryOptions.DISALLOWLISTED_FIELDS, StringUtils.join(ignoredFields, ","));
+        }
+        queryImpl.setParameters(parameters);
         return getQueryMetrics(queryImpl);
     }
     
@@ -740,8 +757,8 @@ public abstract class ShardTableQueryMetricHandler<T extends BaseQueryMetric> ex
     }
     
     @Override
-    public ContentQueryMetricsIngestHelper getQueryMetricsIngestHelper(boolean deleteMode) {
-        return new ContentQueryMetricsIngestHelper(deleteMode);
+    public ContentQueryMetricsIngestHelper getQueryMetricsIngestHelper(boolean deleteMode, Collection<String> ignoredFields) {
+        return new ContentQueryMetricsIngestHelper(deleteMode, ignoredFields);
     }
     
     @Override
@@ -776,7 +793,10 @@ public abstract class ShardTableQueryMetricHandler<T extends BaseQueryMetric> ex
             query.setPagesize(1000);
             query.setUserDN(datawaveUserShortName);
             query.setId(UUID.randomUUID());
-            query.setParameters(ImmutableMap.of(QueryOptions.INCLUDE_GROUPING_CONTEXT, "true"));
+            Map<String,String> parameters = new LinkedHashMap<>();
+            parameters.put(QueryOptions.INCLUDE_GROUPING_CONTEXT, "true");
+            parameters.put(QueryParameters.DATATYPE_FILTER_SET, "querymetrics");
+            query.setParameters(parameters);
             
             List<T> queryMetrics = getQueryMetrics(query);
             response = processQueryMetricsSummary(queryMetrics, end);

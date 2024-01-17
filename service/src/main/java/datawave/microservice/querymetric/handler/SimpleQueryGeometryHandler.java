@@ -6,20 +6,21 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
-import org.apache.commons.jexl2.parser.JexlNode;
+import org.apache.commons.jexl3.parser.JexlNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import datawave.microservice.query.QueryImpl;
 import datawave.microservice.querymetric.BaseQueryMetric;
+import datawave.microservice.querymetric.QueryGeometry;
+import datawave.microservice.querymetric.QueryGeometryResponse;
 import datawave.microservice.querymetric.config.QueryMetricHandlerProperties;
 import datawave.query.jexl.JexlASTHelper;
 import datawave.query.jexl.visitors.GeoFeatureVisitor;
 import datawave.query.language.parser.ParseException;
 import datawave.query.language.parser.jexl.LuceneToJexlQueryParser;
-import datawave.webservice.query.map.QueryGeometry;
-import datawave.webservice.query.map.QueryGeometryResponse;
 
 /**
  * This class is used to extract query geometries from the query metrics in an effort to provide those geometries for subsequent display to the user.
@@ -40,7 +41,7 @@ public class SimpleQueryGeometryHandler implements QueryGeometryHandler {
     
     @Override
     public QueryGeometryResponse getQueryGeometryResponse(String id, List<? extends BaseQueryMetric> metrics) {
-        QueryGeometryResponse response = new QueryMetricGeometryResponse(id, basemaps);
+        QueryGeometryResponse response = new QueryGeometryResponse(id, basemaps);
         
         if (metrics != null) {
             Set<QueryGeometry> queryGeometries = new LinkedHashSet<>();
@@ -49,7 +50,8 @@ public class SimpleQueryGeometryHandler implements QueryGeometryHandler {
                     boolean isLuceneQuery = isLuceneQuery(metric.getParameters());
                     String jexlQuery = (isLuceneQuery) ? toJexlQuery(metric.getQuery()) : metric.getQuery();
                     JexlNode queryNode = JexlASTHelper.parseAndFlattenJexlQuery(jexlQuery);
-                    queryGeometries.addAll(GeoFeatureVisitor.getGeoFeatures(queryNode, isLuceneQuery));
+                    Set<datawave.webservice.query.map.QueryGeometry> features = GeoFeatureVisitor.getGeoFeatures(queryNode, isLuceneQuery);
+                    queryGeometries.addAll(features.stream().map(f -> new QueryGeometry(f.getFunction(), f.getGeometry())).collect(Collectors.toList()));
                 } catch (Exception e) {
                     log.error(e.getMessage(), e);
                     response.addException(new Exception("Unable to parse the geo features"));

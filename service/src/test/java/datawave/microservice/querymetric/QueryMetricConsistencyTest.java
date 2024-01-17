@@ -2,6 +2,7 @@ package datawave.microservice.querymetric;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.ArrayList;
@@ -131,6 +132,41 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
     }
     
     @Test
+    public void ChangePlanTest() throws Exception {
+        int port = this.webServicePort;
+        String queryId = createQueryId();
+        BaseQueryMetric m = createMetric(queryId);
+        UriComponents metricUri = UriComponentsBuilder.newInstance().scheme("https").host("localhost").port(port).path(String.format(getMetricsUrl, queryId))
+                        .build();
+        m.setPlan("InitialPlan");
+        // @formatter:off
+        client.submit(new QueryMetricClient.Request.Builder()
+                .withMetric(m)
+                .withMetricType(QueryMetricType.COMPLETE)
+                .withUser(this.adminUser)
+                .build());
+        // @formatter:on
+        m.setPlan("RevisedPlan");
+        m.setLastUpdated(new Date(m.getLastUpdated().getTime() + 1));
+        // @formatter:off
+        client.submit(new QueryMetricClient.Request.Builder()
+                .withMetric(m)
+                .withMetricType(QueryMetricType.COMPLETE)
+                .withUser(this.adminUser)
+                .build());
+        // @formatter:on
+        
+        HttpEntity metricRequestEntity = createRequestEntity(null, this.adminUser, null);
+        ResponseEntity<BaseQueryMetricListResponse> metricResponse = this.restTemplate.exchange(metricUri.toUri(), HttpMethod.GET, metricRequestEntity,
+                        BaseQueryMetricListResponse.class);
+        
+        assertEquals(1, metricResponse.getBody().getNumResults());
+        BaseQueryMetric returnedMetric = (BaseQueryMetric) metricResponse.getBody().getResult().get(0);
+        assertEquals(m.getPlan(), returnedMetric.getPlan(), "plan incorrect");
+        assertNoDuplicateFields(queryId);
+    }
+    
+    @Test
     public void DistributedUpdateTest() throws Exception {
         int port = this.webServicePort;
         String queryId = createQueryId();
@@ -244,6 +280,26 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
         metricAssertEquals("metrics are not equal", queryMetric, newMetric);
     }
     
+    /*
+     * Check that the last updated time (which is used to calculate the elapsed time) does not get changed when being written to Accumulo
+     */
+    @Test
+    public void LastUpdatedTest() {
+        QueryMetric queryMetric = (QueryMetric) createMetric();
+        String queryId = queryMetric.getQueryId();
+        Date lastUpdated = new Date(queryMetric.getCreateDate().getTime() + 60000);
+        queryMetric.setLastUpdated(lastUpdated);
+        queryMetric.setLifecycle(BaseQueryMetric.Lifecycle.CLOSED);
+        incomingQueryMetricsCache.put(queryId, new QueryMetricUpdateHolder(queryMetric.duplicate()));
+        ensureDataWritten(incomingQueryMetricsCache, lastWrittenQueryMetricCache, queryId);
+        
+        QueryMetricUpdateHolder storedMetricHolder = lastWrittenQueryMetricCache.get(queryId, QueryMetricUpdateHolder.class);
+        assertNotNull(storedMetricHolder, "storedQueryMetric is null");
+        metricAssertEquals("metric should not change", queryMetric, storedMetricHolder.getMetric());
+        assertEquals(60000, storedMetricHolder.getMetric().getElapsedTime(), "Elapsed time incorrect");
+        assertEquals(lastUpdated, storedMetricHolder.getMetric().getLastUpdated(), "Last updated incorrect");
+    }
+    
     @Test
     public void CombineMetricsTest() throws Exception {
         QueryMetric storedQueryMetric = (QueryMetric) createMetric();
@@ -313,7 +369,7 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
         String queryId = createQueryId();
         QueryMetric storedQueryMetric = (QueryMetric) createMetric(queryId);
         QueryMetric updatedQueryMetric = (QueryMetric) storedQueryMetric.duplicate();
-        updatedQueryMetric.setLifecycle(BaseQueryMetric.Lifecycle.CLOSED);
+        updatedQueryMetric.setLifecycle(BaseQueryMetric.Lifecycle.RESULTS);
         updatedQueryMetric.setNumResults(2000);
         updatedQueryMetric.setDocRanges(400);
         updatedQueryMetric.setNextCount(400);

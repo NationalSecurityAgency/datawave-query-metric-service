@@ -3,7 +3,9 @@ package datawave.microservice.querymetric;
 import java.text.SimpleDateFormat;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.TreeMap;
 
 import javax.xml.bind.annotation.XmlElement;
@@ -12,6 +14,8 @@ import javax.xml.bind.annotation.XmlTransient;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.text.StringEscapeUtils;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import datawave.microservice.querymetric.BaseQueryMetric.PageMetric;
 import datawave.webservice.HtmlProvider;
@@ -27,10 +31,27 @@ public abstract class BaseQueryMetricListResponse<T extends BaseQueryMetric> ext
     protected List<T> result = null;
     @XmlElement
     protected int numResults = 0;
+    @XmlElement
+    protected boolean isGeoQuery = false;
     @XmlTransient
     private boolean administratorMode = false;
-    @XmlTransient
-    private boolean isGeoQuery = false;
+    private String JQUERY_INCLUDES;
+    protected String BASE_URL = "/DataWave/Query/Metrics";
+    
+    public BaseQueryMetricListResponse() {
+        setHtmlIncludePaths(new HashMap<>());
+    }
+    
+    public void setHtmlIncludePaths(Map<String,String> pathMap) {
+        // @formatter:off
+        JQUERY_INCLUDES =
+                "<script type='text/javascript' src='" + pathMap.getOrDefault("jquery", "") + "/jquery.min.js'></script>\n";
+        // @formatter:on
+    }
+    
+    public void setBaseUrl(String baseUrl) {
+        this.BASE_URL = baseUrl;
+    }
     
     private static String numToString(long number) {
         return (number == -1 || number == 0) ? "" : Long.toString(number);
@@ -69,21 +90,27 @@ public abstract class BaseQueryMetricListResponse<T extends BaseQueryMetric> ext
         isGeoQuery = geoQuery;
     }
     
+    @JsonIgnore
+    @XmlTransient
     @Override
     public String getTitle() {
         return TITLE;
     }
     
+    @JsonIgnore
+    @XmlTransient
     @Override
     public String getPageHeader() {
         return getTitle();
     }
     
+    @JsonIgnore
+    @XmlTransient
     @Override
     public String getHeadContent() {
         if (isGeoQuery) {
             // @formatter:off
-            return "<script type='text/javascript' src='/jquery.min.js'></script>" +
+            return JQUERY_INCLUDES +
                     "<script type='text/javascript'>" +
                     "$(document).ready(function() {" +
                     "   var currentUrl = window.location.href.replace(/\\/+$/, '');" +
@@ -97,7 +124,9 @@ public abstract class BaseQueryMetricListResponse<T extends BaseQueryMetric> ext
             return EMPTY;
         }
     }
-    
+
+    @JsonIgnore
+    @XmlTransient
     @Override
     public String getMainContent() {
         StringBuilder builder = new StringBuilder();
@@ -155,7 +184,7 @@ public abstract class BaseQueryMetricListResponse<T extends BaseQueryMetric> ext
             builder.append("<td style=\"word-wrap: break-word; min-width:300px !important;\">").append(queryAuths).append("</td>");
             
             builder.append("<td>").append(metric.getHost()).append("</td>");
-            builder.append("<td>").append(metric.getSetupTime()).append("</td>");
+            builder.append("<td>").append(numToString(metric.getSetupTime())).append("</td>");
             builder.append("<td>").append(numToString(metric.getCreateCallTime())).append("</td>\n");
             builder.append("<td>").append(metric.getNumPages()).append("</td>");
             builder.append("<td>").append(metric.getNumResults()).append("</td>");
@@ -188,5 +217,4 @@ public abstract class BaseQueryMetricListResponse<T extends BaseQueryMetric> ext
         
         return builder.toString();
     }
-    
 }

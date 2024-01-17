@@ -14,9 +14,12 @@ import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorOrder;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.XmlTransient;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.text.StringEscapeUtils;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import datawave.microservice.query.QueryImpl.Parameter;
 import datawave.microservice.querymetric.BaseQueryMetric.PageMetric;
@@ -36,6 +39,8 @@ public class QueryMetricsDetailListResponse extends QueryMetricListResponse {
                                                                                                                            // metric page
     }
     
+    @JsonIgnore
+    @XmlTransient
     @Override
     public String getMainContent() {
         StringBuilder builder = new StringBuilder(), pageTimesBuilder = new StringBuilder();
@@ -88,7 +93,13 @@ public class QueryMetricsDetailListResponse extends QueryMetricListResponse {
             builder.append("<td style=\"min-width:500px !important;\">").append(userDN == null ? "" : userDN).append("</td>");
             String proxyServers = metric.getProxyServers() == null ? "" : StringUtils.join(metric.getProxyServers(), "<BR/>");
             builder.append("<td>").append(proxyServers).append("</td>");
-            builder.append("<td>").append(metric.getQueryId()).append("</td>");
+            if (this.isAdministratorMode()) {
+                builder.append("<td><a href=\"" + BASE_URL + "/user/").append(metric.getUser()).append("/").append(metric.getQueryId()).append("/")
+                                .append("\">").append(metric.getQueryId()).append("</a></td>");
+            } else {
+                builder.append("<td><a href=\"" + BASE_URL + "/id/").append(metric.getQueryId()).append("/").append("\">").append(metric.getQueryId())
+                                .append("</a></td>");
+            }
             builder.append("<td>").append(metric.getQueryType()).append("</td>");
             builder.append("<td>").append(metric.getQueryLogic()).append("</td>");
             // Note the query and query plan are added to the table later (see the javascript at the end of this for loop)
@@ -120,7 +131,7 @@ public class QueryMetricsDetailListResponse extends QueryMetricListResponse {
                 builder.append("<td/>");
             }
             builder.append("<td>").append(numToString(metric.getLoginTime(), 0)).append("</td>");
-            builder.append("<td>").append(metric.getSetupTime()).append("</td>");
+            builder.append("<td>").append(numToString(metric.getSetupTime(), 0)).append("</td>");
             builder.append("<td>").append(numToString(metric.getCreateCallTime(), 0)).append("</td>\n");
             builder.append("<td>").append(metric.getNumPages()).append("</td>");
             builder.append("<td>").append(metric.getNumResults()).append("</td>");
