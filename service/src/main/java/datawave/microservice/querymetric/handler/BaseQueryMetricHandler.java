@@ -8,6 +8,7 @@ import datawave.query.jexl.JexlASTHelper;
 import datawave.query.jexl.visitors.TreeFlatteningRebuildingVisitor;
 import datawave.query.language.parser.jexl.LuceneToJexlQueryParser;
 import datawave.query.language.tree.QueryNode;
+import org.apache.commons.jexl2.JexlException;
 import org.apache.commons.jexl2.parser.ASTEQNode;
 import org.apache.commons.jexl2.parser.ASTJexlScript;
 import org.apache.commons.lang.time.DateUtils;
@@ -140,6 +141,8 @@ public abstract class BaseQueryMetricHandler<T extends BaseQueryMetric> implemen
                         }
                     }
                 }
+            } catch (JexlException e) {
+                log.error("populateMetricSelectors: Failure parsing query");
             } catch (Exception e) {
                 log.error("populateMetricSelectors: " + e.getMessage());
             }
