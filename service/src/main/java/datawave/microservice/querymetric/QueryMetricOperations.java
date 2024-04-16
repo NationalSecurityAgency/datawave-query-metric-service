@@ -1,5 +1,7 @@
 package datawave.microservice.querymetric;
 
+import static datawave.microservice.querymetric.BaseQueryMetric.Lifecycle;
+import static datawave.microservice.querymetric.BaseQueryMetric.PageMetric;
 import static datawave.microservice.querymetric.QueryMetricOperations.DEFAULT_DATETIME.BEGIN;
 import static datawave.microservice.querymetric.QueryMetricOperations.DEFAULT_DATETIME.END;
 import static datawave.microservice.querymetric.QueryMetricOperationsStats.TIMERS;
@@ -11,6 +13,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -495,7 +498,7 @@ public class QueryMetricOperations {
     
     public QueryMetricUpdateHolder combineMetricUpdates(List<QueryMetricUpdate> updates, QueryMetricType metricType) throws Exception {
         BaseQueryMetric combinedMetric = null;
-        BaseQueryMetric.Lifecycle lowestLifecycle = null;
+        Lifecycle lowestLifecycle = null;
         for (QueryMetricUpdate u : updates) {
             if (combinedMetric == null) {
                 combinedMetric = u.getMetric();
@@ -574,9 +577,11 @@ public class QueryMetricOperations {
             BaseQueryMetric metric;
             QueryMetricUpdateHolder metricUpdate = incomingQueryMetricsCache.get(queryId, QueryMetricUpdateHolder.class);
             if (metricUpdate == null) {
+                // fetches metric from Accumulo
                 metric = this.handler.getQueryMetric(queryId);
             } else {
-                metric = metricUpdate.getMetric();
+                // determine if the cached metric is complete, and if not then fetch metric from Accumulo
+                metric = isMetricComplete(metricUpdate) ? metricUpdate.getMetric() : completeMetric(metricUpdate);
             }
             if (metric != null) {
                 boolean allowAllMetrics = false;
@@ -661,6 +666,47 @@ public class QueryMetricOperations {
             metricResponse.getExceptions().forEach(e -> queryGeometryResponse.addException(new QueryException(e.getMessage(), e.getCause(), e.getCode())));
             return queryGeometryResponse;
         }
+    }
+    
+    /*
+     * Try to determine if cached metric is complete or whether it may be missing pages because it was evicted from the incoming cache
+     */
+    protected boolean isMetricComplete(QueryMetricUpdateHolder metricUpdateHolderFromCache) {
+        BaseQueryMetric metricUpdate = metricUpdateHolderFromCache.getMetric();
+        if (metricUpdateHolderFromCache.isNewMetric()) {
+            return true;
+        } else {
+            List<PageMetric> pageMetrics = new ArrayList<>(metricUpdate.getPageTimes());
+            if (metricUpdate.getNumPages() != pageMetrics.size()) {
+                return false;
+            } else {
+                pageMetrics.sort(Comparator.comparingLong(PageMetric::getPageNumber));
+                // If the first page's pageNumber is equal to 1 then that's a good indicator that the metric hasn't been evicted
+                return (pageMetrics.isEmpty()) || (pageMetrics.get(0).getPageNumber() == 1);
+            }
+        }
+    }
+    
+    /*
+     * Pages could be missing if the metricUpdate was evicted from the incomingQueryMetricsCache. If so, then retrieve the full metric from Accumulo and combine
+     * metrics so that the requesting user gets the complete metric.
+     */
+    protected BaseQueryMetric completeMetric(QueryMetricUpdateHolder metricUpdateHolderFromCache) {
+        BaseQueryMetric metricUpdate = null;
+        if (metricUpdateHolderFromCache != null) {
+            metricUpdate = metricUpdateHolderFromCache.getMetric();
+            if (metricUpdate != null) {
+                try {
+                    BaseQueryMetric metricFromAccumulo = this.handler.getQueryMetric(metricUpdate.getQueryId());
+                    if (metricFromAccumulo != null) {
+                        metricUpdate = this.handler.combineMetrics(metricUpdate, metricFromAccumulo, metricUpdateHolderFromCache.getMetricType());
+                    }
+                } catch (Exception e) {
+                    log.error(e.getMessage(), e);
+                }
+            }
+        }
+        return metricUpdate;
     }
     
     private static Date parseDate(String dateString, DEFAULT_DATETIME defaultDateTime) throws IllegalArgumentException {
