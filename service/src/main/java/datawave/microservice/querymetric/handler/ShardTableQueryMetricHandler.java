@@ -97,6 +97,7 @@ public abstract class ShardTableQueryMetricHandler<T extends BaseQueryMetric> ex
     
     @SuppressWarnings("FieldCanBeLocal")
     protected final String JOB_ID = "job_201109071404_1";
+    protected static final String BLACKLISTED_FIELDS_DEPRECATED = "blacklisted.fields";
     
     protected final Configuration conf = new Configuration();
     protected final StatusReporter reporter = new MockStatusReporter();
@@ -387,6 +388,7 @@ public abstract class ShardTableQueryMetricHandler<T extends BaseQueryMetric> ex
         parameters.put(QueryOptions.INCLUDE_GROUPING_CONTEXT, "true");
         parameters.put(QueryOptions.DATATYPE_FILTER, "querymetrics");
         if (ignoredFields != null && !ignoredFields.isEmpty()) {
+            parameters.put(BLACKLISTED_FIELDS_DEPRECATED, StringUtils.join(ignoredFields, ","));
             parameters.put(QueryOptions.DISALLOWLISTED_FIELDS, StringUtils.join(ignoredFields, ","));
         }
         queryImpl.setParameters(parameters);

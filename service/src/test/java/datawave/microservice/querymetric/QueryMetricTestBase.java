@@ -92,6 +92,9 @@ public class QueryMetricTestBase {
     protected static final String getMetricsUrl = "/querymetric/v1/id/%s";
     
     @Autowired
+    protected QueryMetricOperations queryMetricOperations;
+    
+    @Autowired
     protected RestTemplateBuilder restTemplateBuilder;
     
     @Autowired
