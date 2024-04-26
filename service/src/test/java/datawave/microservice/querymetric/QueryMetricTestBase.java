@@ -534,7 +534,7 @@ public class QueryMetricTestBase {
         long now = System.currentTimeMillis();
         Config config = ((HazelcastCacheManager) this.cacheManager).getHazelcastInstance().getConfig();
         MapStoreConfig mapStoreConfig = config.getMapConfig(incomingCache.getName()).getMapStoreConfig();
-        int writeDelaySeconds = 2 * Math.min(mapStoreConfig.getWriteDelaySeconds(), 1000);
+        int writeDelaySeconds = Math.min(mapStoreConfig.getWriteDelaySeconds(), 1000);
         boolean found = false;
         while (!found && System.currentTimeMillis() < (now + (1000 * (writeDelaySeconds + 1)))) {
             found = lastWrittenCache.get(queryId, QueryMetricUpdateHolder.class) != null;
