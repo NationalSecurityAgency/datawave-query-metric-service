@@ -76,9 +76,9 @@ public class QueryMetricHandlerProperties {
     
     protected boolean useRemoteQuery = true;
     protected long remoteAuthTimeout = 1L;
-    protected TimeUnit remoteAuthTimeUnit = TimeUnit.MINUTES;
+    protected TimeUnit remoteAuthTimeoutUnit = TimeUnit.MINUTES;
     protected long remoteQueryTimeout = 1L;
-    protected TimeUnit remoteQueryTimeUnit = TimeUnit.MINUTES;
+    protected TimeUnit remoteQueryTimeoutUnit = TimeUnit.MINUTES;
     
     protected String npeOuEntries;
     protected String subjectDnPattern;
@@ -519,19 +519,19 @@ public class QueryMetricHandlerProperties {
     }
     
     public long getRemoteAuthTimeoutMillis() {
-        return remoteAuthTimeUnit.toMillis(remoteAuthTimeout);
+        return remoteAuthTimeoutUnit.toMillis(remoteAuthTimeout);
     }
     
     public void setRemoteAuthTimeout(long remoteAuthTimeout) {
         this.remoteAuthTimeout = remoteAuthTimeout;
     }
     
-    public TimeUnit getRemoteAuthTimeUnit() {
-        return remoteAuthTimeUnit;
+    public TimeUnit getRemoteAuthTimeoutUnit() {
+        return remoteAuthTimeoutUnit;
     }
     
-    public void setRemoteAuthTimeUnit(TimeUnit remoteAuthTimeUnit) {
-        this.remoteAuthTimeUnit = remoteAuthTimeUnit;
+    public void setRemoteAuthTimeoutUnit(TimeUnit remoteAuthTimeoutUnit) {
+        this.remoteAuthTimeoutUnit = remoteAuthTimeoutUnit;
     }
     
     public long getRemoteQueryTimeout() {
@@ -539,19 +539,19 @@ public class QueryMetricHandlerProperties {
     }
     
     public long getRemoteQueryTimeoutMillis() {
-        return remoteQueryTimeUnit.toMillis(remoteQueryTimeout);
+        return remoteQueryTimeoutUnit.toMillis(remoteQueryTimeout);
     }
     
     public void setRemoteQueryTimeout(long remoteQueryTimeout) {
         this.remoteQueryTimeout = remoteQueryTimeout;
     }
     
-    public TimeUnit getRemoteQueryTimeUnit() {
-        return remoteQueryTimeUnit;
+    public TimeUnit getRemoteQueryTimeoutUnit() {
+        return remoteQueryTimeoutUnit;
     }
     
-    public void setRemoteQueryTimeUnit(TimeUnit remoteQueryTimeUnit) {
-        this.remoteQueryTimeUnit = remoteQueryTimeUnit;
+    public void setRemoteQueryTimeoutUnit(TimeUnit remoteQueryTimeoutUnit) {
+        this.remoteQueryTimeoutUnit = remoteQueryTimeoutUnit;
     }
     
     public String getNpeOuEntries() {
