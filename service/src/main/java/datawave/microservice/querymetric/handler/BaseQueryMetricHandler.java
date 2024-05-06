@@ -15,6 +15,7 @@ import datawave.microservice.querymetric.BaseQueryMetric;
 import datawave.microservice.querymetric.BaseQueryMetric.Lifecycle;
 import datawave.microservice.querymetric.QueryMetricSummary;
 import datawave.microservice.querymetric.QueryMetricsSummaryResponse;
+import datawave.microservice.querymetric.factory.QueryMetricResponseFactory;
 import datawave.query.jexl.JexlASTHelper;
 import datawave.query.jexl.visitors.TreeFlatteningRebuildingVisitor;
 import datawave.query.language.parser.jexl.LuceneToJexlQueryParser;
@@ -27,9 +28,14 @@ public abstract class BaseQueryMetricHandler<T extends BaseQueryMetric> implemen
     
     private Logger log = Logger.getLogger(BaseQueryMetricHandler.class);
     protected LuceneToJexlQueryParser luceneToJexlQueryParser;
+    protected QueryMetricResponseFactory queryMetricResponseFactory;
     
     public BaseQueryMetricHandler(LuceneToJexlQueryParser luceneToJexlQueryParser) {
         this.luceneToJexlQueryParser = luceneToJexlQueryParser;
+    }
+    
+    protected QueryMetricsSummaryResponse createSummaryResponse() {
+        return queryMetricResponseFactory.createSummaryResponse();
     }
     
     public void populateSummary(T metric, QueryMetricSummary bucket) {
@@ -41,7 +47,7 @@ public abstract class BaseQueryMetricHandler<T extends BaseQueryMetric> implemen
     
     public QueryMetricsSummaryResponse processQueryMetricsSummary(List<T> queryMetrics, Date end) throws IOException {
         
-        QueryMetricsSummaryResponse summary = new QueryMetricsSummaryResponse();
+        QueryMetricsSummaryResponse summary = createSummaryResponse();
         Date hour1 = DateUtils.addHours(end, -1);
         Date hour6 = DateUtils.addHours(end, -6);
         Date hour12 = DateUtils.addHours(end, -12);
@@ -148,5 +154,9 @@ public abstract class BaseQueryMetricHandler<T extends BaseQueryMetric> implemen
                 log.error("populateMetricSelectors: " + e.getMessage());
             }
         }
+    }
+    
+    public void setQueryMetricResponseFactory(QueryMetricResponseFactory queryMetricResponseFactory) {
+        this.queryMetricResponseFactory = queryMetricResponseFactory;
     }
 }
