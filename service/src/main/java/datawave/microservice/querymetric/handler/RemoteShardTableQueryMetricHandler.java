@@ -28,21 +28,25 @@ import datawave.webservice.common.connection.AccumuloClientPool;
 import datawave.webservice.query.Query;
 import datawave.webservice.query.QueryParameters;
 import datawave.webservice.query.QueryParametersImpl;
+import datawave.webservice.query.result.event.ResponseObjectFactory;
 import datawave.webservice.result.BaseQueryResponse;
 
 public class RemoteShardTableQueryMetricHandler<T extends BaseQueryMetric> extends ShardTableQueryMetricHandler<T> {
     private static final Logger log = LoggerFactory.getLogger(RemoteShardTableQueryMetricHandler.class);
     
     private DatawaveUserDetails userDetails;
+    private final ResponseObjectFactory responseObjectFactory;
     private final WebClient webClient;
     private final WebClient authWebClient;
     private final JWTTokenHandler jwtTokenHandler;
     
     public RemoteShardTableQueryMetricHandler(QueryMetricHandlerProperties queryMetricHandlerProperties, @Qualifier("warehouse") AccumuloClientPool clientPool,
                     QueryMetricQueryLogicFactory logicFactory, QueryMetricFactory metricFactory, MarkingFunctions markingFunctions,
-                    QueryMetricCombiner queryMetricCombiner, LuceneToJexlQueryParser luceneToJexlQueryParser, WebClient.Builder webClientBuilder,
-                    JWTTokenHandler jwtTokenHandler, DnUtils dnUtils) {
+                    QueryMetricCombiner queryMetricCombiner, LuceneToJexlQueryParser luceneToJexlQueryParser, ResponseObjectFactory responseObjectFactory,
+                    WebClient.Builder webClientBuilder, JWTTokenHandler jwtTokenHandler, DnUtils dnUtils) {
         super(queryMetricHandlerProperties, clientPool, logicFactory, metricFactory, markingFunctions, queryMetricCombiner, luceneToJexlQueryParser, dnUtils);
+        
+        this.responseObjectFactory = responseObjectFactory;
         
         this.webClient = webClientBuilder.baseUrl(queryMetricHandlerProperties.getQueryServiceUri()).build();
         this.jwtTokenHandler = jwtTokenHandler;
@@ -104,7 +108,7 @@ public class RemoteShardTableQueryMetricHandler<T extends BaseQueryMetric> exten
                     .header("Authorization", bearerHeader)
                     .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
                     .retrieve()
-                    .bodyToMono(BaseQueryResponse.class)
+                    .bodyToMono(responseObjectFactory.getEventQueryResponse().getClass())
                     .block(Duration.ofMillis(queryMetricHandlerProperties.getRemoteQueryTimeoutMillis()));
             // @formatter:on
         } catch (IllegalStateException e) {
@@ -124,7 +128,7 @@ public class RemoteShardTableQueryMetricHandler<T extends BaseQueryMetric> exten
                     .header("Authorization", bearerHeader)
                     .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
                     .retrieve()
-                    .bodyToMono(BaseQueryResponse.class)
+                    .bodyToMono(responseObjectFactory.getEventQueryResponse().getClass())
                     .block(Duration.ofMillis(queryMetricHandlerProperties.getRemoteQueryTimeoutMillis()));
             // @formatter:on
         } catch (IllegalStateException e) {

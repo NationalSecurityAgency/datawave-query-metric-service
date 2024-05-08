@@ -18,19 +18,20 @@ public class MetricUpdateEntryProcessor implements EntryProcessor<String,QueryMe
     
     @Override
     public Long process(Map.Entry<String,QueryMetricUpdateHolder> entry) {
-        QueryMetricUpdateHolder updatedHolder;
+        QueryMetricUpdateHolder storedHolder;
         QueryMetricType metricType = this.metricUpdate.getMetricType();
         BaseQueryMetric updatedMetric = this.metricUpdate.getMetric();
         long start = System.currentTimeMillis();
         if (entry.getValue() == null) {
-            updatedHolder = this.metricUpdate;
+            storedHolder = this.metricUpdate;
         } else {
-            updatedHolder = entry.getValue();
-            BaseQueryMetric storedMetric = entry.getValue().getMetric();
+            storedHolder = entry.getValue();
+            BaseQueryMetric storedMetric = storedHolder.getMetric();
             BaseQueryMetric combinedMetric;
             combinedMetric = this.combiner.combineMetrics(updatedMetric, storedMetric, metricType);
-            updatedHolder.setMetric(combinedMetric);
-            updatedHolder.setMetricType(metricType);
+            storedHolder.setMetric(combinedMetric);
+            storedHolder.setMetricType(metricType);
+            storedHolder.updateLowestLifecycle(this.metricUpdate.getLowestLifecycle());
         }
         
         if (metricType.equals(QueryMetricType.DISTRIBUTED) && updatedMetric != null) {
@@ -46,7 +47,7 @@ public class MetricUpdateEntryProcessor implements EntryProcessor<String,QueryMe
             updatedHolder.addValue("docRanges", updatedMetric.getDocRanges());
             updatedHolder.addValue("fiRanges", updatedMetric.getFiRanges());
         }
-        entry.setValue(updatedHolder);
+        entry.setValue(storedHolder);
         return Long.valueOf(System.currentTimeMillis() - start);
     }
 }

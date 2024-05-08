@@ -4,11 +4,11 @@
     <parent>
         <groupId>gov.nsa.datawave.microservice</groupId>
         <artifactId>datawave-microservice-parent</artifactId>
-        <version>3.0.0</version>
+        <version>3.0.4</version>
         <relativePath>../../microservice-parent/pom.xml</relativePath>
     </parent>
     <artifactId>query-metric-parent</artifactId>
-    <version>3.0.1-SNAPSHOT</version>
+    <version>3.0.10-SNAPSHOT</version>
     <packaging>pom</packaging>
     <url>https://code.nsa.gov/datawave-query-metric-service</url>
     <modules>
@@ -17,22 +17,19 @@
     <scm>
         <connection>scm:git:https://github.com/NationalSecurityAgency/datawave-query-metric-service.git</connection>
         <developerConnection>scm:git:git@github.com:NationalSecurityAgency/datawave-query-metric-service.git</developerConnection>
+        <tag>HEAD</tag>
         <url>https://github.com/NationalSecurityAgency/datawave-query-metric-service</url>
     </scm>
     <repositories>
         <repository>
-            <!--
-                This repository is a temporary work-around until we can publish artifacts to maven central.
-                This allows us to retrieve released microservice artifacts from our github repository.
-            -->
             <releases>
                 <enabled>true</enabled>
             </releases>
             <snapshots>
                 <enabled>false</enabled>
             </snapshots>
-            <id>datawave-github-mvn-repo</id>
-            <url>https://raw.githubusercontent.com/NationalSecurityAgency/datawave/mvn-repo</url>
+            <id>github-datawave</id>
+            <url>https://maven.pkg.github.com/NationalSecurityAgency/datawave</url>
         </repository>
     </repositories>
     <profiles>

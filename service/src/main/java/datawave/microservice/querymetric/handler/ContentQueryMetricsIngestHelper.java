@@ -2,7 +2,7 @@ package datawave.microservice.querymetric.handler;
 
 import java.text.SimpleDateFormat;
 import java.util.Collection;
-import java.util.Date;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -33,8 +33,8 @@ public class ContentQueryMetricsIngestHelper extends CSVIngestHelper implements 
     private Set<String> contentIndexFields = new HashSet<>();
     private HelperDelegate<BaseQueryMetric> delegate;
     
-    public ContentQueryMetricsIngestHelper(boolean deleteMode) {
-        this(deleteMode, new HelperDelegate<>());
+    public ContentQueryMetricsIngestHelper(boolean deleteMode, Collection<String> ignoredFields) {
+        this(deleteMode, new HelperDelegate<>(ignoredFields));
     }
     
     public ContentQueryMetricsIngestHelper(boolean deleteMode, HelperDelegate<BaseQueryMetric> delegate) {
@@ -93,6 +93,13 @@ public class ContentQueryMetricsIngestHelper extends CSVIngestHelper implements 
     }
     
     public static class HelperDelegate<T extends BaseQueryMetric> {
+        private Collection<String> ignoredFields = Collections.EMPTY_LIST;
+        
+        public HelperDelegate() {}
+        
+        public HelperDelegate(Collection<String> ignoredFields) {
+            this.ignoredFields = ignoredFields;
+        }
         
         protected boolean isChanged(String updated, String stored) {
             if ((StringUtils.isBlank(stored) && StringUtils.isNotBlank(updated)) || (stored != null && updated != null && !stored.equals(updated))) {
@@ -165,17 +172,25 @@ public class ContentQueryMetricsIngestHelper extends CSVIngestHelper implements 
             SimpleDateFormat sdf_date_time1 = new SimpleDateFormat("yyyyMMdd HHmmss");
             SimpleDateFormat sdf_date_time2 = new SimpleDateFormat("yyyyMMdd HHmmss");
             
-            if (isFirstWrite(updated.getPositiveSelectors(), stored == null ? null : stored.getPositiveSelectors())) {
-                fields.putAll("POSITIVE_SELECTORS", updated.getPositiveSelectors());
+            if (!ignoredFields.contains("POSITIVE_SELECTORS")) {
+                if (isFirstWrite(updated.getPositiveSelectors(), stored == null ? null : stored.getPositiveSelectors())) {
+                    fields.putAll("POSITIVE_SELECTORS", updated.getPositiveSelectors());
+                }
             }
-            if (isFirstWrite(updated.getNegativeSelectors(), stored == null ? null : stored.getNegativeSelectors())) {
-                fields.putAll("NEGATIVE_SELECTORS", updated.getNegativeSelectors());
+            if (!ignoredFields.contains("NEGATIVE_SELECTORS")) {
+                if (isFirstWrite(updated.getNegativeSelectors(), stored == null ? null : stored.getNegativeSelectors())) {
+                    fields.putAll("NEGATIVE_SELECTORS", updated.getNegativeSelectors());
+                }
             }
-            if (isFirstWrite(updated.getQueryAuthorizations(), stored == null ? null : stored.getQueryAuthorizations())) {
-                fields.put("AUTHORIZATIONS", updated.getQueryAuthorizations());
+            if (!ignoredFields.contains("AUTHORIZATIONS")) {
+                if (isFirstWrite(updated.getQueryAuthorizations(), stored == null ? null : stored.getQueryAuthorizations())) {
+                    fields.put("AUTHORIZATIONS", updated.getQueryAuthorizations());
+                }
             }
-            if (isFirstWrite(updated.getBeginDate(), stored == null ? null : stored.getBeginDate())) {
-                fields.put("BEGIN_DATE", sdf_date_time1.format(updated.getBeginDate()));
+            if (!ignoredFields.contains("BEGIN_DATE")) {
+                if (isFirstWrite(updated.getBeginDate(), stored == null ? null : stored.getBeginDate())) {
+                    fields.put("BEGIN_DATE", sdf_date_time1.format(updated.getBeginDate()));
+                }
             }
             if (isChanged(updated.getCreateCallTime(), stored == null ? -1 : stored.getCreateCallTime())) {
                 fields.put("CREATE_CALL_TIME", Long.toString(updated.getCreateCallTime()));
@@ -189,8 +204,10 @@ public class ContentQueryMetricsIngestHelper extends CSVIngestHelper implements 
             if (isChanged(updated.getElapsedTime(), stored == null ? -1 : stored.getElapsedTime())) {
                 fields.put("ELAPSED_TIME", Long.toString(updated.getElapsedTime()));
             }
-            if (isFirstWrite(updated.getEndDate(), stored == null ? null : stored.getEndDate())) {
-                fields.put("END_DATE", sdf_date_time1.format(updated.getEndDate()));
+            if (!ignoredFields.contains("END_DATE")) {
+                if (isFirstWrite(updated.getEndDate(), stored == null ? null : stored.getEndDate())) {
+                    fields.put("END_DATE", sdf_date_time1.format(updated.getEndDate()));
+                }
             }
             if (isChanged(updated.getErrorCode(), stored == null ? null : stored.getErrorCode())) {
                 fields.put("ERROR_CODE", updated.getErrorCode());
@@ -236,14 +253,18 @@ public class ContentQueryMetricsIngestHelper extends CSVIngestHelper implements 
             if (isChanged(updated.getNumUpdates(), stored == null ? -1 : stored.getNumUpdates())) {
                 fields.put("NUM_UPDATES", Long.toString(updated.getNumUpdates()));
             }
-            if (isFirstWrite(updated.getParameters(), stored == null ? null : stored.getParameters())) {
-                fields.put("PARAMETERS", QueryUtil.toParametersString(updated.getParameters()));
+            if (!ignoredFields.contains("PARAMETERS")) {
+                if (isFirstWrite(updated.getParameters(), stored == null ? null : stored.getParameters())) {
+                    fields.put("PARAMETERS", QueryUtil.toParametersString(updated.getParameters()));
+                }
             }
-            if (isFirstWrite(updated.getPlan(), stored == null ? null : stored.getPlan())) {
+            if (isChanged(updated.getPlan(), stored == null ? null : stored.getPlan())) {
                 fields.put("PLAN", updated.getPlan());
             }
-            if (isFirstWrite(updated.getProxyServers(), stored == null ? null : stored.getProxyServers())) {
-                fields.put("PROXY_SERVERS", StringUtils.join(updated.getProxyServers(), ","));
+            if (!ignoredFields.contains("PROXY_SERVERS")) {
+                if (isFirstWrite(updated.getProxyServers(), stored == null ? null : stored.getProxyServers())) {
+                    fields.put("PROXY_SERVERS", StringUtils.join(updated.getProxyServers(), ","));
+                }
             }
             
             Map<Long,PageMetric> storedPageMetricMap = new HashMap<>();
@@ -275,20 +296,28 @@ public class ContentQueryMetricsIngestHelper extends CSVIngestHelper implements 
                     }
                 }
             }
-            if (isFirstWrite(updated.getQuery(), stored == null ? null : stored.getQuery())) {
-                fields.put("QUERY", updated.getQuery());
+            if (!ignoredFields.contains("QUERY")) {
+                if (isFirstWrite(updated.getQuery(), stored == null ? null : stored.getQuery())) {
+                    fields.put("QUERY", updated.getQuery());
+                }
             }
             if (isFirstWrite(updated.getQueryId(), stored == null ? null : stored.getQueryId())) {
                 fields.put("QUERY_ID", updated.getQueryId());
             }
-            if (isFirstWrite(updated.getQueryLogic(), stored == null ? null : stored.getQueryLogic())) {
-                fields.put("QUERY_LOGIC", updated.getQueryLogic());
+            if (!ignoredFields.contains("QUERY_LOGIC")) {
+                if (isFirstWrite(updated.getQueryLogic(), stored == null ? null : stored.getQueryLogic())) {
+                    fields.put("QUERY_LOGIC", updated.getQueryLogic());
+                }
             }
-            if (isFirstWrite(updated.getQueryName(), stored == null ? null : stored.getQueryName())) {
-                fields.put("QUERY_NAME", updated.getQueryName());
+            if (!ignoredFields.contains("QUERY_NAME")) {
+                if (isFirstWrite(updated.getQueryName(), stored == null ? null : stored.getQueryName())) {
+                    fields.put("QUERY_NAME", updated.getQueryName());
+                }
             }
-            if (isFirstWrite(updated.getQueryType(), stored == null ? null : stored.getQueryType())) {
-                fields.put("QUERY_TYPE", updated.getQueryType());
+            if (!ignoredFields.contains("QUERY_TYPE")) {
+                if (isFirstWrite(updated.getQueryType(), stored == null ? null : stored.getQueryType())) {
+                    fields.put("QUERY_TYPE", updated.getQueryType());
+                }
             }
             if (isFirstWrite(updated.getSetupTime(), stored == null ? 0 : stored.getSetupTime(), 0)) {
                 fields.put("SETUP_TIME", Long.toString(updated.getSetupTime()));
@@ -305,18 +334,24 @@ public class ContentQueryMetricsIngestHelper extends CSVIngestHelper implements 
             if (isChanged(updated.getSourceCount(), stored == null ? -1 : stored.getSourceCount())) {
                 fields.put("SOURCE_COUNT", Long.toString(updated.getSourceCount()));
             }
-            if (isFirstWrite(updated.getUser(), stored == null ? null : stored.getUser())) {
-                fields.put("USER", updated.getUser());
+            if (!ignoredFields.contains("USER")) {
+                if (isFirstWrite(updated.getUser(), stored == null ? null : stored.getUser())) {
+                    fields.put("USER", updated.getUser());
+                }
             }
-            if (isFirstWrite(updated.getUserDN(), stored == null ? null : stored.getUserDN())) {
-                fields.put("USER_DN", updated.getUserDN());
+            if (!ignoredFields.contains("USER_DN")) {
+                if (isFirstWrite(updated.getUserDN(), stored == null ? null : stored.getUserDN())) {
+                    fields.put("USER_DN", updated.getUserDN());
+                }
             }
-            if (isFirstWrite(updated.getVersionMap(), stored == null ? null : stored.getVersionMap())) {
-                Map<String,String> versionMap = updated.getVersionMap();
-                if (versionMap != null) {
-                    versionMap.entrySet().stream().forEach(e -> {
-                        fields.put("VERSION." + e.getKey().toUpperCase(), e.getValue());
-                    });
+            if (!ignoredFields.contains("VERSION")) {
+                if (isFirstWrite(updated.getVersionMap(), stored == null ? null : stored.getVersionMap())) {
+                    Map<String,String> versionMap = updated.getVersionMap();
+                    if (versionMap != null) {
+                        versionMap.entrySet().stream().forEach(e -> {
+                            fields.put("VERSION." + e.getKey().toUpperCase(), e.getValue());
+                        });
+                    }
                 }
             }
             if (isChanged(updated.getYieldCount(), stored == null ? -1 : stored.getYieldCount())) {
@@ -407,6 +442,11 @@ public class ContentQueryMetricsIngestHelper extends CSVIngestHelper implements 
                                 fields.put("PAGE_METRICS." + storedPageMetric.getPageNumber(), storedPageMetric.toEventString());
                             }
                         }
+                    }
+                }
+                if (stored.getPlan() != null) {
+                    if (stored.getPlan() != null && isChanged(updated.getPlan(), stored.getPlan())) {
+                        fields.put("PLAN", stored.getPlan());
                     }
                 }
                 if (isChanged(updated.getSeekCount(), stored.getSeekCount())) {

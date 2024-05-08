@@ -48,6 +48,7 @@ public class QueryMetricQueryLogicFactory implements FactoryBean<ShardQueryLogic
         logic.setDateIndexHelperFactory(this.dateIndexHelperFactory);
         logic.setResponseObjectFactory(this.responseObjectFactory);
         logic.setAccumuloPassword(this.queryMetricHandlerProperties.getPassword());
+        logic.setMaxEvaluationPipelines(1); // use SerialIterator
         return logic;
     }
     

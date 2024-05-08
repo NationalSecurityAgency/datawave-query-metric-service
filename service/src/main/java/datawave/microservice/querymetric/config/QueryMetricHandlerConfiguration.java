@@ -8,8 +8,10 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.cache.caffeine.CaffeineCacheManager;
@@ -28,13 +30,15 @@ import com.fasterxml.jackson.module.jaxb.JaxbAnnotationModule;
 import com.github.benmanes.caffeine.cache.CaffeineSpec;
 
 import datawave.marking.MarkingFunctions;
+import datawave.microservice.http.converter.html.BannerProvider;
 import datawave.microservice.querymetric.BaseQueryMetric;
+import datawave.microservice.querymetric.Correlator;
 import datawave.microservice.querymetric.QueryMetricFactory;
 import datawave.microservice.querymetric.QueryMetricFactoryImpl;
 import datawave.microservice.querymetric.QueryMetricOperations;
-import datawave.microservice.querymetric.factory.BaseQueryMetricListResponseFactory;
-import datawave.microservice.querymetric.factory.QueryMetricListResponseFactory;
+import datawave.microservice.querymetric.QueryMetricOperationsStats;
 import datawave.microservice.querymetric.factory.QueryMetricQueryLogicFactory;
+import datawave.microservice.querymetric.factory.QueryMetricResponseFactory;
 import datawave.microservice.querymetric.function.QueryMetricConsumer;
 import datawave.microservice.querymetric.handler.LocalShardTableQueryMetricHandler;
 import datawave.microservice.querymetric.handler.QueryGeometryHandler;
@@ -56,12 +60,15 @@ import datawave.webservice.query.result.event.DefaultResponseObjectFactory;
 import datawave.webservice.query.result.event.ResponseObjectFactory;
 
 @Configuration
-@EnableConfigurationProperties({QueryMetricHandlerProperties.class, TimelyProperties.class})
+@EnableConfigurationProperties({QueryMetricProperties.class, QueryMetricHandlerProperties.class, TimelyProperties.class})
 public class QueryMetricHandlerConfiguration {
     
+    @Value("${spring.application.name}")
+    private String applicationName;
+    
     @Bean
-    public QueryMetricConsumer queryMetricSink(QueryMetricOperations queryMetricOperations) {
-        return new QueryMetricConsumer(queryMetricOperations);
+    public QueryMetricConsumer queryMetricSink(QueryMetricOperations queryMetricOperations, Correlator correlator, QueryMetricOperationsStats stats) {
+        return new QueryMetricConsumer(queryMetricOperations, correlator, stats);
     }
     
     @Bean
@@ -94,14 +101,18 @@ public class QueryMetricHandlerConfiguration {
     public ShardTableQueryMetricHandler shardTableQueryMetricHandler(QueryMetricHandlerProperties queryMetricHandlerProperties,
                     @Qualifier("warehouse") AccumuloClientPool accumuloClientPool, QueryMetricQueryLogicFactory logicFactory, QueryMetricFactory metricFactory,
                     MarkingFunctions markingFunctions, QueryMetricCombiner queryMetricCombiner, LuceneToJexlQueryParser luceneToJexlQueryParser,
-                    WebClient.Builder webClientBuilder, @Autowired(required = false) JWTTokenHandler jwtTokenHandler, DnUtils dnUtils) {
+                    ResponseObjectFactory responseObjectFactory, WebClient.Builder webClientBuilder,
+                    @Autowired(required = false) JWTTokenHandler jwtTokenHandler, DnUtils dnUtils, QueryMetricResponseFactory queryMetricResponseFactory) {
+        ShardTableQueryMetricHandler handler;
         if (queryMetricHandlerProperties.isUseRemoteQuery()) {
-            return new RemoteShardTableQueryMetricHandler(queryMetricHandlerProperties, accumuloClientPool, logicFactory, metricFactory, markingFunctions,
-                            queryMetricCombiner, luceneToJexlQueryParser, webClientBuilder, jwtTokenHandler, dnUtils);
+            handler = new RemoteShardTableQueryMetricHandler(queryMetricHandlerProperties, accumuloClientPool, logicFactory, metricFactory, markingFunctions,
+                            queryMetricCombiner, luceneToJexlQueryParser, responseObjectFactory, webClientBuilder, jwtTokenHandler, dnUtils);
         } else {
-            return new LocalShardTableQueryMetricHandler(queryMetricHandlerProperties, accumuloClientPool, logicFactory, metricFactory, markingFunctions,
+            handler = new LocalShardTableQueryMetricHandler(queryMetricHandlerProperties, accumuloClientPool, logicFactory, metricFactory, markingFunctions,
                             queryMetricCombiner, luceneToJexlQueryParser, dnUtils);
         }
+        handler.setQueryMetricResponseFactory(queryMetricResponseFactory);
+        return handler;
     }
     
     @Bean
@@ -112,13 +123,17 @@ public class QueryMetricHandlerConfiguration {
     
     @Bean
     @ConditionalOnMissingBean
-    public QueryGeometryHandler geometryHandler(QueryMetricHandlerProperties queryMetricHandlerProperties) {
-        return new SimpleQueryGeometryHandler(queryMetricHandlerProperties);
+    public QueryGeometryHandler geometryHandler(QueryMetricHandlerProperties queryMetricHandlerProperties,
+                    QueryMetricResponseFactory queryMetricResponseFactory) {
+        QueryGeometryHandler handler = new SimpleQueryGeometryHandler(queryMetricHandlerProperties);
+        handler.setQueryMetricResponseFactory(queryMetricResponseFactory);
+        return handler;
     }
     
     @Bean
-    public BaseQueryMetricListResponseFactory queryMetricListResponseFactory() {
-        return new QueryMetricListResponseFactory();
+    @ConditionalOnMissingBean
+    public QueryMetricResponseFactory queryMetricResponseFactory(ObjectProvider<BannerProvider> bannerProvider) {
+        return new QueryMetricResponseFactory(bannerProvider.getIfAvailable(), "/" + applicationName);
     }
     
     @Bean

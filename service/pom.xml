@@ -4,7 +4,7 @@
     <parent>
         <groupId>gov.nsa.datawave.microservice</groupId>
         <artifactId>datawave-microservice-service-parent</artifactId>
-        <version>4.0.0</version>
+        <version>4.0.4</version>
         <relativePath>../../../microservice-service-parent/pom.xml</relativePath>
     </parent>
     <artifactId>query-metric-service</artifactId>
@@ -23,16 +23,16 @@
         <version.accumulo-utils>3.0.1</version.accumulo-utils>
         <version.base-rest-responses>3.0.0</version.base-rest-responses>
         <version.cache-api>1.1.1</version.cache-api>
-        <version.datawave>6.0.0</version.datawave>
+        <version.datawave>6.9.3</version.datawave>
         <version.hazelcast-kubernetes>2.2.3</version.hazelcast-kubernetes>
         <version.in-memory-accumulo>3.0.1</version.in-memory-accumulo>
         <version.microservice.accumulo-api>3.0.0</version.microservice.accumulo-api>
         <version.microservice.hazelcast>3.0.0</version.microservice.hazelcast>
-        <version.microservice.query-metric-api>3.0.1-SNAPSHOT</version.microservice.query-metric-api>
+        <version.microservice.query-metric-api>${project.version}</version.microservice.query-metric-api>
         <version.microservice.starter>3.0.0</version.microservice.starter>
         <version.microservice.starter-datawave-query-metric>2.0.0</version.microservice.starter-datawave-query-metric>
         <version.microservice.starter-metadata>2.0.0</version.microservice.starter-metadata>
-        <version.microservice.type-utils>2.0.0</version.microservice.type-utils>
+        <version.microservice.type-utils>2.0.2</version.microservice.type-utils>
         <version.protobuf-java>3.7.1</version.protobuf-java>
         <version.validation-api>2.0.2</version.validation-api>
         <version.webjars.bootstrap>4.3.1</version.webjars.bootstrap>
@@ -381,6 +381,10 @@
             <artifactId>spring-boot-starter-cache</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-thymeleaf</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.webjars</groupId>
             <artifactId>bootstrap</artifactId>
         </dependency>
@@ -404,18 +408,14 @@
     </dependencies>
     <repositories>
         <repository>
-            <!--
-                This repository is a temporary work-around until we can public artifacts to maven central.
-                This allows us to retrieve released microservice artifacts from our github repository.
-            -->
             <releases>
                 <enabled>true</enabled>
             </releases>
             <snapshots>
                 <enabled>false</enabled>
             </snapshots>
-            <id>datawave-github-mvn-repo</id>
-            <url>https://raw.githubusercontent.com/NationalSecurityAgency/datawave/mvn-repo</url>
+            <id>github-datawave</id>
+            <url>https://maven.pkg.github.com/NationalSecurityAgency/datawave</url>
         </repository>
     </repositories>
     <build>

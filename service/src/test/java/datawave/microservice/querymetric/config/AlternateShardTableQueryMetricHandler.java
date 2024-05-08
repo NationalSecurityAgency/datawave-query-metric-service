@@ -1,5 +1,6 @@
 package datawave.microservice.querymetric.config;
 
+import java.util.Collection;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -27,8 +28,8 @@ public class AlternateShardTableQueryMetricHandler extends LocalShardTableQueryM
     }
     
     @Override
-    public ContentQueryMetricsIngestHelper getQueryMetricsIngestHelper(boolean deleteMode) {
-        return new AlternateContentQueryMetricsIngestHelper(deleteMode);
+    public ContentQueryMetricsIngestHelper getQueryMetricsIngestHelper(boolean deleteMode, Collection<String> ignoredFields) {
+        return new AlternateContentQueryMetricsIngestHelper(deleteMode, ignoredFields);
     }
     
     @Override
