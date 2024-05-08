@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.apache.commons.jexl2.parser.JexlNode;
+import org.apache.commons.jexl3.parser.JexlNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,6 +16,7 @@ import datawave.microservice.querymetric.BaseQueryMetric;
 import datawave.microservice.querymetric.QueryGeometry;
 import datawave.microservice.querymetric.QueryGeometryResponse;
 import datawave.microservice.querymetric.config.QueryMetricHandlerProperties;
+import datawave.microservice.querymetric.factory.QueryMetricResponseFactory;
 import datawave.query.jexl.JexlASTHelper;
 import datawave.query.jexl.visitors.GeoFeatureVisitor;
 import datawave.query.language.parser.ParseException;
@@ -32,8 +33,8 @@ public class SimpleQueryGeometryHandler implements QueryGeometryHandler {
     private static final String JEXL = "JEXL";
     
     private LuceneToJexlQueryParser parser = new LuceneToJexlQueryParser();
-    
     private String basemaps;
+    protected QueryMetricResponseFactory queryMetricResponseFactory;
     
     public SimpleQueryGeometryHandler(QueryMetricHandlerProperties queryMetricHandlerProperties) {
         this.basemaps = queryMetricHandlerProperties.getBaseMaps();
@@ -41,7 +42,9 @@ public class SimpleQueryGeometryHandler implements QueryGeometryHandler {
     
     @Override
     public QueryGeometryResponse getQueryGeometryResponse(String id, List<? extends BaseQueryMetric> metrics) {
-        QueryGeometryResponse response = new QueryGeometryResponse(id, basemaps);
+        QueryGeometryResponse response = queryMetricResponseFactory.createGeoResponse();
+        response.setBasemaps(basemaps);
+        response.setQueryId(id);
         
         if (metrics != null) {
             Set<QueryGeometry> queryGeometries = new LinkedHashSet<>();
@@ -86,5 +89,10 @@ public class SimpleQueryGeometryHandler implements QueryGeometryHandler {
             log.trace("Unable to parse the geo features", e);
         }
         return false;
+    }
+    
+    @Override
+    public void setQueryMetricResponseFactory(QueryMetricResponseFactory queryMetricResponseFactory) {
+        this.queryMetricResponseFactory = queryMetricResponseFactory;
     }
 }

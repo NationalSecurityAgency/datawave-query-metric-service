@@ -43,7 +43,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 
@@ -97,6 +96,7 @@ public abstract class ShardTableQueryMetricHandler<T extends BaseQueryMetric> ex
     
     @SuppressWarnings("FieldCanBeLocal")
     protected final String JOB_ID = "job_201109071404_1";
+    protected static final String BLACKLISTED_FIELDS_DEPRECATED = "blacklisted.fields";
     
     protected final Configuration conf = new Configuration();
     protected final StatusReporter reporter = new MockStatusReporter();
@@ -387,7 +387,8 @@ public abstract class ShardTableQueryMetricHandler<T extends BaseQueryMetric> ex
         parameters.put(QueryOptions.INCLUDE_GROUPING_CONTEXT, "true");
         parameters.put(QueryOptions.DATATYPE_FILTER, "querymetrics");
         if (ignoredFields != null && !ignoredFields.isEmpty()) {
-            parameters.put(QueryOptions.BLACKLISTED_FIELDS, StringUtils.join(ignoredFields, ","));
+            parameters.put(BLACKLISTED_FIELDS_DEPRECATED, StringUtils.join(ignoredFields, ","));
+            parameters.put(QueryOptions.DISALLOWLISTED_FIELDS, StringUtils.join(ignoredFields, ","));
         }
         queryImpl.setParameters(parameters);
         return getQueryMetrics(queryImpl);
@@ -763,7 +764,7 @@ public abstract class ShardTableQueryMetricHandler<T extends BaseQueryMetric> ex
     
     @Override
     public QueryMetricsSummaryResponse getQueryMetricsSummary(Date begin, Date end, DatawaveUserDetails currentUser, boolean onlyCurrentUser) {
-        QueryMetricsSummaryResponse response = new QueryMetricsSummaryResponse();
+        QueryMetricsSummaryResponse response = createSummaryResponse();
         try {
             // this method is open to any user
             DatawaveUser datawaveUser = currentUser.getPrimaryUser();
