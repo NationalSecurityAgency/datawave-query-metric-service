@@ -10,5 +10,5 @@ public interface QueryGeometryHandler {
     
     QueryGeometryResponse getQueryGeometryResponse(String id, List<? extends BaseQueryMetric> queries);
     
-    void setQueryetricResponseFactory(QueryMetricResponseFactory queryMetricResponseFactory);
+    void setQueryMetricResponseFactory(QueryMetricResponseFactory queryMetricResponseFactory);
 }

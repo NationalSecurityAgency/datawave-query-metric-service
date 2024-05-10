@@ -33,7 +33,7 @@ public class SimpleQueryGeometryHandlerTest {
     @BeforeEach
     public void setup() {
         handler = new SimpleQueryGeometryHandler(new QueryMetricHandlerProperties());
-        handler.setQueryetricResponseFactory(new QueryMetricResponseFactory(null, null));
+        handler.setQueryMetricResponseFactory(new QueryMetricResponseFactory(null, null));
         commonId = "super-special-query-id";
         
         luceneParams = new HashSet<>();
