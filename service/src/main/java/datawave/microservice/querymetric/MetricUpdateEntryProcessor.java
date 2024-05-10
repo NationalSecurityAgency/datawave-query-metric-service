@@ -38,14 +38,12 @@ public class MetricUpdateEntryProcessor implements EntryProcessor<String,QueryMe
             // these values are added incrementally in a distributed update. Because we can not be sure
             // exactly when the incomingQueryMetricCache value is stored, it would otherwise be possible
             // for updates to be included twice. These values are reset after being used in the AccumuloMapStore
-            updatedHolder.addValue("sourceCount", updatedMetric.getSourceCount());
-            updatedHolder.addValue("nextCount", updatedMetric.getNextCount());
-            updatedHolder.addValue("seekCount", updatedMetric.getSeekCount());
-            updatedHolder.addValue("evaluatedCount", updatedMetric.getEvaluatedCount());
-            updatedHolder.addValue("rejectedCount", updatedMetric.getRejectedCount());
-            updatedHolder.addValue("yieldCount", updatedMetric.getYieldCount());
-            updatedHolder.addValue("docRanges", updatedMetric.getDocRanges());
-            updatedHolder.addValue("fiRanges", updatedMetric.getFiRanges());
+            storedHolder.addValue("sourceCount", updatedMetric.getSourceCount());
+            storedHolder.addValue("nextCount", updatedMetric.getNextCount());
+            storedHolder.addValue("seekCount", updatedMetric.getSeekCount());
+            storedHolder.addValue("yieldCount", updatedMetric.getYieldCount());
+            storedHolder.addValue("docRanges", updatedMetric.getDocRanges());
+            storedHolder.addValue("fiRanges", updatedMetric.getFiRanges());
         }
         entry.setValue(storedHolder);
         return Long.valueOf(System.currentTimeMillis() - start);
