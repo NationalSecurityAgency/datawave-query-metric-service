@@ -126,7 +126,7 @@ public class QueryMetricHandlerConfiguration {
     public QueryGeometryHandler geometryHandler(QueryMetricHandlerProperties queryMetricHandlerProperties,
                     QueryMetricResponseFactory queryMetricResponseFactory) {
         QueryGeometryHandler handler = new SimpleQueryGeometryHandler(queryMetricHandlerProperties);
-        handler.setQueryetricResponseFactory(queryMetricResponseFactory);
+        handler.setQueryMetricResponseFactory(queryMetricResponseFactory);
         return handler;
     }
     
