@@ -92,7 +92,7 @@ public class SimpleQueryGeometryHandler implements QueryGeometryHandler {
     }
     
     @Override
-    public void setQueryetricResponseFactory(QueryMetricResponseFactory queryMetricResponseFactory) {
+    public void setQueryMetricResponseFactory(QueryMetricResponseFactory queryMetricResponseFactory) {
         this.queryMetricResponseFactory = queryMetricResponseFactory;
     }
 }
