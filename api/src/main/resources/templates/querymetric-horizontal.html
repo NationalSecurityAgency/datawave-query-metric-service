@@ -78,7 +78,7 @@
                 <td th:text="${metric.queryType}"></td>
                 <td th:text="${metric.queryLogic}"></td>
                 <!--/* Note the HTML for the Query and Query Plan are set later... See scripts at end of this tr element */-->
-                <td th:id="query + ${metricIter.index + 1}" th:style="${metric.queryStyle}"></td>
+                <td th:id="query + ${metricIter.index + 1}" style="white-space: pre; word-wrap: break-word;"></td>
                 <td th:id="query-plan + ${metricIter.index + 1}" style="white-space: pre; word-wrap: break-word;"></td>
                 <td th:text="${metric.queryName}"></td>
                 <td style="min-width:125px !important;" th:text="${metric.beginDateStr}"></td>
@@ -105,8 +105,8 @@
                 <td th:text="${metric.totalBytesSentStr}"></td>
                 <td th:text="${metric.lifecycle}"></td>
                 <td th:text="${metric.elapsedTimeStr}"></td>
-                <td style="word-wrap: break-word;" th:text="${metric.errorCode}"></td>
-                <td style="word-wrap: break-word;" th:text="${metric.errorMessage}"></td>
+                <td style="overflow-wrap: anywhere;" th:text="${metric.errorCode}"></td>
+                <td style="overflow-wrap: anywhere;" th:text="${metric.errorMessage}"></td>
 
                 <!--/*
                     Makes the metric's query and the metric's query plan interactive (highlight matching parens on mouse over, clicking a paren brings
