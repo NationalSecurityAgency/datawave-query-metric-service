@@ -2,6 +2,7 @@ package datawave.microservice.querymetric;
 
 import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -54,7 +55,7 @@ public class QueryMetricModel extends QueryMetric implements QueryMetricModelFor
     }
     
     public String getQueryStyle() {
-        return isJexlQuery(parameters) ? "white-space: pre; word-wrap: break-word;" : "word-wrap: break-word;";
+        return isJexlQuery(parameters) ? "white-space:pre-wrap; overflow-wrap:anywhere;" : "overflow-wrap:anywhere;";
     }
     
     public String getParametersStr() {
@@ -62,7 +63,12 @@ public class QueryMetricModel extends QueryMetric implements QueryMetricModelFor
     }
     
     public String getQueryAuthorizationsStr() {
-        return getQueryAuthorizations() == null ? "" : getQueryAuthorizations().replaceAll(",", " ");
+        String queryAuthorizations = getQueryAuthorizations();
+        if (queryAuthorizations == null) {
+            return "";
+        } else {
+            return Arrays.stream(queryAuthorizations.split(",")).sorted().collect(Collectors.joining(" "));
+        }
     }
     
     public String getPredictionsStr() {

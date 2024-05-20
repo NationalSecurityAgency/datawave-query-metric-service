@@ -24,8 +24,6 @@ public interface QueryMetricModelFormat {
     
     String getProxyServersStr();
     
-    String getQueryStyle();
-    
     String getParametersStr();
     
     String getQueryAuthorizationsStr();

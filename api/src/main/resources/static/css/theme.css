@@ -109,10 +109,18 @@
     color: #7D4F50;
 }
 
-table.metric tr td:first-child {
+/* Formatting for the field names in the vertical display */
+table.metric-vertical tr td:first-child {
     font-size: 11pt;
     font-weight: bold;
     color: #333333;
     text-align: left;
-    vertical-align: center;
+    vertical-align: text-top;
+    width: 300px;
+}
+
+/* Formatting for all TDs (not the THs) in the horizontal display to align to the top and left */
+table.metric-horizontal tr td {
+    text-align: left;
+    vertical-align: text-top;
 }
