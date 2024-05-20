@@ -8,7 +8,7 @@ import org.slf4j.LoggerFactory;
 
 import datawave.accumulo.inmemory.InMemoryAccumuloClient;
 import datawave.accumulo.inmemory.InMemoryInstance;
-import datawave.webservice.common.connection.AccumuloClientPoolFactory;
+import datawave.core.common.connection.AccumuloClientPoolFactory;
 import datawave.webservice.common.connection.WrappedAccumuloClient;
 
 /*

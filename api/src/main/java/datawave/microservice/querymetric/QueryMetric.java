@@ -24,8 +24,8 @@ import org.apache.commons.lang3.time.DateUtils;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.google.common.collect.Lists;
 
-import datawave.webservice.query.Query;
-import datawave.webservice.query.QueryImpl.Parameter;
+import datawave.microservice.query.Query;
+import datawave.microservice.query.QueryImpl.Parameter;
 import datawave.webservice.query.result.event.HasMarkings;
 import io.protostuff.Input;
 import io.protostuff.Message;

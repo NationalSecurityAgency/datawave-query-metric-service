@@ -27,7 +27,7 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import datawave.webservice.common.connection.AccumuloClientPool;
+import datawave.core.common.connection.AccumuloClientPool;
 
 public class AccumuloRecordWriter extends RecordWriter<Text,Mutation> {
     private MultiTableBatchWriter mtbw = null;
