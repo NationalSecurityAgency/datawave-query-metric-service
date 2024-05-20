@@ -4,11 +4,11 @@
     <parent>
         <groupId>gov.nsa.datawave.microservice</groupId>
         <artifactId>datawave-microservice-service-parent</artifactId>
-        <version>5.0.0-SNAPSHOT</version>
+        <version>5.0.0</version>
         <relativePath>../../../microservice-service-parent/pom.xml</relativePath>
     </parent>
     <artifactId>query-metric-service</artifactId>
-    <version>4.0.0-SNAPSHOT</version>
+    <version>4.0.0</version>
     <description>DATAWAVE Query Metric Microservice</description>
     <url>https://code.nsa.gov/datawave-query-metric-service</url>
     <scm>
@@ -20,19 +20,19 @@
     <properties>
         <spotbugs.excludes.file>${basedir}/spotbugs-exclude.xml</spotbugs.excludes.file>
         <start-class>datawave.microservice.querymetric.QueryMetricService</start-class>
-        <version.accumulo-utils>4.0.0-SNAPSHOT</version.accumulo-utils>
-        <version.base-rest-responses>4.0.0-SNAPSHOT</version.base-rest-responses>
+        <version.accumulo-utils>4.0.0</version.accumulo-utils>
+        <version.base-rest-responses>4.0.0</version.base-rest-responses>
         <version.cache-api>1.1.1</version.cache-api>
-        <version.datawave>7.0.0-SNAPSHOT</version.datawave>
+        <version.datawave>7.0.0</version.datawave>
         <version.hazelcast-kubernetes>2.2.3</version.hazelcast-kubernetes>
-        <version.in-memory-accumulo>4.0.0-SNAPSHOT</version.in-memory-accumulo>
-        <version.microservice.accumulo-api>4.0.0-SNAPSHOT</version.microservice.accumulo-api>
-        <version.microservice.hazelcast>4.0.0-SNAPSHOT</version.microservice.hazelcast>
-        <version.microservice.query-metric-api>4.0.0-SNAPSHOT</version.microservice.query-metric-api>
-        <version.microservice.starter>4.0.0-SNAPSHOT</version.microservice.starter>
-        <version.microservice.starter-datawave-query-metric>3.0.0-SNAPSHOT</version.microservice.starter-datawave-query-metric>
-        <version.microservice.starter-metadata>3.0.0-SNAPSHOT</version.microservice.starter-metadata>
-        <version.microservice.type-utils>3.0.0-SNAPSHOT</version.microservice.type-utils>
+        <version.in-memory-accumulo>4.0.0</version.in-memory-accumulo>
+        <version.microservice.accumulo-api>4.0.0</version.microservice.accumulo-api>
+        <version.microservice.hazelcast>4.0.0</version.microservice.hazelcast>
+        <version.microservice.query-metric-api>4.0.0</version.microservice.query-metric-api>
+        <version.microservice.starter>4.0.0</version.microservice.starter>
+        <version.microservice.starter-datawave-query-metric>3.0.0</version.microservice.starter-datawave-query-metric>
+        <version.microservice.starter-metadata>3.0.0</version.microservice.starter-metadata>
+        <version.microservice.type-utils>3.0.0</version.microservice.type-utils>
         <version.protobuf-java>3.7.1</version.protobuf-java>
         <version.validation-api>2.0.2</version.validation-api>
         <version.webjars.bootstrap>4.3.1</version.webjars.bootstrap>
