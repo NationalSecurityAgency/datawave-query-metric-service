@@ -2,6 +2,7 @@ package datawave.microservice.querymetric.config;
 
 import java.nio.charset.Charset;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -15,7 +16,6 @@ import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.Positive;
 
-import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
@@ -76,9 +76,9 @@ public class QueryMetricHandlerProperties {
     
     protected boolean useRemoteQuery = true;
     protected long remoteAuthTimeout = 1L;
-    protected TimeUnit remoteAuthTimeUnit = TimeUnit.MINUTES;
+    protected TimeUnit remoteAuthTimeoutUnit = TimeUnit.MINUTES;
     protected long remoteQueryTimeout = 1L;
-    protected TimeUnit remoteQueryTimeUnit = TimeUnit.MINUTES;
+    protected TimeUnit remoteQueryTimeoutUnit = TimeUnit.MINUTES;
     
     protected String npeOuEntries;
     protected String subjectDnPattern;
@@ -169,7 +169,7 @@ public class QueryMetricHandlerProperties {
         p.put("AccumuloRecordWriter.instanceName", instanceName);
         p.put("AccumuloRecordWriter.username", username);
         // encode the password because that's how the AccumuloRecordWriter expects it
-        byte[] encodedPassword = Base64.encodeBase64(password.getBytes(Charset.forName("UTF-8")));
+        byte[] encodedPassword = Base64.getEncoder().encode(password.getBytes(Charset.forName("UTF-8")));
         p.put("AccumuloRecordWriter.password", new String(encodedPassword, Charset.forName("UTF-8")));
         p.put("AccumuloRecordWriter.createtables", Boolean.toString(createTables));
         p.put(shardTableName + ".table.config.class", ShardTableConfigHelper.class.getCanonicalName());
@@ -523,19 +523,19 @@ public class QueryMetricHandlerProperties {
     }
     
     public long getRemoteAuthTimeoutMillis() {
-        return remoteAuthTimeUnit.toMillis(remoteAuthTimeout);
+        return remoteAuthTimeoutUnit.toMillis(remoteAuthTimeout);
     }
     
     public void setRemoteAuthTimeout(long remoteAuthTimeout) {
         this.remoteAuthTimeout = remoteAuthTimeout;
     }
     
-    public TimeUnit getRemoteAuthTimeUnit() {
-        return remoteAuthTimeUnit;
+    public TimeUnit getRemoteAuthTimeoutUnit() {
+        return remoteAuthTimeoutUnit;
     }
     
-    public void setRemoteAuthTimeUnit(TimeUnit remoteAuthTimeUnit) {
-        this.remoteAuthTimeUnit = remoteAuthTimeUnit;
+    public void setRemoteAuthTimeoutUnit(TimeUnit remoteAuthTimeoutUnit) {
+        this.remoteAuthTimeoutUnit = remoteAuthTimeoutUnit;
     }
     
     public long getRemoteQueryTimeout() {
@@ -543,19 +543,19 @@ public class QueryMetricHandlerProperties {
     }
     
     public long getRemoteQueryTimeoutMillis() {
-        return remoteQueryTimeUnit.toMillis(remoteQueryTimeout);
+        return remoteQueryTimeoutUnit.toMillis(remoteQueryTimeout);
     }
     
     public void setRemoteQueryTimeout(long remoteQueryTimeout) {
         this.remoteQueryTimeout = remoteQueryTimeout;
     }
     
-    public TimeUnit getRemoteQueryTimeUnit() {
-        return remoteQueryTimeUnit;
+    public TimeUnit getRemoteQueryTimeoutUnit() {
+        return remoteQueryTimeoutUnit;
     }
     
-    public void setRemoteQueryTimeUnit(TimeUnit remoteQueryTimeUnit) {
-        this.remoteQueryTimeUnit = remoteQueryTimeUnit;
+    public void setRemoteQueryTimeoutUnit(TimeUnit remoteQueryTimeoutUnit) {
+        this.remoteQueryTimeoutUnit = remoteQueryTimeoutUnit;
     }
     
     public String getNpeOuEntries() {

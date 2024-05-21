@@ -63,6 +63,7 @@ import com.hazelcast.config.MapStoreConfig;
 import com.hazelcast.map.IMap;
 import com.hazelcast.spring.cache.HazelcastCacheManager;
 
+import datawave.core.common.connection.AccumuloClientPool;
 import datawave.ingest.protobuf.Uid;
 import datawave.marking.MarkingFunctions;
 import datawave.microservice.authorization.preauth.ProxiedEntityX509Filter;
@@ -77,7 +78,6 @@ import datawave.microservice.security.util.DnUtils;
 import datawave.security.authorization.DatawaveUser;
 import datawave.security.authorization.JWTTokenHandler;
 import datawave.security.authorization.SubjectIssuerDNPair;
-import datawave.webservice.common.connection.AccumuloClientPool;
 import datawave.webservice.query.result.event.DefaultEvent;
 import datawave.webservice.query.result.event.DefaultField;
 import datawave.webservice.query.result.event.EventBase;
@@ -389,7 +389,7 @@ public class QueryMetricTestBase {
             }
             assertTrue(assertObjectsEqual(m1.getQueryId(), m2.getQueryId()), message + "queryId");
             assertTrue(assertObjectsEqual(m1.getQueryType(), m2.getQueryType()), message + "queryType");
-            assertTrue(assertObjectsEqual(m1.getQueryAuthorizations(), m2.getQueryAuthorizations()), message + "queryAuthorizatio1ns");
+            assertTrue(assertObjectsEqual(m1.getQueryAuthorizations(), m2.getQueryAuthorizations()), message + "queryAuthorizations");
             assertTrue(assertObjectsEqual(m1.getColumnVisibility(), m2.getColumnVisibility()), message + "columnVisibility");
             assertEquals(m1.getMarkings(), m2.getMarkings(), message + "markings");
             assertTrue(assertObjectsEqual(m1.getBeginDate(), m2.getBeginDate()), message + "beginDate");
