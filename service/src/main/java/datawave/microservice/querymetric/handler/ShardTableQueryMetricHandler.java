@@ -507,6 +507,15 @@ public abstract class ShardTableQueryMetricHandler<T extends BaseQueryMetric> ex
                         m.setErrorCode(fieldValue);
                     } else if (fieldName.equals("ERROR_MESSAGE")) {
                         m.setErrorMessage(fieldValue);
+                    } else if (fieldName.equals("EVALUATED_COUNT")) {
+                        try {
+                            long l = Long.parseLong(fieldValue);
+                            if (l > m.getEvaluatedCount()) {
+                                m.setEvaluatedCount(l);
+                            }
+                        } catch (Exception e) {
+                            log.error(fieldName + ":" + fieldValue + ":" + e.getMessage());
+                        }
                     } else if (fieldName.equals("FI_RANGES")) {
                         try {
                             long l = Long.parseLong(fieldValue);
@@ -615,6 +624,15 @@ public abstract class ShardTableQueryMetricHandler<T extends BaseQueryMetric> ex
                         m.setQueryName(fieldValue);
                     } else if (fieldName.equals("QUERY_TYPE")) {
                         m.setQueryType(fieldValue);
+                    } else if (fieldName.equals("REJECTED_COUNT")) {
+                        try {
+                            long l = Long.parseLong(fieldValue);
+                            if (l > m.getRejectedCount()) {
+                                m.setRejectedCount(l);
+                            }
+                        } catch (Exception e) {
+                            log.error(fieldName + ":" + fieldValue + ":" + e.getMessage());
+                        }
                     } else if (fieldName.equals("SEEK_COUNT")) {
                         try {
                             long l = Long.parseLong(fieldValue);
