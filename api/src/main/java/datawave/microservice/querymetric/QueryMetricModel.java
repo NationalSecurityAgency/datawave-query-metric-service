@@ -117,6 +117,11 @@ public class QueryMetricModel extends QueryMetric implements QueryMetricModelFor
         return versionMap.entrySet().stream().map(e -> e.getKey() + "=" + e.getValue()).collect(Collectors.joining("<br/>"));
     }
     
+    // will most likely have to do something like the iteration that predictions uses
+    public String getSubPlanStr() {
+        return nf.format(sourceCount);
+    }
+    
     public String getTotalPageTimeStr() {
         return nf.format(totalPageTime);
     }

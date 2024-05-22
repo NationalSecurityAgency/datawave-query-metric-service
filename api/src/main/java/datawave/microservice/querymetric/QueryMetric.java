@@ -110,6 +110,10 @@ public class QueryMetric extends BaseQueryMetric implements Serializable, Messag
                 this.predictions.add(p.duplicate());
             }
         }
+        if (other.subPlans != null) {
+            this.subPlans = new HashMap<>();
+            this.subPlans.putAll(other.subPlans);
+        }
     }
     
     @Override
@@ -140,8 +144,9 @@ public class QueryMetric extends BaseQueryMetric implements Serializable, Messag
                         .append(this.getHost()).append(this.getPageTimes()).append(this.getProxyServers()).append(this.getLifecycle())
                         .append(this.getErrorMessage()).append(this.getCreateCallTime()).append(this.getErrorCode()).append(this.getQueryName())
                         .append(this.getParameters()).append(this.getSourceCount()).append(this.getNextCount()).append(this.getSeekCount())
-                        .append(this.getYieldCount()).append(this.getDocRanges()).append(this.getFiRanges()).append(this.getPlan()).append(this.getLoginTime())
-                        .append(this.getPredictions()).append(this.getMarkings()).append(this.getNumUpdates()).append(this.getVersionMap()).toHashCode();
+                        .append(this.getYieldCount()).append(this.getDocRanges()).append(this.getFiRanges()).append(this.getPlan()).append(this.getSubPlans())
+                        .append(this.getLoginTime()).append(this.getPredictions()).append(this.getMarkings()).append(this.getNumUpdates())
+                        .append(this.getVersionMap()).toHashCode();
     }
     
     @Override
@@ -168,9 +173,9 @@ public class QueryMetric extends BaseQueryMetric implements Serializable, Messag
                             .append(this.getNextCount(), other.getNextCount()).append(this.getSeekCount(), other.getSeekCount())
                             .append(this.getYieldCount(), other.getYieldCount()).append(this.getDocRanges(), other.getDocRanges())
                             .append(this.getFiRanges(), other.getFiRanges()).append(this.getPlan(), other.getPlan())
-                            .append(this.getLoginTime(), other.getLoginTime()).append(this.getPredictions(), other.getPredictions())
-                            .append(this.getMarkings(), other.getMarkings()).append(this.getNumUpdates(), other.getNumUpdates())
-                            .append(this.getVersionMap(), other.getVersionMap()).isEquals();
+                            .append(this.getSubPlans(), other.getSubPlans()).append(this.getLoginTime(), other.getLoginTime())
+                            .append(this.getPredictions(), other.getPredictions()).append(this.getMarkings(), other.getMarkings())
+                            .append(this.getNumUpdates(), other.getNumUpdates()).append(this.getVersionMap(), other.getVersionMap()).isEquals();
         } else {
             return false;
         }
@@ -186,6 +191,7 @@ public class QueryMetric extends BaseQueryMetric implements Serializable, Messag
         buf.append(" QueryId: ").append(queryId);
         buf.append(" Query: ").append(query);
         buf.append(" Query Plan: ").append(this.getPlan());
+        buf.append(" Query SubPlan: ").append(this.getSubPlans());
         buf.append(" Query Type: ").append(queryType);
         buf.append(" Query Logic: ").append(queryLogic);
         buf.append(" Query Name: ").append(queryName);
@@ -403,6 +409,11 @@ public class QueryMetric extends BaseQueryMetric implements Serializable, Messag
                     output.writeString(38, StringUtils.join(Arrays.asList(entry.getKey(), entry.getValue()), "\0"), true);
                 }
             }
+            if (message.subPlans != null) {
+                for (Map.Entry<String,RangeCounts> entry : message.subPlans.entrySet()) {
+                    output.writeString(39, StringUtils.join(Arrays.asList(entry.getKey(), StringUtils.join(entry.getValue(), ",")), "\0"), true);
+                }
+            }
         }
         
         public void mergeFrom(Input input, QueryMetric message) throws IOException {
@@ -551,6 +562,26 @@ public class QueryMetric extends BaseQueryMetric implements Serializable, Messag
                             message.versionMap.put(split[0], split[1]);
                         }
                         break;
+                    case 39:
+                        if (message.subPlans == null) {
+                            message.subPlans = new TreeMap<>();
+                        }
+                        String encodedPlans = input.readString();
+                        String[] splitPlans = StringUtils.split(encodedPlans, "\0");
+                        if (splitPlans.length == 2) {
+                            RangeCounts rangeCounts = new RangeCounts();
+                            int index = 0;
+                            for (String count : StringUtils.split(splitPlans[1], ",")) {
+                                if (index == 0) {
+                                    rangeCounts.setDocumentRangeCount(Integer.parseInt(count));
+                                } else if (index == 1) {
+                                    rangeCounts.setShardRangeCount(Integer.parseInt(count));
+                                }
+                                index++;
+                            }
+                            message.subPlans.put(splitPlans[0], rangeCounts);
+                        }
+                        break;
                     default:
                         input.handleUnknownField(number, this);
                         break;
@@ -637,6 +668,8 @@ public class QueryMetric extends BaseQueryMetric implements Serializable, Messag
                     return "version";
                 case 38:
                     return "versionMap";
+                case 39:
+                    return "subPlans";
                 default:
                     return null;
             }
@@ -688,6 +721,7 @@ public class QueryMetric extends BaseQueryMetric implements Serializable, Messag
             fieldMap.put("predictions", 36);
             fieldMap.put("version", 37);
             fieldMap.put("versionMap", 38);
+            fieldMap.put("subPlans", 39);
         }
     };
     

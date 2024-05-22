@@ -2,8 +2,11 @@ package datawave.microservice.querymetric.handler;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 
 import org.apache.commons.lang.StringUtils;
@@ -13,6 +16,7 @@ import org.slf4j.LoggerFactory;
 import datawave.microservice.querymetric.BaseQueryMetric;
 import datawave.microservice.querymetric.BaseQueryMetric.PageMetric;
 import datawave.microservice.querymetric.QueryMetricType;
+import datawave.microservice.querymetric.RangeCounts;
 
 public class QueryMetricCombiner<T extends BaseQueryMetric> implements Serializable {
     
@@ -193,6 +197,33 @@ public class QueryMetricCombiner<T extends BaseQueryMetric> implements Serializa
                 combinedMetric.setDocRanges(updatedQueryMetric.getDocRanges());
                 combinedMetric.setFiRanges(updatedQueryMetric.getFiRanges());
             }
+            Map<String,RangeCounts> newPlanMap = new HashMap<>();
+            Map<String,RangeCounts> storedSubPlans = new HashMap<>();
+            Map<String,RangeCounts> updatedSubPlans = new HashMap<>();
+            if (combinedMetric.getSubPlans() != null) {
+                storedSubPlans.putAll(combinedMetric.getSubPlans());
+            }
+            if (updatedQueryMetric.getSubPlans() != null) {
+                updatedSubPlans.putAll(updatedQueryMetric.getSubPlans());
+            }
+            Set<String> allSubPlanKeys = new HashSet<>();
+            allSubPlanKeys.addAll(storedSubPlans.keySet());
+            allSubPlanKeys.addAll(updatedSubPlans.keySet());
+            for (String subplan : allSubPlanKeys) {
+                RangeCounts defaultRangeCount = new RangeCounts();
+                RangeCounts storedCounts = storedSubPlans.getOrDefault(subplan, defaultRangeCount);
+                RangeCounts updatedCounts = updatedSubPlans.getOrDefault(subplan, defaultRangeCount);
+                
+                long documentCount = Math.max(storedCounts.getDocumentRangeCount(), updatedCounts.getDocumentRangeCount());
+                long shardCount = Math.max(storedCounts.getShardRangeCount(), updatedCounts.getShardRangeCount());
+                
+                RangeCounts newCounts = new RangeCounts();
+                newCounts.setDocumentRangeCount(documentCount);
+                newCounts.setShardRangeCount(shardCount);
+                
+                newPlanMap.put(subplan, newCounts);
+            }
+            combinedMetric.setSubPlans(newPlanMap);
             // update if the update is in-order and the value changed
             if (inOrderUpdate && isChanged(updatedQueryMetric.getPlan(), combinedMetric.getPlan())) {
                 combinedMetric.setPlan(updatedQueryMetric.getPlan());

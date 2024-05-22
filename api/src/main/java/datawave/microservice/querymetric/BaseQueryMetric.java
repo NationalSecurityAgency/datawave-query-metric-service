@@ -683,6 +683,9 @@ public abstract class BaseQueryMetric implements HasMarkings, Serializable {
     @XmlElementWrapper(name = "predictions")
     @XmlElement(name = "prediction")
     protected Set<Prediction> predictions = new HashSet<>();
+    @XmlElement(name = "subPlans")
+    @XmlJavaTypeAdapter(StringIntegerListMapAdapter.class)
+    protected Map<String,RangeCounts> subPlans = new HashMap<>();
     
     public static final String DATAWAVE = "DATAWAVE";
     protected static final Map<String,String> discoveredVersionMap = BaseQueryMetric.getVersionsFromClasspath();
@@ -731,6 +734,28 @@ public abstract class BaseQueryMetric implements HasMarkings, Serializable {
     
     public String getPlan() {
         return plan;
+    }
+    
+    public void addSubPlan(String plan, RangeCounts rangeCounts) {
+        synchronized (this.subPlans) {
+            if (subPlans.containsKey(plan)) {
+                RangeCounts combinedCounts = new RangeCounts();
+                RangeCounts currentCounts = subPlans.get(plan);
+                combinedCounts.setDocumentRangeCount(currentCounts.getDocumentRangeCount() + rangeCounts.getDocumentRangeCount());
+                combinedCounts.setShardRangeCount(currentCounts.getShardRangeCount() + rangeCounts.getShardRangeCount());
+                subPlans.put(plan, combinedCounts);
+            } else {
+                subPlans.put(plan, rangeCounts);
+            }
+        }
+    }
+    
+    public Map<String,RangeCounts> getSubPlans() {
+        return subPlans;
+    }
+    
+    public void setSubPlans(Map<String,RangeCounts> subPlans) {
+        this.subPlans = subPlans;
     }
     
     public String getHost() {

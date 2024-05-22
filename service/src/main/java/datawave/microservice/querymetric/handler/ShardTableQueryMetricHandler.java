@@ -67,6 +67,7 @@ import datawave.microservice.querymetric.BaseQueryMetric.Prediction;
 import datawave.microservice.querymetric.QueryMetricFactory;
 import datawave.microservice.querymetric.QueryMetricType;
 import datawave.microservice.querymetric.QueryMetricsSummaryResponse;
+import datawave.microservice.querymetric.RangeCounts;
 import datawave.microservice.querymetric.config.QueryMetricHandlerProperties;
 import datawave.microservice.querymetric.factory.QueryMetricQueryLogicFactory;
 import datawave.microservice.security.util.DnUtils;
@@ -460,6 +461,7 @@ public abstract class ShardTableQueryMetricHandler<T extends BaseQueryMetric> ex
             List<FieldBase> field = event.getFields();
             m.setMarkings(event.getMarkings());
             TreeMap<Long,PageMetric> pageMetrics = Maps.newTreeMap();
+            Map<String,RangeCounts> subPlans = new HashMap<>();
             
             boolean createDateSet = false;
             for (FieldBase f : field) {
@@ -634,6 +636,13 @@ public abstract class ShardTableQueryMetricHandler<T extends BaseQueryMetric> ex
                         } catch (Exception e) {
                             log.error(fieldName + ":" + fieldValue + ":" + e.getMessage());
                         }
+                    } else if (fieldName.equals("SUBPLAN")) {
+                        if (fieldValue != null) {
+                            String[] arr = fieldValue.split(" : ", 2);
+                            if (arr.length == 2) {
+                                subPlans.put(arr[0], getRangeCounts(arr[1]));
+                            }
+                        }
                     } else if (fieldName.equals("USER")) {
                         m.setUser(fieldValue);
                     } else if (fieldName.equals("USER_DN")) {
@@ -663,11 +672,26 @@ public abstract class ShardTableQueryMetricHandler<T extends BaseQueryMetric> ex
                     
                 }
             }
+            m.setSubPlans(subPlans);
             m.setPageTimes(new ArrayList<>(pageMetrics.values()));
             return m;
         } catch (RuntimeException e) {
             return null;
         }
+    }
+    
+    private static RangeCounts getRangeCounts(String s) {
+        RangeCounts ranges = new RangeCounts();
+        int index = 0;
+        for (String count : StringUtils.split(s, ",")) {
+            if (index == 0) {
+                ranges.setDocumentRangeCount(Integer.parseInt(count));
+            } else if (index == 1) {
+                ranges.setShardRangeCount(Integer.parseInt(count));
+            }
+            index++;
+        }
+        return ranges;
     }
     
     protected void createAndConfigureTablesIfNecessary(String[] tableNames, AccumuloClient accumuloClient, Configuration conf)

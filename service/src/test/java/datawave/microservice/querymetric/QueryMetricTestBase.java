@@ -245,11 +245,23 @@ public class QueryMetricTestBase {
         addStringField(fields, "USER_DN", metric.getColumnVisibility(), createTime, metric.getUserDN());
         addPredictionField(fields, metric.getColumnVisibility(), createTime, metric.getPredictions());
         addStringField(fields, "PLAN", metric.getColumnVisibility(), createTime, metric.getPlan());
+        addSubPlanField(fields, metric.getColumnVisibility(), createTime, metric.getSubPlans());
         addPageMetricsField(fields, metric.getColumnVisibility(), createTime, metric.getPageTimes());
         
         event.setFields(fields);
         
         return event;
+    }
+    
+    protected void addSubPlanField(List<DefaultField> fields, String columnVisibility, long timestamp, Map<String,RangeCounts> subplan) {
+        if (subplan != null) {
+            for (Map.Entry<String,RangeCounts> subp : subplan.entrySet()) {
+                if (subp != null) {
+                    addStringField(fields, "SUBPLAN", columnVisibility, timestamp, String.join(":", subp.getKey(),
+                                    "[" + subp.getValue().getDocumentRangeCount() + "," + subp.getValue().getShardRangeCount() + "]"));
+                }
+            }
+        }
     }
     
     protected void addPageMetricsField(List<DefaultField> fields, String columnVisibility, long timestamp, List<BaseQueryMetric.PageMetric> pageMetrics) {
@@ -416,6 +428,7 @@ public class QueryMetricTestBase {
             assertEquals(m1.getDocRanges(), m2.getDocRanges(), message + "docRanges");
             assertEquals(m1.getFiRanges(), m2.getFiRanges(), message + "fiRanges");
             assertTrue(assertObjectsEqual(m1.getPlan(), m2.getPlan()), message + "plan");
+            assertTrue(assertObjectsEqual(m1.getSubPlans(), m2.getSubPlans()), message + "subPlans");
             assertEquals(m1.getLoginTime(), m2.getLoginTime(), message + "loginTime");
             assertTrue(assertObjectsEqual(m1.getPredictions(), m2.getPredictions()), message + "predictions");
             assertEquals(m1.getVersionMap(), m2.getVersionMap(), message + "versionMap");
