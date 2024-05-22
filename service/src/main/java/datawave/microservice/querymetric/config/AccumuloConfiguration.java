@@ -8,11 +8,11 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Lazy;
 
+import datawave.core.common.connection.AccumuloClientPool;
+import datawave.core.common.connection.AccumuloClientPoolFactory;
 import datawave.microservice.config.accumulo.AccumuloProperties;
 import datawave.microservice.config.cluster.ClusterProperties;
 import datawave.microservice.querymetric.factory.WrappedAccumuloClientPoolFactory;
-import datawave.webservice.common.connection.AccumuloClientPool;
-import datawave.webservice.common.connection.AccumuloClientPoolFactory;
 
 @Configuration
 @EnableConfigurationProperties({AccumuloConfiguration.WarehouseClusterProperties.class})

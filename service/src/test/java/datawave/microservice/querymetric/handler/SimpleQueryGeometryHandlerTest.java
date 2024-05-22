@@ -12,12 +12,12 @@ import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import datawave.microservice.query.QueryImpl;
 import datawave.microservice.querymetric.QueryGeometry;
 import datawave.microservice.querymetric.QueryGeometryResponse;
 import datawave.microservice.querymetric.QueryMetric;
 import datawave.microservice.querymetric.config.QueryMetricHandlerProperties;
 import datawave.microservice.querymetric.factory.QueryMetricResponseFactory;
-import datawave.webservice.query.QueryImpl;
 import datawave.webservice.query.exception.QueryExceptionType;
 
 public class SimpleQueryGeometryHandlerTest {
@@ -33,7 +33,7 @@ public class SimpleQueryGeometryHandlerTest {
     @BeforeEach
     public void setup() {
         handler = new SimpleQueryGeometryHandler(new QueryMetricHandlerProperties());
-        handler.setQueryetricResponseFactory(new QueryMetricResponseFactory(null, null));
+        handler.setQueryMetricResponseFactory(new QueryMetricResponseFactory(null, null));
         commonId = "super-special-query-id";
         
         luceneParams = new HashSet<>();

@@ -29,6 +29,8 @@ import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.fasterxml.jackson.module.jaxb.JaxbAnnotationModule;
 import com.github.benmanes.caffeine.cache.CaffeineSpec;
 
+import datawave.core.common.connection.AccumuloClientPool;
+import datawave.core.query.result.event.DefaultResponseObjectFactory;
 import datawave.marking.MarkingFunctions;
 import datawave.microservice.http.converter.html.BannerProvider;
 import datawave.microservice.querymetric.BaseQueryMetric;
@@ -55,8 +57,6 @@ import datawave.query.util.DateIndexHelper;
 import datawave.query.util.DateIndexHelperFactory;
 import datawave.query.util.TypeMetadataHelper;
 import datawave.security.authorization.JWTTokenHandler;
-import datawave.webservice.common.connection.AccumuloClientPool;
-import datawave.webservice.query.result.event.DefaultResponseObjectFactory;
 import datawave.webservice.query.result.event.ResponseObjectFactory;
 
 @Configuration
@@ -65,7 +65,7 @@ public class QueryMetricHandlerConfiguration {
     
     @Value("${spring.application.name}")
     private String applicationName;
-    
+
     @Bean
     public QueryMetricConsumer queryMetricSink(QueryMetricOperations queryMetricOperations, Correlator correlator, QueryMetricOperationsStats stats) {
         return new QueryMetricConsumer(queryMetricOperations, correlator, stats);
@@ -126,7 +126,7 @@ public class QueryMetricHandlerConfiguration {
     public QueryGeometryHandler geometryHandler(QueryMetricHandlerProperties queryMetricHandlerProperties,
                     QueryMetricResponseFactory queryMetricResponseFactory) {
         QueryGeometryHandler handler = new SimpleQueryGeometryHandler(queryMetricHandlerProperties);
-        handler.setQueryetricResponseFactory(queryMetricResponseFactory);
+        handler.setQueryMetricResponseFactory(queryMetricResponseFactory);
         return handler;
     }
     
