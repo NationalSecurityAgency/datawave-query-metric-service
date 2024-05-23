@@ -23,7 +23,7 @@ public interface QueryMetricModelFormat {
     String getQueryIdUrl();
     
     String getProxyServersStr();
-
+    
     String getParametersStr();
     
     String getQueryAuthorizationsStr();

@@ -53,7 +53,7 @@ public class QueryMetricModel extends QueryMetric implements QueryMetricModelFor
     public String getProxyServersStr() {
         return getProxyServers() == null ? "" : StringUtils.join(getProxyServers(), "<BR/>");
     }
-
+    
     public String getParametersStr() {
         return parameters == null ? "" : toFormattedParametersString(parameters);
     }
