@@ -6,7 +6,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
-import datawave.webservice.query.QueryImpl;
+import datawave.microservice.query.QueryImpl;
 
 public interface QueryMetricModelFormat {
     
@@ -23,9 +23,7 @@ public interface QueryMetricModelFormat {
     String getQueryIdUrl();
     
     String getProxyServersStr();
-    
-    String getQueryStyle();
-    
+
     String getParametersStr();
     
     String getQueryAuthorizationsStr();

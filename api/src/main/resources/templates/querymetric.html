@@ -30,27 +30,62 @@
     <div th:each="metric,metricIter : ${metricList}">
         <table class="metric">
             <tr class="highlight"><td>Visibility</td><td th:text="${metric.columnVisibility}"></td></tr>
-            <tr><td>Query Date</td><td style="min-width:125px !important;" th:text="${metric.createDateStr}"></td></tr>
+            <tr><td>Query Date</td><td th:text="${metric.createDateStr}"></td></tr>
             <tr class="highlight"><td>User</td><td th:text="${metric.user}"></td></tr>
-            <tr><td>UserDN</td><td style="min-width:500px !important;" th:text="${metric.userDN}"></td></tr>
-            <tr class="highlight"><td>Proxy Server(s)</td><td th:text="${metric.proxyServersStr}"></td></tr>
-            <tr><td>Query ID</td><td><a th:href="${metric.queryIdUrl}" th:text="${metric.queryId}"></a></td></tr>
+            <tr><td>UserDN</td><td th:text="${metric.userDN}"></td></tr>
+            <tr class="highlight"><td>Proxy Server(s)</td><td th:utext="${metric.proxyServersStr}"></td></tr>
+            <tr><td>Query Id</td><td><a th:href="${metric.queryIdUrl}" th:text="${metric.queryId}"></a></td></tr>
             <tr class="highlight"><td>Query Logic</td><td th:text="${metric.queryLogic}"></td></tr>
             <tr><td>Query Name</td><td th:text="${metric.queryName}"></td></tr>
             <tr class="highlight"><td>Query Type</td><td th:text="${metric.queryType}"></td>
-            <tr><td>Begin Date</td><td style="min-width:125px !important;" th:text="${metric.beginDateStr}"></td></tr>
-            <tr class="highlight"><td>End Date</td><td style="min-width:125px !important;" th:text="${metric.endDateStr}"></td></tr>
+            <tr><td>Begin Date</td><td th:text="${metric.beginDateStr}"></td></tr>
+            <tr class="highlight"><td>End Date</td><td th:text="${metric.endDateStr}"></td></tr>
+            <tr><td>Versions</td><td th:utext="${metric.versionStr}"></td></tr>
+
+            <tr class="highlight" th:id="'queryauths' + ${metricIter.index + 1} + '-placeholder'">
+                <td>Query Auths (<a th:onClick="|toggleDisplay('queryauths${metricIter.index + 1}')|">show</a>)</td>
+                <td>click link to show/hide</td>
+            </tr>
+            <tr class="highlight" th:id="'queryauths' + ${metricIter.index + 1} + '-value'" hidden="true">
+                <td>Query Auths (<a th:onClick="|toggleDisplay('queryauths${metricIter.index + 1}')|">hide</a>)</td>
+                <td style="overflow-wrap: anywhere" th:text="${metric.queryAuthorizationsStr}"></td>
+            </tr>
+
+            <tr th:id="'parameters' + ${metricIter.index + 1} + '-placeholder'">
+                <td>Parameters (<a th:onClick="|toggleDisplay('parameters${metricIter.index + 1}')|">show</a>)</td>
+                <td>click link to show/hide</td>
+            </tr>
+            <tr th:id="'parameters' + ${metricIter.index + 1} + '-value'" hidden="true">
+                <td>Parameters (<a th:onClick="|toggleDisplay('parameters${metricIter.index + 1}')|">hide</a>)</td>
+                <td style="overflow-wrap: anywhere;" th:utext="${metric.parametersStr}"></td>
+            </tr>
+
+            <!--/* Note the HTML for the Query and Query Plan are set later... See scripts at end of these tr elements */-->
+            <tr class="highlight" th:id="'query' + ${metricIter.index + 1} + '-placeholder'">
+                <td>Query (<a th:onClick="|toggleDisplay('query${metricIter.index + 1}')|">show</a>)</td>
+                <td>click link to show/hide</td>
+            </tr>
+            <tr class="highlight" th:id="'query' + ${metricIter.index + 1} + '-value'" hidden="true">
+                <td id="query-header">Query (<a th:onClick="|toggleDisplay('query${metricIter.index + 1}')|">hide</a>)</td>
+                <td th:id="'query' + ${metricIter.index + 1}" style="overflow-wrap: anywhere;"/>
+            </tr>
+
+            <tr th:id="'query-plan' + ${metricIter.index + 1} + '-placeholder'">
+                <td>Query Plan (<a th:onClick="|toggleDisplay('query-plan${metricIter.index + 1}')|">show</a>)</td>
+                <td>click link to show/hide</td>
+            </tr>
+            <tr th:id="'query-plan' + ${metricIter.index + 1} + '-value'" hidden="true">
+                <td>Query Plan (<a th:onClick="|toggleDisplay('query-plan${metricIter.index + 1}')|">hide</a>)</td>
+                <td th:id="'query-plan' + ${metricIter.index + 1}" style="overflow-wrap: anywhere;"/>
+            </tr>
+            <tr class="highlight"><td>Predictions</td><td th:text="${metric.predictionsStr}"></td></tr>
             <tr><td>Server</td><td th:text="${metric.host}"></td></tr>
-            <tr class="highlight"><td>Version</td><td th:text="${metric.versionStr}"></td></tr>
-            <tr><td>Elapsed Time</td><td th:text="${metric.elapsedTimeStr}"></td></tr>
-            <tr class="highlight"><td>Lifecycle</td><td th:text="${metric.lifecycle}"></td></tr>
-            <tr><td>Number Pages</td><td th:text="${metric.numPagesStr}"></td></tr>
-            <tr class="highlight"><td>Number Results</td><td th:text="${metric.numResultsStr}"></td></tr>
-            <tr><td>Error Code</td><td style="word-wrap: break-word;" th:text="${metric.errorCode}"></td></tr>
-            <tr class="highlight"><td>Error Message</td><td style="word-wrap: break-word;" th:text="${metric.errorMessage}"></td></tr>
-            <tr><td>Parameters</td><td style="white-space: pre; word-wrap: break-word;" th:text="${metric.parametersStr}"></td></tr>
-            <tr class="highlight"><td>Query Auths</td><td style="word-wrap: break-word; min-width:300px !important;" th:text="${metric.queryAuthorizationsStr}"></td></tr>
-            <tr><td>Predictions</td><td th:text="${metric.predictionsStr}"></td></tr>
+            <tr class="highlight"><td>Elapsed Time</td><td th:text="${metric.elapsedTimeStr}"></td></tr>
+            <tr><td>Lifecycle</td><td th:text="${metric.lifecycle}"></td></tr>
+            <tr class="highlight"><td>Number Pages</td><td th:text="${metric.numPagesStr}"></td></tr>
+            <tr><td>Number Results</td><td th:text="${metric.numResultsStr}"></td></tr>
+            <tr class="highlight"><td>Error Code</td><td style="overflow-wrap: anywhere;" th:text="${metric.errorCode}"></td></tr>
+            <tr><td>Error Message</td><td style="overflow-wrap: anywhere;" th:text="${metric.errorMessage}"></td></tr>
             <tr class="highlight"><td>Login Time (ms)</td><td th:text="${metric.loginTimeStr}"></td></tr>
             <tr><td>Query Setup Time (ms)</td><td th:text="${metric.setupTimeStr}"></td></tr>
             <tr class="highlight"><td>Query Setup Call Time (ms)</td><td th:text="${metric.createCallTimeStr}"></td></tr>
@@ -64,25 +99,6 @@
             <tr class="highlight"><td>Total Page Call Time (ms)</td><td th:text="${metric.totalPageCallTimeStr}"></td></tr>
             <tr><td>Total Page Serialization Time (ms)</td><td th:text="${metric.totalSerializationTimeStr}"></td>
             <tr class="highlight"><td>Total Page Bytes Sent (uncompressed)</td><td th:text="${metric.totalBytesSentStr}"></td></tr>
-            <!--/* Note the HTML for the Query and Query Plan are set later... See scripts at end of these tr elements */-->
-            <tr th:id="'query' + ${metricIter.index + 1} + '-placeholder'">
-                <td>Query (<a th:onClick="|toggleDisplay('query${metricIter.index + 1}')|">show</a>)</td>
-                <td>click link to show/hide</td>
-            </tr>
-            <tr th:id="'query' + ${metricIter.index + 1} + '-value'" hidden="true">
-                <td id="query-header">Query (<a th:onClick="|toggleDisplay('query${metricIter.index + 1}')|">hide</a>)</td>
-                <td th:id="'query' + ${metricIter.index + 1}" th:style="${metric.queryStyle}"/>
-            </tr>
-
-            <tr class="highlight" th:id="'query-plan' + ${metricIter.index + 1} + '-placeholder'">
-                <td>Query Plan (<a th:onClick="|toggleDisplay('query-plan${metricIter.index + 1}')|">show</a>)</td>
-                <td>click link to show/hide</td>
-            </tr>
-            <tr class="highlight" th:id="'query-plan' + ${metricIter.index + 1} + '-value'" hidden="true">
-                <td>Query Plan (<a th:onClick="|toggleDisplay('query-plan${metricIter.index + 1}')|">hide</a>)</td>
-                <td th:id="'query-plan' + ${metricIter.index + 1}" style="white-space: pre; word-wrap: break-word;"/>
-            </tr>
-
             <!--/*
                 Makes the metric's query and the metric's query plan interactive (highlight
                 matching parens on mouse over, clicking a paren brings you to its matching paren)

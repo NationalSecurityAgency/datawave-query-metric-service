@@ -73,17 +73,17 @@
                 <td style="min-width:125px !important;" th:text="${metric.createDateStr}"></td>
                 <td th:text="${metric.user}"></td>
                 <td style="min-width:500px !important;" th:text="${metric.userDN}"></td>
-                <td th:text="${metric.proxyServersStr}"></td>
+                <td th:utext="${metric.proxyServersStr}"></td>
                 <td><a th:href="${metric.queryIdUrl}" th:text="${metric.queryId}"></a></td>
                 <td th:text="${metric.queryType}"></td>
                 <td th:text="${metric.queryLogic}"></td>
                 <!--/* Note the HTML for the Query and Query Plan are set later... See scripts at end of this tr element */-->
-                <td th:id="query + ${metricIter.index + 1}" th:style="${metric.queryStyle}"></td>
+                <td th:id="query + ${metricIter.index + 1}" style="white-space: pre; word-wrap: break-word;"></td>
                 <td th:id="query-plan + ${metricIter.index + 1}" style="white-space: pre; word-wrap: break-word;"></td>
                 <td th:text="${metric.queryName}"></td>
                 <td style="min-width:125px !important;" th:text="${metric.beginDateStr}"></td>
                 <td style="min-width:125px !important;" th:text="${metric.endDateStr}"></td>
-                <td style="white-space: pre; word-wrap: break-word;" th:text="${metric.parametersStr}"></td>
+                <td style="white-space: pre; word-wrap: break-word;" th:utext="${metric.parametersStr}"></td>
                 <td style="word-wrap: break-word; min-width:300px !important;" th:text="${metric.queryAuthorizationsStr}"></td>
                 <td th:text="${metric.host}"></td>
                 <td th:text="${metric.predictionsStr}"></td>
@@ -98,15 +98,15 @@
                 <td th:text="${metric.nextCountStr}"></td>
                 <td th:text="${metric.seekCountStr}"></td>
                 <td th:text="${metric.yieldCountStr}"></td>
-                <td th:text="${metric.versionStr}"></td>
+                <td th:utext="${metric.versionStr}"></td>
                 <td th:text="${metric.totalPageTimeStr}"></td>
                 <td th:text="${metric.totalPageCallTimeStr}"></td>
                 <td th:text="${metric.totalSerializationTimeStr}"></td>
                 <td th:text="${metric.totalBytesSentStr}"></td>
                 <td th:text="${metric.lifecycle}"></td>
                 <td th:text="${metric.elapsedTimeStr}"></td>
-                <td style="word-wrap: break-word;" th:text="${metric.errorCode}"></td>
-                <td style="word-wrap: break-word;" th:text="${metric.errorMessage}"></td>
+                <td style="overflow-wrap: anywhere;" th:text="${metric.errorCode}"></td>
+                <td style="overflow-wrap: anywhere;" th:text="${metric.errorMessage}"></td>
 
                 <!--/*
                     Makes the metric's query and the metric's query plan interactive (highlight matching parens on mouse over, clicking a paren brings
