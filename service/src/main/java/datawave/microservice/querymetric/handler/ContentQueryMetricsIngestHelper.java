@@ -332,12 +332,16 @@ public class ContentQueryMetricsIngestHelper extends CSVIngestHelper implements 
             }
             Map<String,RangeCounts> updatedSubPlans = updated.getSubPlans();
             if (updatedSubPlans != null && !updatedSubPlans.isEmpty()) {
-                Map<String,RangeCounts> storedSubPlans = stored == null ? null : stored.getSubPlans();
+                Map<String,RangeCounts> storedSubPlans = stored != null ? stored.getSubPlans() : null;
                 for (Map.Entry<String,RangeCounts> entry : updatedSubPlans.entrySet()) {
                     String subPlan = entry.getKey();
                     RangeCounts updatedRangeCounts = entry.getValue();
-                    if (storedSubPlans == null || !storedSubPlans.containsKey(subPlan) || !storedSubPlans.get(subPlan).equals(updatedRangeCounts)) {
-                        fields.put("SUBPLAN", subPlan + " : " + updatedRangeCounts.getDocumentRangeCount() + "," + updatedRangeCounts.getShardRangeCount());
+                    if (storedSubPlans != null && storedSubPlans.containsKey(subPlan) && !storedSubPlans.get(subPlan).equals(updatedRangeCounts)) {
+                        fields.put("SUBPLAN", subPlan + " : [" + storedSubPlans.get(subPlan).getDocumentRangeCount() + ", "
+                                        + storedSubPlans.get(subPlan).getShardRangeCount() + "]");
+                    } else if (storedSubPlans == null) {
+                        fields.put("SUBPLAN",
+                                        subPlan + " : [" + updatedRangeCounts.getDocumentRangeCount() + ", " + updatedRangeCounts.getShardRangeCount() + "]");
                     }
                 }
             }
@@ -456,6 +460,21 @@ public class ContentQueryMetricsIngestHelper extends CSVIngestHelper implements 
                         fields.put("PLAN", stored.getPlan());
                     }
                 }
+                Map<String,RangeCounts> updatedSubPlans = updated.getSubPlans();
+                if (updatedSubPlans != null && !updatedSubPlans.isEmpty()) {
+                    Map<String,RangeCounts> storedSubPlans = stored.getSubPlans() != null ? stored.getSubPlans() : null;
+                    for (Map.Entry<String,RangeCounts> entry : updatedSubPlans.entrySet()) {
+                        String subPlan = entry.getKey();
+                        RangeCounts updatedRangeCounts = entry.getValue();
+                        if (storedSubPlans != null && storedSubPlans.containsKey(subPlan) && !storedSubPlans.get(subPlan).equals(updatedRangeCounts)) {
+                            fields.put("SUBPLAN", subPlan + " : [" + storedSubPlans.get(subPlan).getDocumentRangeCount() + ", "
+                                            + storedSubPlans.get(subPlan).getShardRangeCount() + "]");
+                        } else if (storedSubPlans == null) {
+                            fields.put("SUBPLAN", subPlan + " : [" + updatedRangeCounts.getDocumentRangeCount() + ", " + updatedRangeCounts.getShardRangeCount()
+                                            + "]");
+                        }
+                    }
+                }
                 if (isChanged(updated.getSeekCount(), stored.getSeekCount())) {
                     fields.put("SEEK_COUNT", Long.toString(stored.getSeekCount()));
                 }
@@ -464,18 +483,6 @@ public class ContentQueryMetricsIngestHelper extends CSVIngestHelper implements 
                 }
                 if (isChanged(updated.getSourceCount(), stored.getSourceCount())) {
                     fields.put("SOURCE_COUNT", Long.toString(stored.getSourceCount()));
-                }
-                Map<String,RangeCounts> updatedSubPlans = updated.getSubPlans();
-                if (updatedSubPlans != null && !updatedSubPlans.isEmpty()) {
-                    Map<String,RangeCounts> storedSubPlans = stored.getSubPlans();
-                    for (Map.Entry<String,RangeCounts> entry : updatedSubPlans.entrySet()) {
-                        String subPlan = entry.getKey();
-                        RangeCounts updatedRangeCounts = entry.getValue();
-                        if (storedSubPlans != null && storedSubPlans.containsKey(subPlan) && !storedSubPlans.get(subPlan).equals(updatedRangeCounts)) {
-                            fields.put("SUBPLAN", subPlan + " : [" + storedSubPlans.get(subPlan).getDocumentRangeCount() + ", "
-                                            + storedSubPlans.get(subPlan).getShardRangeCount() + "]");
-                        }
-                    }
                 }
                 if (isChanged(updated.getYieldCount(), stored.getYieldCount())) {
                     fields.put("YIELD_COUNT", Long.toString(stored.getYieldCount()));

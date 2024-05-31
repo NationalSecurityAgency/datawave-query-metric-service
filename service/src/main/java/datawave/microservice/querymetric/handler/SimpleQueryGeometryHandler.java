@@ -35,7 +35,7 @@ public class SimpleQueryGeometryHandler implements QueryGeometryHandler {
     private LuceneToJexlQueryParser parser = new LuceneToJexlQueryParser();
     private String basemaps;
     protected QueryMetricResponseFactory queryMetricResponseFactory;
-
+    
     public SimpleQueryGeometryHandler(QueryMetricHandlerProperties queryMetricHandlerProperties) {
         this.basemaps = queryMetricHandlerProperties.getBaseMaps();
     }
@@ -90,7 +90,7 @@ public class SimpleQueryGeometryHandler implements QueryGeometryHandler {
         }
         return false;
     }
-
+    
     @Override
     public void setQueryMetricResponseFactory(QueryMetricResponseFactory queryMetricResponseFactory) {
         this.queryMetricResponseFactory = queryMetricResponseFactory;

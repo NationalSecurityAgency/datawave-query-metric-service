@@ -65,7 +65,7 @@ public class QueryMetricHandlerConfiguration {
     
     @Value("${spring.application.name}")
     private String applicationName;
-
+    
     @Bean
     public QueryMetricConsumer queryMetricSink(QueryMetricOperations queryMetricOperations, Correlator correlator, QueryMetricOperationsStats stats) {
         return new QueryMetricConsumer(queryMetricOperations, correlator, stats);

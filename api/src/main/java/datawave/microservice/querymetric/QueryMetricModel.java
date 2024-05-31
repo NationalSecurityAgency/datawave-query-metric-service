@@ -121,9 +121,13 @@ public class QueryMetricModel extends QueryMetric implements QueryMetricModelFor
     
     // will most likely have to do something like the iteration that predictions uses
     public String getSubPlanStr() {
-        return nf.format(sourceCount);
+        if (subPlans != null) {
+            return subPlans.entrySet().toString();
+        } else {
+            return nf.format(0);
+        }
     }
-
+    
     public String getTotalPageTimeStr() {
         return nf.format(totalPageTime);
     }

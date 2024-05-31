@@ -55,7 +55,7 @@ public interface QueryMetricModelFormat {
     String getVersionStr();
     
     String getSubPlanStr();
-
+    
     String getTotalPageTimeStr();
     
     String getTotalPageCallTimeStr();

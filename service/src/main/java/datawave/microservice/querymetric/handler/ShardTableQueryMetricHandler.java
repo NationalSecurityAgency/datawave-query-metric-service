@@ -683,7 +683,7 @@ public abstract class ShardTableQueryMetricHandler<T extends BaseQueryMetric> ex
     private static RangeCounts getRangeCounts(String s) {
         RangeCounts ranges = new RangeCounts();
         int index = 0;
-        for (String count : StringUtils.split(s, ",")) {
+        for (String count : StringUtils.split(s.replace("[", "").replace("]", "").replace(" ", ""), ",")) {
             if (index == 0) {
                 ranges.setDocumentRangeCount(Integer.parseInt(count));
             } else if (index == 1) {
