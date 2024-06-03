@@ -10,6 +10,15 @@ public class RangeCounts implements Serializable {
     private long documentRangeCount;
     private long shardRangeCount;
     
+    public RangeCounts() {
+        
+    }
+    
+    public RangeCounts(long documentRangeCount, long shardRangeCount) {
+        this.documentRangeCount = documentRangeCount;
+        this.shardRangeCount = shardRangeCount;
+    }
+    
     public long getDocumentRangeCount() {
         return documentRangeCount;
     }

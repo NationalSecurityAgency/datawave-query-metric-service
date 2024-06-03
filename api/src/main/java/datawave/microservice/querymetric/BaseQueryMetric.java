@@ -684,7 +684,7 @@ public abstract class BaseQueryMetric implements HasMarkings, Serializable {
     @XmlElement(name = "prediction")
     protected Set<Prediction> predictions = new HashSet<>();
     @XmlElement(name = "subPlans")
-    @XmlJavaTypeAdapter(StringIntegerListMapAdapter.class)
+    @XmlJavaTypeAdapter(StringRangeCountsMapAdapter.class)
     protected Map<String,RangeCounts> subPlans = new HashMap<>();
     
     public static final String DATAWAVE = "DATAWAVE";
