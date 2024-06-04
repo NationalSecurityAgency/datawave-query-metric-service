@@ -110,7 +110,7 @@
 }
 
 /* Formatting for the field names in the vertical display */
-table.metric-vertical tr td:first-child {
+table.metric-vertical td:first-child {
     font-size: 11pt;
     font-weight: bold;
     color: #333333;
