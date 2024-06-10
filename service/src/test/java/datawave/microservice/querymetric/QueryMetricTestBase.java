@@ -536,7 +536,7 @@ public class QueryMetricTestBase {
         MapStoreConfig mapStoreConfig = config.getMapConfig(incomingCache.getName()).getMapStoreConfig();
         int writeDelaySeconds = Math.min(mapStoreConfig.getWriteDelaySeconds(), 1000);
         boolean found = false;
-        while (!found && System.currentTimeMillis() < (now + (1000 * (writeDelaySeconds + 1.5)))) {
+        while (!found && System.currentTimeMillis() < (now + (1000 * (writeDelaySeconds + 5.0)))) {
             found = lastWrittenCache.get(queryId, QueryMetricUpdateHolder.class) != null;
             if (!found) {
                 try {

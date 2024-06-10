@@ -2,6 +2,7 @@ package datawave.microservice.querymetric;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -39,6 +40,8 @@ public abstract class QueryMetricOperationsTest extends QueryMetricTestBase {
                 .build());
         // @formatter:on
         ensureDataWritten(incomingQueryMetricsCache, lastWrittenQueryMetricCache, queryId);
+        assertNotNull(lastWrittenQueryMetricCache.get(queryId, QueryMetricUpdateHolder.class),
+                        "no query exists in lastWrittenQueryMetricCache with that queryId");
         metricAssertEquals("lastWrittenQueryMetricCache metric wrong", m, lastWrittenQueryMetricCache.get(queryId, QueryMetricUpdateHolder.class).getMetric());
         metricAssertEquals("incomingQueryMetricsCache metric wrong", m, incomingQueryMetricsCache.get(queryId, QueryMetricUpdateHolder.class).getMetric());
         metricAssertEquals("accumulo metric wrong", m, shardTableQueryMetricHandler.getQueryMetric(queryId));
@@ -106,6 +109,8 @@ public abstract class QueryMetricOperationsTest extends QueryMetricTestBase {
         metrics.forEach((m) -> {
             String queryId = m.getQueryId();
             ensureDataWritten(incomingQueryMetricsCache, lastWrittenQueryMetricCache, queryId);
+            assertNotNull(lastWrittenQueryMetricCache.get(queryId, QueryMetricUpdateHolder.class),
+                            "no query exists in lastWrittenQueryMetricCache with that queryId");
             metricAssertEquals("lastWrittenQueryMetricCache metric wrong", m,
                             lastWrittenQueryMetricCache.get(queryId, QueryMetricUpdateHolder.class).getMetric());
             try {
@@ -137,6 +142,8 @@ public abstract class QueryMetricOperationsTest extends QueryMetricTestBase {
         metrics.forEach((m) -> {
             String queryId = m.getQueryId();
             ensureDataWritten(incomingQueryMetricsCache, lastWrittenQueryMetricCache, queryId);
+            assertNotNull(lastWrittenQueryMetricCache.get(queryId, QueryMetricUpdateHolder.class),
+                            "no query exists in lastWrittenQueryMetricCache with that queryId");
             metricAssertEquals("lastWrittenQueryMetricCache metric wrong", m,
                             lastWrittenQueryMetricCache.get(queryId, QueryMetricUpdateHolder.class).getMetric());
             metricAssertEquals("incomingQueryMetricsCache metric wrong", m, incomingQueryMetricsCache.get(queryId, QueryMetricUpdateHolder.class).getMetric());
