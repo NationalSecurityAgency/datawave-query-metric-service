@@ -389,7 +389,7 @@ public class QueryMetricTestBase {
             }
             assertTrue(assertObjectsEqual(m1.getQueryId(), m2.getQueryId()), message + "queryId");
             assertTrue(assertObjectsEqual(m1.getQueryType(), m2.getQueryType()), message + "queryType");
-            assertTrue(assertObjectsEqual(m1.getQueryAuthorizations(), m2.getQueryAuthorizations()), message + "queryAuthorizatio1ns");
+            assertTrue(assertObjectsEqual(m1.getQueryAuthorizations(), m2.getQueryAuthorizations()), message + "queryAuthorizations");
             assertTrue(assertObjectsEqual(m1.getColumnVisibility(), m2.getColumnVisibility()), message + "columnVisibility");
             assertEquals(m1.getMarkings(), m2.getMarkings(), message + "markings");
             assertTrue(assertObjectsEqual(m1.getBeginDate(), m2.getBeginDate()), message + "beginDate");
