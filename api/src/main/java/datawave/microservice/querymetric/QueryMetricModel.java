@@ -54,6 +54,10 @@ public class QueryMetricModel extends QueryMetric implements QueryMetricModelFor
         return getProxyServers() == null ? "" : StringUtils.join(getProxyServers(), "<BR/>");
     }
     
+    public String getQueryStyle() {
+        return isJexlQuery(parameters) ? "white-space:pre-wrap; overflow-wrap:anywhere;" : "overflow-wrap:anywhere;";
+    }
+    
     public String getParametersStr() {
         return parameters == null ? "" : toFormattedParametersString(parameters);
     }
