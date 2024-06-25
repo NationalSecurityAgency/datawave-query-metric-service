@@ -39,7 +39,6 @@ import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.http.MediaType;
@@ -317,20 +316,21 @@ public class QueryMetricOperations {
      * @param message
      *            the confirmation ack message
      */
-    @ConditionalOnProperty(value = "datawave.query.metric.confirmAckEnabled", havingValue = "true", matchIfMissing = true)
     @ServiceActivator(inputChannel = CONFIRM_ACK_CHANNEL)
     public void processConfirmAck(Message<?> message) {
-        Object headerObj = message.getHeaders().get(IntegrationMessageHeaderAccessor.CORRELATION_ID);
-        
-        if (headerObj != null) {
-            String correlationId = headerObj.toString();
-            if (correlationLatchMap.containsKey(correlationId)) {
-                correlationLatchMap.get(correlationId).countDown();
+        if (queryMetricProperties.isConfirmAckEnabled()) {
+            Object headerObj = message.getHeaders().get(IntegrationMessageHeaderAccessor.CORRELATION_ID);
+            
+            if (headerObj != null) {
+                String correlationId = headerObj.toString();
+                if (correlationLatchMap.containsKey(correlationId)) {
+                    correlationLatchMap.get(correlationId).countDown();
+                } else {
+                    log.warn("Unable to decrement latch for ID [{}]", correlationId);
+                }
             } else {
-                log.warn("Unable to decrement latch for ID [{}]", correlationId);
+                log.warn("No correlation ID found in confirm ack message");
             }
-        } else {
-            log.warn("No correlation ID found in confirm ack message");
         }
     }
     
