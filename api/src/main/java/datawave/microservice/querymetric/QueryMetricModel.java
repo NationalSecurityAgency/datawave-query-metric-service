@@ -8,9 +8,12 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.text.StringEscapeUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class QueryMetricModel extends QueryMetric implements QueryMetricModelFormat {
     
+    private static final Logger log = LoggerFactory.getLogger(QueryMetricModel.class);
     public long totalPageTime = 0;
     public long totalPageCallTime = 0;
     public long totalSerializationTime = 0;
@@ -30,7 +33,12 @@ public class QueryMetricModel extends QueryMetric implements QueryMetricModelFor
     }
     
     public String getCreateDateStr() {
-        return sdf.format(createDate);
+        try {
+            return createDate == null ? "" : sdf.format(createDate);
+        } catch (Exception e) {
+            log.error(e.getMessage(), e);
+            return "";
+        }
     }
     
     @Override
@@ -39,11 +47,21 @@ public class QueryMetricModel extends QueryMetric implements QueryMetricModelFor
     }
     
     public String getBeginDateStr() {
-        return sdf.format(beginDate);
+        try {
+            return beginDate == null ? "" : sdf.format(beginDate);
+        } catch (Exception e) {
+            log.error(e.getMessage(), e);
+            return "";
+        }
     }
     
     public String getEndDateStr() {
-        return sdf.format(endDate);
+        try {
+            return endDate == null ? "" : sdf.format(endDate);
+        } catch (Exception e) {
+            log.error(e.getMessage(), e);
+            return "";
+        }
     }
     
     public String getQueryIdUrl() {
