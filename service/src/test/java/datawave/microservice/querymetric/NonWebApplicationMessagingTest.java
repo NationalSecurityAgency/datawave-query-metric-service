@@ -24,6 +24,7 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import datawave.marking.MarkingFunctions;
+import datawave.microservice.querymetric.config.QueryMetricTransportType;
 import datawave.microservice.querymetric.config.TimelyProperties;
 import datawave.microservice.querymetric.function.QueryMetricSupplier;
 
@@ -68,7 +69,7 @@ public class NonWebApplicationMessagingTest {
         this.client.submit(new QueryMetricClient.Request.Builder()
                 .withMetric(m)
                 .withMetricType(QueryMetricType.COMPLETE)
-                .build());
+                .build(), QueryMetricTransportType.MESSAGE);
         QueryMetricUpdate metricUpdate = this.storedMetricUpdates.stream().filter(x -> x.getMetric().getQueryId().equals(queryId)).findAny().orElse(null);
         metricAssertEquals("", metricUpdate.getMetric(), m);
     }

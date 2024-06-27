@@ -16,17 +16,10 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.Collectors;
 
 import javax.annotation.PreDestroy;
 import javax.annotation.security.PermitAll;
@@ -39,14 +32,9 @@ import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.http.MediaType;
-import org.springframework.integration.IntegrationMessageHeaderAccessor;
-import org.springframework.integration.annotation.ServiceActivator;
-import org.springframework.integration.support.MessageBuilder;
-import org.springframework.messaging.Message;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.access.annotation.Secured;
@@ -60,17 +48,14 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.ModelAndView;
 
 import com.codahale.metrics.Timer;
-import com.google.common.collect.Lists;
 import com.hazelcast.core.HazelcastInstanceNotActiveException;
 import com.hazelcast.map.IMap;
 import com.hazelcast.spring.cache.HazelcastCacheManager;
 
 import datawave.marking.MarkingFunctions;
 import datawave.microservice.authorization.user.DatawaveUserDetails;
-import datawave.microservice.querymetric.config.QueryMetricProperties;
-import datawave.microservice.querymetric.config.QueryMetricProperties.Retry;
+import datawave.microservice.querymetric.config.QueryMetricTransportType;
 import datawave.microservice.querymetric.factory.QueryMetricResponseFactory;
-import datawave.microservice.querymetric.function.QueryMetricSupplier;
 import datawave.microservice.querymetric.handler.QueryGeometryHandler;
 import datawave.microservice.querymetric.handler.ShardTableQueryMetricHandler;
 import datawave.microservice.querymetric.handler.SimpleQueryGeometryHandler;
@@ -95,12 +80,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 @RestController
 @RequestMapping(path = "/v1")
 public class QueryMetricOperations {
-    // Note: This must match 'confirmAckChannel' in the service configuration. Default set in bootstrap.yml.
-    public static final String CONFIRM_ACK_CHANNEL = "confirmAckChannel";
-    
     private Logger log = LoggerFactory.getLogger(QueryMetricOperations.class);
     
-    private QueryMetricProperties queryMetricProperties;
     private ShardTableQueryMetricHandler handler;
     private QueryGeometryHandler geometryHandler;
     private CacheManager cacheManager;
@@ -114,10 +95,8 @@ public class QueryMetricOperations {
     private QueryMetricOperationsStats stats;
     private static Set<String> inProcess = Collections.synchronizedSet(new HashSet<>());
     
-    private final QueryMetricSupplier queryMetricSupplier;
+    private final QueryMetricClient queryMetricClient;
     private final DnUtils dnUtils;
-    
-    private static final Map<String,CountDownLatch> correlationLatchMap = new ConcurrentHashMap<>();
     
     /**
      * The enum Default datetime.
@@ -136,8 +115,6 @@ public class QueryMetricOperations {
     /**
      * Instantiates a new QueryMetricOperations.
      *
-     * @param queryMetricProperties
-     *            the query metric properties
      * @param cacheManager
      *            the CacheManager
      * @param handler
@@ -148,24 +125,24 @@ public class QueryMetricOperations {
      *            the MarkingFunctions
      * @param queryMetricResponseFactory
      *            the QueryMetricResponseFactory
-     * @param queryMetricSupplier
-     *            the query metric object supplier
-     * @param dnUtils
-     *            the dnUtils
      * @param mergeLock
      *            the merge lock
+     * @param correlator
+     *            the correlator
      * @param entryProcessorFactory
      *            the entry processor factory
      * @param stats
      *            the stats
+     * @param queryMetricClient
+     *            the QueryMetricClient
+     * @param dnUtils
+     *            the dnUtils
      */
     @Autowired
-    public QueryMetricOperations(QueryMetricProperties queryMetricProperties, @Named("queryMetricCacheManager") CacheManager cacheManager,
-                    ShardTableQueryMetricHandler handler, QueryGeometryHandler geometryHandler, MarkingFunctions markingFunctions,
-                    QueryMetricResponseFactory queryMetricResponseFactory, MergeLockLifecycleListener mergeLock, Correlator correlator,
-                    MetricUpdateEntryProcessorFactory entryProcessorFactory, QueryMetricOperationsStats stats, QueryMetricSupplier queryMetricSupplier,
-                    DnUtils dnUtils) {
-        this.queryMetricProperties = queryMetricProperties;
+    public QueryMetricOperations(@Named("queryMetricCacheManager") CacheManager cacheManager, ShardTableQueryMetricHandler handler,
+                    QueryGeometryHandler geometryHandler, MarkingFunctions markingFunctions, QueryMetricResponseFactory queryMetricResponseFactory,
+                    MergeLockLifecycleListener mergeLock, Correlator correlator, MetricUpdateEntryProcessorFactory entryProcessorFactory,
+                    QueryMetricOperationsStats stats, QueryMetricClient queryMetricClient, DnUtils dnUtils) {
         this.handler = handler;
         this.geometryHandler = geometryHandler;
         this.cacheManager = cacheManager;
@@ -176,7 +153,7 @@ public class QueryMetricOperations {
         this.correlator = correlator;
         this.entryProcessorFactory = entryProcessorFactory;
         this.stats = stats;
-        this.queryMetricSupplier = queryMetricSupplier;
+        this.queryMetricClient = queryMetricClient;
         this.dnUtils = dnUtils;
     }
     
@@ -266,9 +243,11 @@ public class QueryMetricOperations {
         }
         Timer.Context restTimer = this.stats.getTimer(TIMERS.REST).time();
         try {
-            if (!updateMetrics(queryMetrics.stream().map(m -> new QueryMetricUpdate<>(m, metricType)).collect(Collectors.toList()))) {
-                throw new RuntimeException("Unable to process bulk query metric update");
-            }
+            // must use QueryMetricTransportType.MESSAGE to avoid a REST loop
+            queryMetricClient.submit(new QueryMetricClient.Request.Builder().withMetrics(queryMetrics).withMetricType(metricType).build(),
+                            QueryMetricTransportType.MESSAGE);
+        } catch (Exception e) {
+            throw new RuntimeException("Unable to process bulk query metric update");
         } finally {
             restTimer.stop();
         }
@@ -302,190 +281,17 @@ public class QueryMetricOperations {
             } else {
                 log.debug("received metric update via REST: " + queryMetric.getQueryId());
             }
-            if (!updateMetrics(Lists.newArrayList(new QueryMetricUpdate(queryMetric, metricType)))) {
+            try {
+                // must use QueryMetricTransportType.MESSAGE to avoid a REST loop and not rely on the client configuration
+                queryMetricClient.submit(new QueryMetricClient.Request.Builder().withMetric(queryMetric).withMetricType(metricType).build(),
+                                QueryMetricTransportType.MESSAGE);
+            } catch (Exception e) {
                 throw new RuntimeException("Unable to process query metric update for query [" + queryMetric.getQueryId() + "]");
             }
         } finally {
             restTimer.stop();
         }
         return new VoidResponse();
-    }
-    
-    /**
-     * Receives producer confirm acks, and disengages the latch associated with the given correlation ID.
-     *
-     * @param message
-     *            the confirmation ack message
-     */
-    @ConditionalOnProperty(value = "datawave.query.metric.confirmAckEnabled", havingValue = "true", matchIfMissing = true)
-    @ServiceActivator(inputChannel = CONFIRM_ACK_CHANNEL)
-    public void processConfirmAck(Message<?> message) {
-        Object headerObj = message.getHeaders().get(IntegrationMessageHeaderAccessor.CORRELATION_ID);
-        
-        if (headerObj != null) {
-            String correlationId = headerObj.toString();
-            if (correlationLatchMap.containsKey(correlationId)) {
-                correlationLatchMap.get(correlationId).countDown();
-            } else {
-                log.warn("Unable to decrement latch for ID [{}]", correlationId);
-            }
-        } else {
-            log.warn("No correlation ID found in confirm ack message");
-        }
-    }
-    
-    private boolean updateMetrics(List<QueryMetricUpdate> updates) {
-        Map<String,QueryMetricUpdate> updatesById = new LinkedHashMap<>();
-        Map<String,Timer.Context> timersById = new LinkedHashMap<>();
-        
-        boolean success;
-        final long updateStartTime = System.currentTimeMillis();
-        long currentTime;
-        int attempts = 0;
-        
-        Retry retry = queryMetricProperties.getRetry();
-        
-        List<QueryMetricUpdate> failedConfirmAck = new ArrayList<>(updates.size());
-        do {
-            if (attempts++ > 0) {
-                try {
-                    Thread.sleep(retry.getBackoffIntervalMillis());
-                } catch (InterruptedException e) {
-                    // Ignore -- we'll just end up retrying a little too fast
-                }
-                
-                // perform some retry upkeep
-                updates.addAll(failedConfirmAck);
-                failedConfirmAck.clear();
-            }
-            
-            if (log.isDebugEnabled()) {
-                log.debug("Bulk update attempt {} of {}", attempts, retry.getMaxAttempts());
-            }
-            
-            // send all of the remaining metric updates
-            success = sendMessages(updates, updatesById, timersById) && awaitConfirmAcks(updatesById, failedConfirmAck, timersById);
-            currentTime = System.currentTimeMillis();
-        } while (!success && (currentTime - updateStartTime) < retry.getFailTimeoutMillis() && attempts < retry.getMaxAttempts());
-        
-        // stop any timers that remain
-        timersById.values().stream().forEach(timer -> timer.stop());
-        
-        if (!success) {
-            log.warn("Bulk update failed. {attempts = {}, elapsedMillis = {}}", attempts, (currentTime - updateStartTime));
-        } else {
-            log.debug("Bulk update successful. {attempts = {}, elapsedMillis = {}}", attempts, (currentTime - updateStartTime));
-        }
-        
-        return success;
-    }
-    
-    /**
-     * Passes query metric messages to the messaging infrastructure.
-     *
-     * @param updates
-     *            The query metric updates to be sent, not null
-     * @param updatesById
-     *            A map that will be populated with the correlation ids and associated metric updates, not null
-     * @param timersById
-     *            A map of dropwizard timers to record the time to send or send/ack each message
-     * @return true if all messages were successfully sent, false otherwise
-     */
-    private boolean sendMessages(List<QueryMetricUpdate> updates, Map<String,QueryMetricUpdate> updatesById, Map<String,Timer.Context> timersById) {
-        
-        List<QueryMetricUpdate> failedSend = new ArrayList<>(updates.size());
-        
-        boolean success = true;
-        // send all of the remaining metric updates
-        for (QueryMetricUpdate update : updates) {
-            Timer.Context timer = this.stats.getTimer(TIMERS.MESSAGE_SEND).time();
-            String correlationId = UUID.randomUUID().toString();
-            boolean sendSuccessful = false;
-            try {
-                sendSuccessful = sendMessage(correlationId, update);
-                if (sendSuccessful) {
-                    if (queryMetricProperties.isConfirmAckEnabled()) {
-                        updatesById.put(correlationId, update);
-                    }
-                } else {
-                    // if it failed, add it to the failed list
-                    failedSend.add(update);
-                    success = false;
-                }
-            } finally {
-                if (sendSuccessful && queryMetricProperties.isConfirmAckEnabled()) {
-                    // message send successful but waiting for confirmAck, so store the timer by correlationId
-                    timersById.put(correlationId, timer);
-                } else {
-                    // either message send successful and not waiting for confirmAck or message send failed
-                    timer.stop();
-                }
-            }
-        }
-        
-        updates.retainAll(failedSend);
-        
-        return success;
-    }
-    
-    private boolean sendMessage(String correlationId, QueryMetricUpdate update) {
-        boolean success = false;
-        if (queryMetricSupplier.send(MessageBuilder.withPayload(update).setCorrelationId(correlationId).build())) {
-            success = true;
-            if (queryMetricProperties.isConfirmAckEnabled()) {
-                correlationLatchMap.put(correlationId, new CountDownLatch(1));
-            }
-        }
-        return success;
-    }
-    
-    /**
-     * Waits for the producer confirm acks to be received for the updates that were sent. If a producer confirm ack is not received within the specified amount
-     * of time, a 500 Internal Server Error will be returned to the caller.
-     * 
-     * @param updatesById
-     *            A map of query metric updates keyed by their correlation id, not null
-     * @param failedConfirmAck
-     *            A list that will be populated with the failed metric updates, not null
-     * @param timersById
-     *            A map of dropwizard timers to record the time to send or send/ack each message
-     * @return true if all confirm acks were successfully received, false otherwise
-     */
-    private boolean awaitConfirmAcks(Map<String,QueryMetricUpdate> updatesById, List<QueryMetricUpdate> failedConfirmAck,
-                    Map<String,Timer.Context> timersById) {
-        boolean success = true;
-        // wait for the confirm acks only after all sends are successful
-        if (queryMetricProperties.isConfirmAckEnabled()) {
-            for (String correlationId : new HashSet<>(updatesById.keySet())) {
-                try {
-                    if (!awaitConfirmAck(correlationId)) {
-                        failedConfirmAck.add(updatesById.remove(correlationId));
-                        success = false;
-                    }
-                } finally {
-                    // either ack confirmed or we need to resend, so stop the timer for this update
-                    Timer.Context timer = timersById.get(correlationId);
-                    if (timer != null) {
-                        timer.stop();
-                    }
-                }
-            }
-        }
-        return success;
-    }
-    
-    private boolean awaitConfirmAck(String correlationId) {
-        boolean success = false;
-        if (queryMetricProperties.isConfirmAckEnabled()) {
-            try {
-                success = correlationLatchMap.get(correlationId).await(queryMetricProperties.getConfirmAckTimeoutMillis(), TimeUnit.MILLISECONDS);
-            } catch (InterruptedException e) {
-                log.warn("Interrupted waiting for confirm ack {}", correlationId);
-            } finally {
-                correlationLatchMap.remove(correlationId);
-            }
-        }
-        return success;
     }
     
     private String getClusterLocalMemberUuid() {

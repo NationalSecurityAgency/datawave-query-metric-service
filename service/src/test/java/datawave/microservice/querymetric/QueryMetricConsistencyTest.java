@@ -31,6 +31,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import com.google.common.collect.Multimap;
 
+import datawave.microservice.querymetric.config.QueryMetricTransportType;
 import datawave.microservice.querymetric.handler.ContentQueryMetricsIngestHelper;
 import datawave.microservice.querymetric.persistence.AccumuloMapStore;
 import datawave.util.StringUtils;
@@ -75,7 +76,7 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
                     .withMetric(m)
                     .withMetricType(QueryMetricType.COMPLETE)
                     .withUser(this.adminUser)
-                    .build());
+                    .build(), QueryMetricTransportType.MESSAGE);
             // @formatter:on
             ResponseEntity<BaseQueryMetricListResponse> metricResponse = this.restTemplate.exchange(metricUri.toUri(), HttpMethod.GET, metricRequestEntity,
                             BaseQueryMetricListResponse.class);
@@ -100,7 +101,7 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
                 .withMetric(m)
                 .withMetricType(QueryMetricType.COMPLETE)
                 .withUser(this.adminUser)
-                .build());
+                .build(), QueryMetricTransportType.MESSAGE);
         // @formatter:on
         HttpEntity metricRequestEntity = createRequestEntity(null, this.adminUser, null);
         ResponseEntity<BaseQueryMetricListResponse> metricResponse = this.restTemplate.exchange(metricUri.toUri(), HttpMethod.GET, metricRequestEntity,
@@ -119,7 +120,7 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
                 .withMetric(m)
                 .withMetricType(QueryMetricType.COMPLETE)
                 .withUser(this.adminUser)
-                .build());
+                .build(), QueryMetricTransportType.MESSAGE);
         // @formatter:on
         metricRequestEntity = createRequestEntity(null, this.adminUser, null);
         metricResponse = restTemplate.exchange(metricUri.toUri(), HttpMethod.GET, metricRequestEntity, BaseQueryMetricListResponse.class);
@@ -144,7 +145,7 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
                 .withMetric(m)
                 .withMetricType(QueryMetricType.COMPLETE)
                 .withUser(this.adminUser)
-                .build());
+                .build(), QueryMetricTransportType.MESSAGE);
         // @formatter:on
         m.setPlan("RevisedPlan");
         m.setLastUpdated(new Date(m.getLastUpdated().getTime() + 1));
@@ -153,7 +154,7 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
                 .withMetric(m)
                 .withMetricType(QueryMetricType.COMPLETE)
                 .withUser(this.adminUser)
-                .build());
+                .build(), QueryMetricTransportType.MESSAGE);
         // @formatter:on
         
         HttpEntity metricRequestEntity = createRequestEntity(null, this.adminUser, null);
@@ -192,7 +193,7 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
                 .withMetric(m)
                 .withMetricType(QueryMetricType.DISTRIBUTED)
                 .withUser(this.adminUser)
-                .build());
+                .build(), QueryMetricTransportType.MESSAGE);
         // @formatter:on
         m = createMetric(queryId);
         m.setCreateDate(new Date(now - 1000));
@@ -211,7 +212,7 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
                 .withMetric(m)
                 .withMetricType(QueryMetricType.DISTRIBUTED)
                 .withUser(this.adminUser)
-                .build());
+                .build(), QueryMetricTransportType.MESSAGE);
         // @formatter:on
         HttpEntity metricRequestEntity = createRequestEntity(null, this.adminUser, null);
         ResponseEntity<BaseQueryMetricListResponse> metricResponse = this.restTemplate.exchange(metricUri.toUri(), HttpMethod.GET, metricRequestEntity,
@@ -242,7 +243,7 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
                 .withMetric(m)
                 .withMetricType(QueryMetricType.COMPLETE)
                 .withUser(this.adminUser)
-                .build());
+                .build(), QueryMetricTransportType.MESSAGE);
         // @formatter:on
         metricRequestEntity = createRequestEntity(null, this.adminUser, null);
         metricResponse = restTemplate.exchange(metricUri.toUri(), HttpMethod.GET, metricRequestEntity, BaseQueryMetricListResponse.class);
