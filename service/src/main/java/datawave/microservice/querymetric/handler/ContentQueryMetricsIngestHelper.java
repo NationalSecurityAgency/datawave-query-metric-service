@@ -1,13 +1,7 @@
 package datawave.microservice.querymetric.handler;
 
 import java.text.SimpleDateFormat;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
@@ -330,12 +324,34 @@ public class ContentQueryMetricsIngestHelper extends CSVIngestHelper implements 
             if (isChanged(updated.getSourceCount(), stored == null ? -1 : stored.getSourceCount())) {
                 fields.put("SOURCE_COUNT", Long.toString(updated.getSourceCount()));
             }
+            // this is a test to see the contents of stored / updated. To be removed later
+            // right now it seems as though both of their subplans are always empty
+            if (isChanged(updated.getSourceCount(), stored == null ? -1 : stored.getSourceCount())) {
+                if (stored != null) {
+                    fields.put("SUBPLAN", updated.getSubPlans().toString() + " OR " + stored.getSubPlans().toString());
+                } else {
+                    fields.put("SUBPLAN", updated.getSubPlans().toString() + " : " + updated);
+                }
+            }
+            // List<String> plans = new ArrayList<>();
+            // plans.add("F1 == 'value1' || F2 == 'value2'");
+            // plans.add("F3 == 'value3' || F4 == 'value4'");
+            // plans.add("F2 == 'value2' || F3 == 'value3'");
+            // plans.add("F1 == 'value1' || F6 == 'value6'");
+            // plans.add("F1 == 'value1' || F5 == 'value5'");
+            // for (String p : plans) {
+            // RangeCounts ranges = new RangeCounts();
+            // ranges.setShardRangeCount(3);
+            // ranges.setDocumentRangeCount(3);
+            // updated.addSubPlan(p, ranges);
+            // }
             Map<String,RangeCounts> updatedSubPlans = updated.getSubPlans();
             if (updatedSubPlans != null && !updatedSubPlans.isEmpty()) {
                 Map<String,RangeCounts> storedSubPlans = stored != null ? stored.getSubPlans() : null;
                 for (Map.Entry<String,RangeCounts> entry : updatedSubPlans.entrySet()) {
                     String subPlan = entry.getKey();
                     RangeCounts updatedRangeCounts = entry.getValue();
+                    // i dont think this check is needed and the subsequent adding of the field, if it's stored it doesnt need it again?
                     if (storedSubPlans != null && storedSubPlans.containsKey(subPlan) && !storedSubPlans.get(subPlan).equals(updatedRangeCounts)) {
                         fields.put("SUBPLAN", subPlan + " : [" + storedSubPlans.get(subPlan).getDocumentRangeCount() + ", "
                                         + storedSubPlans.get(subPlan).getShardRangeCount() + "]");

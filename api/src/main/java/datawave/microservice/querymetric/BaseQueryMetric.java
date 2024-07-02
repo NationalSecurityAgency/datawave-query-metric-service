@@ -738,14 +738,14 @@ public abstract class BaseQueryMetric implements HasMarkings, Serializable {
     
     public void addSubPlan(String plan, RangeCounts rangeCounts) {
         synchronized (this.subPlans) {
-            if (subPlans.containsKey(plan)) {
+            if (this.subPlans.containsKey(plan)) {
                 RangeCounts combinedCounts = new RangeCounts();
-                RangeCounts currentCounts = subPlans.get(plan);
+                RangeCounts currentCounts = this.subPlans.get(plan);
                 combinedCounts.setDocumentRangeCount(currentCounts.getDocumentRangeCount() + rangeCounts.getDocumentRangeCount());
                 combinedCounts.setShardRangeCount(currentCounts.getShardRangeCount() + rangeCounts.getShardRangeCount());
-                subPlans.put(plan, combinedCounts);
+                this.subPlans.put(plan, combinedCounts);
             } else {
-                subPlans.put(plan, rangeCounts);
+                this.subPlans.put(plan, rangeCounts);
             }
         }
     }
