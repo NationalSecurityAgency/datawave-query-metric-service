@@ -132,6 +132,35 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
     }
     
     @Test
+    public void SetupTimeTest() throws Exception {
+        String queryId = createQueryId();
+        BaseQueryMetric m = createMetric(queryId);
+        m.setSetupTime(-1);
+        m.setLifecycle(BaseQueryMetric.Lifecycle.DEFINED);
+        // @formatter:off
+        client.submit(new QueryMetricClient.Request.Builder()
+                        .withMetric(m)
+                        .withMetricType(QueryMetricType.COMPLETE)
+                        .withUser(this.adminUser)
+                        .build());
+        // @formatter:on
+        BaseQueryMetric returnedMetric = shardTableQueryMetricHandler.getQueryMetric(queryId);
+        metricAssertEquals(m, returnedMetric);
+        
+        m.setSetupTime(4000);
+        m.setLifecycle(BaseQueryMetric.Lifecycle.INITIALIZED);
+        // @formatter:off
+        client.submit(new QueryMetricClient.Request.Builder()
+                        .withMetric(m)
+                        .withMetricType(QueryMetricType.COMPLETE)
+                        .withUser(this.adminUser)
+                        .build());
+        // @formatter:on
+        returnedMetric = shardTableQueryMetricHandler.getQueryMetric(queryId);
+        metricAssertEquals(m, returnedMetric);
+    }
+    
+    @Test
     public void ChangePlanTest() throws Exception {
         int port = this.webServicePort;
         String queryId = createQueryId();

@@ -327,6 +327,7 @@ public class QueryMetricTestBase {
         m.setHost("localhost");
         m.setQueryType("RunningQuery");
         m.setLifecycle(BaseQueryMetric.Lifecycle.INITIALIZED);
+        m.setSetupTime(4000);
         m.setCreateCallTime(4000);
         m.setQueryAuthorizations("A,B,C");
         m.setQueryName("TestQuery");

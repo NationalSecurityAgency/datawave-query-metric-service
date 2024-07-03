@@ -319,7 +319,7 @@ public class ContentQueryMetricsIngestHelper extends CSVIngestHelper implements 
                     fields.put("QUERY_TYPE", updated.getQueryType());
                 }
             }
-            if (isFirstWrite(updated.getSetupTime(), stored == null ? 0 : stored.getSetupTime(), 0)) {
+            if (isFirstWrite(updated.getSetupTime(), stored == null ? -1 : stored.getSetupTime(), -1)) {
                 fields.put("SETUP_TIME", Long.toString(updated.getSetupTime()));
             }
             if (isChanged(updated.getSeekCount(), stored == null ? -1 : stored.getSeekCount())) {
