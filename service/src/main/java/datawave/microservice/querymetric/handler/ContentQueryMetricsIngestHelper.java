@@ -324,27 +324,6 @@ public class ContentQueryMetricsIngestHelper extends CSVIngestHelper implements 
             if (isChanged(updated.getSourceCount(), stored == null ? -1 : stored.getSourceCount())) {
                 fields.put("SOURCE_COUNT", Long.toString(updated.getSourceCount()));
             }
-            // this is a test to see the contents of stored / updated. To be removed later
-            // right now it seems as though both of their subplans are always empty
-            if (isChanged(updated.getSourceCount(), stored == null ? -1 : stored.getSourceCount())) {
-                if (stored != null) {
-                    fields.put("SUBPLAN", updated.getSubPlans().toString() + " OR " + stored.getSubPlans().toString());
-                } else {
-                    fields.put("SUBPLAN", updated.getSubPlans().toString() + " : " + updated);
-                }
-            }
-            // List<String> plans = new ArrayList<>();
-            // plans.add("F1 == 'value1' || F2 == 'value2'");
-            // plans.add("F3 == 'value3' || F4 == 'value4'");
-            // plans.add("F2 == 'value2' || F3 == 'value3'");
-            // plans.add("F1 == 'value1' || F6 == 'value6'");
-            // plans.add("F1 == 'value1' || F5 == 'value5'");
-            // for (String p : plans) {
-            // RangeCounts ranges = new RangeCounts();
-            // ranges.setShardRangeCount(3);
-            // ranges.setDocumentRangeCount(3);
-            // updated.addSubPlan(p, ranges);
-            // }
             Map<String,RangeCounts> updatedSubPlans = updated.getSubPlans();
             if (updatedSubPlans != null && !updatedSubPlans.isEmpty()) {
                 Map<String,RangeCounts> storedSubPlans = stored != null ? stored.getSubPlans() : null;
