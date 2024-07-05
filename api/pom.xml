@@ -28,9 +28,9 @@
         <version.guava>31.1-jre</version.guava>
         <version.jackson>2.12.5</version.jackson>
         <version.jaxb-api>2.3.1</version.jaxb-api>
-        <version.microservice.query-api>1.0.0</version.microservice.query-api>
         <version.protobuf-java>3.7.1</version.protobuf-java>
         <version.protostuff>1.6.2</version.protostuff>
+        <version.query-api>1.0.0</version.query-api>
         <version.slf4j>1.7.36</version.slf4j>
     </properties>
     <dependencyManagement>
@@ -70,7 +70,7 @@
             <dependency>
                 <groupId>gov.nsa.datawave.microservice</groupId>
                 <artifactId>query-api</artifactId>
-                <version>${version.microservice.query-api}</version>
+                <version>${version.query-api}</version>
                 <exclusions>
                     <exclusion>
                         <artifactId>*</artifactId>
