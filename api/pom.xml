@@ -19,18 +19,18 @@
     <properties>
         <datawave.webservice.namespace>http://webservice.datawave.nsa/v1</datawave.webservice.namespace>
         <spotbugs.excludes.file>${basedir}/spotbugs-exclude.xml</spotbugs.excludes.file>
-        <version.accumulo-utils>4.0.0</version.accumulo-utils>
-        <version.base-rest-responses>4.0.0</version.base-rest-responses>
         <version.commons-lang3>3.12.0</version.commons-lang3>
         <version.commons-text>1.9</version.commons-text>
         <version.datawave>7.0.0</version.datawave>
+        <version.datawave.accumulo-utils>4.0.0</version.datawave.accumulo-utils>
+        <version.datawave.base-rest-responses>4.0.0</version.datawave.base-rest-responses>
+        <version.datawave.query-api>1.0.0</version.datawave.query-api>
         <version.glassfish>2.3.6</version.glassfish>
         <version.guava>31.1-jre</version.guava>
         <version.jackson>2.12.5</version.jackson>
         <version.jaxb-api>2.3.1</version.jaxb-api>
         <version.protobuf-java>3.7.1</version.protobuf-java>
         <version.protostuff>1.6.2</version.protostuff>
-        <version.query-api>1.0.0</version.query-api>
         <version.slf4j>1.7.36</version.slf4j>
     </properties>
     <dependencyManagement>
@@ -48,7 +48,7 @@
             <dependency>
                 <groupId>gov.nsa.datawave.microservice</groupId>
                 <artifactId>accumulo-utils</artifactId>
-                <version>${version.accumulo-utils}</version>
+                <version>${version.datawave.accumulo-utils}</version>
                 <exclusions>
                     <exclusion>
                         <artifactId>*</artifactId>
@@ -59,7 +59,7 @@
             <dependency>
                 <groupId>gov.nsa.datawave.microservice</groupId>
                 <artifactId>base-rest-responses</artifactId>
-                <version>${version.base-rest-responses}</version>
+                <version>${version.datawave.base-rest-responses}</version>
                 <exclusions>
                     <exclusion>
                         <artifactId>*</artifactId>
@@ -70,7 +70,7 @@
             <dependency>
                 <groupId>gov.nsa.datawave.microservice</groupId>
                 <artifactId>query-api</artifactId>
-                <version>${version.query-api}</version>
+                <version>${version.datawave.query-api}</version>
                 <exclusions>
                     <exclusion>
                         <artifactId>*</artifactId>
