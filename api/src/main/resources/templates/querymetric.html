@@ -130,11 +130,11 @@
             <script type="text/javascript">
                 // Makes the metric's query and the metric's query plan interactive (highlight
                 // matching parens on mouse over, clicking a paren brings you to its matching paren)
-                // Call interactiveParens for the query and query plan
-                interactiveParens(`[[${metric.query}]]`, false, [[${metricIter.index + 1}]]);
-                interactiveParens(`[[${metric.plan}]]`, true, [[${metricIter.index + 1}]]);
+                var metricNum = [[${metricIter.index + 1}]];
+                interactiveParens(`[[${metric.queryEscapedForTemplateString}]]`, false, metricNum);
+                interactiveParens(`[[${metric.planEscapedForTemplateString}]]`, true, metricNum);
                 if ("[[${isGeoQuery}]]" === "true") {
-                    addMapLinks([[${metricIter.index + 1}]]);
+                    addMapLinks(metricNum);
                 }
             </script>
         </table>
