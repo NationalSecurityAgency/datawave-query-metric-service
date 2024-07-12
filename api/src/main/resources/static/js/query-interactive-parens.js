@@ -1,5 +1,5 @@
 function highlight(line) {
-    line.style.backgroundColor = "yellow";
+    line.style.backgroundColor = "#1BFC06";  // highlighter green
     line.style.textDecoration = "none";
     line.style.color = "#000000";
 }
@@ -13,7 +13,7 @@ function interactiveParens(query = '', isQueryPlan = false, metricNum) {
     const lines = query.split(/\r?\n/);
     for (let i = 0; i < lines.length; i++) {
         // If the line is 0 or more spaces followed by and ending with an open paren, find its matching closing paren (on a different line)
-        if (/^\s*\($/.test(lines[i])) {
+        if (/^\s*\(+$/.test(lines[i])) {
             for (let j = i + 1; j < lines.length; j++) {
                 var id_line_i, id_line_j;
                 if (isQueryPlan) {
@@ -24,7 +24,7 @@ function interactiveParens(query = '', isQueryPlan = false, metricNum) {
                     id_line_j = `query${metricNum}-line${j + 1}`;
                 }
                 // if this is true, we have found the matching paren
-                if (lines[j].replace(')', '(').substring(0, lines[i].length) === lines[i]) {
+                if (lines[j].replaceAll(')', '(').substring(0, lines[i].length) === lines[i]) {
                     lines[j] = `<a class="a-no-style" href=#${id_line_i} id=${id_line_j} onmouseover="highlight(this); highlight(document.getElementById('${id_line_i}'));" onmouseout="unhighlight(this); unhighlight(document.getElementById('${id_line_i}'));">${lines[j]}</a>`;
                     break;
                 }
