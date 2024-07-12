@@ -14,9 +14,6 @@ import org.slf4j.LoggerFactory;
 public class QueryMetricModel extends QueryMetric implements QueryMetricModelFormat {
     
     private static final Logger log = LoggerFactory.getLogger(QueryMetricModel.class);
-    private static final char DOLLAR = '$';
-    private static final char BACKSLASH = '\\';
-    private static final char BACKTICK = '`';
     public long totalPageTime = 0;
     public long totalPageCallTime = 0;
     public long totalSerializationTime = 0;
@@ -64,34 +61,6 @@ public class QueryMetricModel extends QueryMetric implements QueryMetricModelFor
         } catch (Exception e) {
             log.error(e.getMessage(), e);
             return "";
-        }
-    }
-    
-    private String escapeForJavascriptTemplateString(String str) {
-        if (StringUtils.isBlank(str)
-                        || (!str.contains(String.valueOf(DOLLAR)) && !str.contains(String.valueOf(BACKSLASH)) && !str.contains(String.valueOf(BACKTICK)))) {
-            return str;
-        } else {
-            StringBuilder sb = new StringBuilder();
-            for (int i = 0; i < str.length(); i++) {
-                boolean lastChar = (i == str.length() - 1);
-                char c = str.charAt(i);
-                switch (c) {
-                    case BACKTICK: // must escape ` to prevent from breaking JS template string
-                    case BACKSLASH: // must escape \ to prevent it from vanishing when preceding a non-escape character
-                        sb.append("\\");
-                        break;
-                    case DOLLAR: // must escape $ to prevent JS template string interpretation as placeholder
-                        if (!lastChar && str.charAt(i + 1) == '{') {
-                            sb.append("\\");
-                        }
-                        break;
-                    default:
-                }
-                // append the original character
-                sb.append(c);
-            }
-            return sb.toString();
         }
     }
     
