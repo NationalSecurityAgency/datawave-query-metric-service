@@ -8,9 +8,3 @@ spring:
 server:
   ssl:
     enabled: false
-
-datawave:
-  query:
-    metric:
-      client:
-        transport: http

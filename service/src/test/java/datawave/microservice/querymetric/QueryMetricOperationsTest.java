@@ -13,6 +13,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import datawave.microservice.querymetric.config.QueryMetricTransportType;
+
 public abstract class QueryMetricOperationsTest extends QueryMetricTestBase {
     
     @BeforeEach
@@ -37,7 +39,7 @@ public abstract class QueryMetricOperationsTest extends QueryMetricTestBase {
                 .withMetric(m)
                 .withMetricType(QueryMetricType.COMPLETE)
                 .withUser(adminUser)
-                .build());
+                .build(), QueryMetricTransportType.MESSAGE);
         // @formatter:on
         ensureDataWritten(incomingQueryMetricsCache, lastWrittenQueryMetricCache, queryId);
         assertNotNull(lastWrittenQueryMetricCache.get(queryId, QueryMetricUpdateHolder.class),
@@ -60,7 +62,7 @@ public abstract class QueryMetricOperationsTest extends QueryMetricTestBase {
                         .withMetric(m)
                         .withMetricType(QueryMetricType.COMPLETE)
                         .withUser(adminUser)
-                        .build());
+                        .build(), QueryMetricTransportType.MESSAGE);
         // @formatter:on
         ensureDataWritten(incomingQueryMetricsCache, lastWrittenQueryMetricCache, queryId);
         QueryMetricUpdateHolder holder = new QueryMetricUpdateHolder(m, QueryMetricType.COMPLETE);
@@ -77,7 +79,8 @@ public abstract class QueryMetricOperationsTest extends QueryMetricTestBase {
         partial = m.duplicate();
         partial.getPageTimes().removeIf(pageMetric -> pageMetric.getPageNumber() < 3);
         // partial now contains pages 3 and 4
-        client.submit(new QueryMetricClient.Request.Builder().withMetric(partial).withMetricType(QueryMetricType.COMPLETE).withUser(adminUser).build());
+        client.submit(new QueryMetricClient.Request.Builder().withMetric(partial).withMetricType(QueryMetricType.COMPLETE).withUser(adminUser).build(),
+                        QueryMetricTransportType.MESSAGE);
         // @formatter:on
         ensureDataStored(incomingQueryMetricsCache, queryId);
         // partial metric is cached in incomingQueryMetricsCache
@@ -103,7 +106,7 @@ public abstract class QueryMetricOperationsTest extends QueryMetricTestBase {
                     .withMetric(m)
                     .withMetricType(QueryMetricType.COMPLETE)
                     .withUser(adminUser)
-                    .build());
+                    .build(), QueryMetricTransportType.MESSAGE);
             // @formatter:on
         }
         metrics.forEach((m) -> {
@@ -137,7 +140,7 @@ public abstract class QueryMetricOperationsTest extends QueryMetricTestBase {
                 .withMetrics(metrics)
                 .withMetricType(QueryMetricType.COMPLETE)
                 .withUser(adminUser)
-                .build());
+                .build(), QueryMetricTransportType.MESSAGE);
         // @formatter:on
         metrics.forEach((m) -> {
             String queryId = m.getQueryId();
