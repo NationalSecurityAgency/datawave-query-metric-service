@@ -6,8 +6,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
-import datawave.microservice.query.QueryImpl;
 import org.apache.commons.lang3.StringUtils;
+
+import datawave.microservice.query.QueryImpl;
 
 public interface QueryMetricModelFormat {
     
