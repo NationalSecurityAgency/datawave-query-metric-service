@@ -53,7 +53,7 @@ public class SimpleQueryGeometryHandler implements QueryGeometryHandler {
                     boolean isLuceneQuery = isLuceneQuery(metric.getParameters());
                     String jexlQuery = (isLuceneQuery) ? toJexlQuery(metric.getQuery()) : metric.getQuery();
                     JexlNode queryNode = JexlASTHelper.parseAndFlattenJexlQuery(jexlQuery);
-                    Set<datawave.webservice.query.map.QueryGeometry> features = GeoFeatureVisitor.getGeoFeatures(queryNode, isLuceneQuery);
+                    Set<datawave.microservice.querymetric.QueryGeometry> features = GeoFeatureVisitor.getGeoFeatures(queryNode, isLuceneQuery);
                     queryGeometries.addAll(features.stream().map(f -> new QueryGeometry(f.getFunction(), f.getGeometry())).collect(Collectors.toList()));
                 } catch (Exception e) {
                     log.error(e.getMessage(), e);
