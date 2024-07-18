@@ -15,7 +15,8 @@ import datawave.microservice.querymetric.BaseQueryMetric.PageMetric;
 import datawave.microservice.querymetric.QueryMetricType;
 
 public class QueryMetricCombiner<T extends BaseQueryMetric> implements Serializable {
-    
+    private static final long serialVersionUID = -5388075643256402640L;
+
     private static final Logger log = LoggerFactory.getLogger(QueryMetricCombiner.class);
     
     public T combineMetrics(T updatedQueryMetric, T cachedQueryMetric, QueryMetricType metricType) {
