@@ -64,6 +64,14 @@ public class QueryMetricModel extends QueryMetric implements QueryMetricModelFor
         }
     }
     
+    public String getQueryEscapedForTemplateString() {
+        return escapeForJavascriptTemplateString(super.getQuery());
+    }
+    
+    public String getPlanEscapedForTemplateString() {
+        return escapeForJavascriptTemplateString(super.getPlan());
+    }
+    
     public String getQueryIdUrl() {
         return basePath + "/v1/id/" + queryId;
     }
