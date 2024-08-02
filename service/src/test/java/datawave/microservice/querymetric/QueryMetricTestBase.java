@@ -327,6 +327,7 @@ public class QueryMetricTestBase {
         m.setHost("localhost");
         m.setQueryType("RunningQuery");
         m.setLifecycle(BaseQueryMetric.Lifecycle.INITIALIZED);
+        m.setSetupTime(4000);
         m.setCreateCallTime(4000);
         m.setQueryAuthorizations("A,B,C");
         m.setQueryName("TestQuery");
@@ -536,7 +537,7 @@ public class QueryMetricTestBase {
         MapStoreConfig mapStoreConfig = config.getMapConfig(incomingCache.getName()).getMapStoreConfig();
         int writeDelaySeconds = Math.min(mapStoreConfig.getWriteDelaySeconds(), 1000);
         boolean found = false;
-        while (!found && System.currentTimeMillis() < (now + (1000 * (writeDelaySeconds + 1)))) {
+        while (!found && System.currentTimeMillis() < (now + (1000 * (writeDelaySeconds + 5.0)))) {
             found = lastWrittenCache.get(queryId, QueryMetricUpdateHolder.class) != null;
             if (!found) {
                 try {

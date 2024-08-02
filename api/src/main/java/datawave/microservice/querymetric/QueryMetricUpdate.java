@@ -8,6 +8,7 @@ import javax.xml.bind.annotation.XmlElement;
 
 @XmlAccessorType(XmlAccessType.NONE)
 public class QueryMetricUpdate<T extends BaseQueryMetric> implements Serializable {
+    private static final long serialVersionUID = -8110489889196430944L;
     
     @XmlElement
     protected T metric;

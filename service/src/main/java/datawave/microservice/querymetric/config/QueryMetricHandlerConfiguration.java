@@ -60,7 +60,7 @@ import datawave.security.authorization.JWTTokenHandler;
 import datawave.webservice.query.result.event.ResponseObjectFactory;
 
 @Configuration
-@EnableConfigurationProperties({QueryMetricProperties.class, QueryMetricHandlerProperties.class, TimelyProperties.class})
+@EnableConfigurationProperties({QueryMetricHandlerProperties.class, TimelyProperties.class})
 public class QueryMetricHandlerConfiguration {
     
     @Value("${spring.application.name}")

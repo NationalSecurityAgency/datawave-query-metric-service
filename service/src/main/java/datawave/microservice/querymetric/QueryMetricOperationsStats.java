@@ -68,7 +68,7 @@ public class QueryMetricOperationsStats {
     protected Map<String,String> staticTags = new LinkedHashMap<>();
     
     public enum TIMERS {
-        MESSAGE_SEND, REST, STORE
+        REST, STORE
     }
     
     public enum METERS {
@@ -247,7 +247,6 @@ public class QueryMetricOperationsStats {
         addTimerStats("store", getTimer(TIMERS.STORE), stats);
         addTimerStats("accumulo.write", this.mapStore.getWriteTimer(), stats);
         addTimerStats("accumulo.read", this.mapStore.getReadTimer(), stats);
-        addTimerStats("message.send", getTimer(TIMERS.MESSAGE_SEND), stats);
         addTimerStats("rest", getTimer(TIMERS.REST), stats);
         addMeterStats("message.receive", getMeter(METERS.MESSAGE_RECEIVE), stats);
         return stats;

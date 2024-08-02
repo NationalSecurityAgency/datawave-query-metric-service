@@ -326,7 +326,7 @@ public class ContentQueryMetricsIngestHelper extends CSVIngestHelper implements 
             if (isChanged(updated.getRejectedCount(), stored == null ? -1 : stored.getRejectedCount())) {
                 fields.put("REJECTED_COUNT", Long.toString(updated.getRejectedCount()));
             }
-            if (isFirstWrite(updated.getSetupTime(), stored == null ? 0 : stored.getSetupTime(), 0)) {
+            if (isFirstWrite(updated.getSetupTime(), stored == null ? -1 : stored.getSetupTime(), -1)) {
                 fields.put("SETUP_TIME", Long.toString(updated.getSetupTime()));
             }
             if (isChanged(updated.getSeekCount(), stored == null ? -1 : stored.getSeekCount())) {
