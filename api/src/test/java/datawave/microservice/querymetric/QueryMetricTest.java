@@ -78,7 +78,7 @@ public class QueryMetricTest {
         Throwable t = new Throwable("non-datawave error");
         queryMetric.setError(t);
         assertEquals("non-datawave error", queryMetric.getErrorMessage());
-        assertEquals("", queryMetric.getErrorCode());
+        assertEquals("500-1", queryMetric.getErrorCode());
     }
     
     @Test

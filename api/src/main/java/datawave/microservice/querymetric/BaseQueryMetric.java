@@ -944,6 +944,8 @@ public abstract class BaseQueryMetric implements HasMarkings, Serializable {
             this.setErrorCode(qe.getErrorCode());
             this.setErrorMessage(qe.getMessage());
         } else {
+            // '500-1' signifies an 'Unknown server error'. This serves as a catch-all error code.
+            this.setErrorCode("500-1");
             this.setErrorMessage(t.getCause() != null ? t.getCause().getMessage() : t.getMessage());
         }
     }
