@@ -24,6 +24,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import datawave.core.common.connection.AccumuloClientPool;
 import datawave.core.common.connection.AccumuloConnectionFactory;
+import datawave.core.query.language.parser.jexl.LuceneToJexlQueryParser;
 import datawave.core.query.logic.QueryLogic;
 import datawave.core.query.logic.QueryLogicTransformer;
 import datawave.marking.MarkingFunctions;
@@ -33,7 +34,6 @@ import datawave.microservice.querymetric.QueryMetricFactory;
 import datawave.microservice.querymetric.config.QueryMetricHandlerProperties;
 import datawave.microservice.querymetric.factory.QueryMetricQueryLogicFactory;
 import datawave.microservice.security.util.DnUtils;
-import datawave.query.language.parser.jexl.LuceneToJexlQueryParser;
 import datawave.security.authorization.DatawavePrincipal;
 import datawave.security.authorization.DatawaveUser;
 import datawave.security.authorization.SubjectIssuerDNPair;

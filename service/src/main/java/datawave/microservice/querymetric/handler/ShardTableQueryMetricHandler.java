@@ -48,6 +48,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 
 import datawave.core.common.connection.AccumuloClientPool;
+import datawave.core.query.language.parser.jexl.LuceneToJexlQueryParser;
 import datawave.core.query.util.QueryUtil;
 import datawave.data.hash.UID;
 import datawave.data.hash.UIDBuilder;
@@ -77,7 +78,6 @@ import datawave.microservice.querymetric.factory.QueryMetricQueryLogicFactory;
 import datawave.microservice.security.util.DnUtils;
 import datawave.query.QueryParameters;
 import datawave.query.iterator.QueryOptions;
-import datawave.query.language.parser.jexl.LuceneToJexlQueryParser;
 import datawave.security.authorization.DatawaveUser;
 import datawave.security.util.WSAuthorizationsUtil;
 import datawave.webservice.query.exception.QueryExceptionType;

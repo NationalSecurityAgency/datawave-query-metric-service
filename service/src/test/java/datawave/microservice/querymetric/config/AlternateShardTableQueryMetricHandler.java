@@ -6,6 +6,7 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Qualifier;
 
 import datawave.core.common.connection.AccumuloClientPool;
+import datawave.core.query.language.parser.jexl.LuceneToJexlQueryParser;
 import datawave.marking.MarkingFunctions;
 import datawave.microservice.querymetric.QueryMetricFactory;
 import datawave.microservice.querymetric.factory.QueryMetricQueryLogicFactory;
@@ -13,7 +14,6 @@ import datawave.microservice.querymetric.handler.ContentQueryMetricsIngestHelper
 import datawave.microservice.querymetric.handler.LocalShardTableQueryMetricHandler;
 import datawave.microservice.querymetric.handler.QueryMetricCombiner;
 import datawave.microservice.security.util.DnUtils;
-import datawave.query.language.parser.jexl.LuceneToJexlQueryParser;
 import datawave.webservice.query.result.event.EventBase;
 import datawave.webservice.query.result.event.FieldBase;
 

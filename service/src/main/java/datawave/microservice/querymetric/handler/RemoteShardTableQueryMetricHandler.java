@@ -15,6 +15,7 @@ import org.springframework.http.MediaType;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import datawave.core.common.connection.AccumuloClientPool;
+import datawave.core.query.language.parser.jexl.LuceneToJexlQueryParser;
 import datawave.marking.MarkingFunctions;
 import datawave.microservice.authorization.user.DatawaveUserDetails;
 import datawave.microservice.query.DefaultQueryParameters;
@@ -25,7 +26,6 @@ import datawave.microservice.querymetric.QueryMetricFactory;
 import datawave.microservice.querymetric.config.QueryMetricHandlerProperties;
 import datawave.microservice.querymetric.factory.QueryMetricQueryLogicFactory;
 import datawave.microservice.security.util.DnUtils;
-import datawave.query.language.parser.jexl.LuceneToJexlQueryParser;
 import datawave.security.authorization.DatawaveUser;
 import datawave.security.authorization.JWTTokenHandler;
 import datawave.webservice.query.result.event.ResponseObjectFactory;
