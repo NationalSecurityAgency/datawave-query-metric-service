@@ -940,18 +940,18 @@ public abstract class BaseQueryMetric implements HasMarkings, Serializable {
     }
     
     /**
-     * Sets the error code and error message of the metric. There are a few cases that can occur:
-     * <ul>
-     * <li>The throwable cause <u>IS</u> an instance of {@link QueryException}:</li>
+     * Sets the error code and error message of the metric. There are a few cases that can occur: <br>
+     * <br>
+     * <u>The throwable cause <b>IS</b> an instance of {@link QueryException}:</u>
      * <ul>
      * <li>In this case, the error message and error code will be set to the values that were passed when the exception was thrown.</li>
      * <li>If the error code happens to be blank, {@link BaseQueryMetric#DEFAULT_ERROR_CODE} will be used.</li>
      * </ul>
-     * <li>The throwable cause <u>IS NOT</u> an instance of {@link QueryException}:</li>
+     * <br>
+     * <u>The throwable cause <b>IS NOT</b> an instance of {@link QueryException}:</u>
      * <ul>
      * <li>In this case, there is no error code given by the exception, so the error code will be set to {@link BaseQueryMetric#DEFAULT_ERROR_CODE}.</li>
      * <li>The error message is set to the message passed by either the cause of the throwable (if it is not null) or the throwable itself.</li>
-     * </ul>
      * </ul>
      * <em>All possible error codes can be found here {@link datawave.webservice.query.exception.DatawaveErrorCode}.</em>
      *
