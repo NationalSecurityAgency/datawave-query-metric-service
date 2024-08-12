@@ -685,6 +685,7 @@ public abstract class BaseQueryMetric implements HasMarkings, Serializable {
     protected Set<Prediction> predictions = new HashSet<>();
     
     public static final String DATAWAVE = "DATAWAVE";
+    public static final String DEFAULT_ERROR_CODE = "500-1";
     protected static final Map<String,String> discoveredVersionMap = BaseQueryMetric.getVersionsFromClasspath();
     protected long numUpdates = 0;
     
@@ -938,14 +939,32 @@ public abstract class BaseQueryMetric implements HasMarkings, Serializable {
         this.predictions.add(prediction);
     }
     
+    /**
+     * Sets the error code and error message of the metric. There are a few cases that can occur:
+     * <ul>
+     * <li>The throwable cause <u>IS</u> an instance of {@link QueryException}:</li>
+     * <ul>
+     * <li>In this case, the error message and error code will be set to the values that were passed when the exception was thrown.</li>
+     * <li>If the error code happens to be blank, {@link BaseQueryMetric#DEFAULT_ERROR_CODE} will be used.</li>
+     * </ul>
+     * <li>The throwable cause <u>IS NOT</u> an instance of {@link QueryException}:</li>
+     * <ul>
+     * <li>In this case, there is no error code given by the exception, so the error code will be set to {@link BaseQueryMetric#DEFAULT_ERROR_CODE}.</li>
+     * <li>The error message is set to the message passed by either the cause of the throwable (if it is not null) or the throwable itself.</li>
+     * </ul>
+     * </ul>
+     * <em>All possible error codes can be found here {@link datawave.webservice.query.exception.DatawaveErrorCode}.</em>
+     *
+     * @param t
+     *            Object containing the exception associated with the error.
+     */
     public void setError(Throwable t) {
         if (t.getCause() instanceof QueryException) {
             QueryException qe = (QueryException) t.getCause();
-            this.setErrorCode(qe.getErrorCode());
+            this.setErrorCode(qe.getErrorCode() != null ? qe.getErrorCode() : DEFAULT_ERROR_CODE);
             this.setErrorMessage(qe.getMessage());
         } else {
-            // '500-1' signifies an 'Unknown server error'. This serves as a catch-all error code.
-            this.setErrorCode("500-1");
+            this.setErrorCode(DEFAULT_ERROR_CODE);
             this.setErrorMessage(t.getCause() != null ? t.getCause().getMessage() : t.getMessage());
         }
     }
