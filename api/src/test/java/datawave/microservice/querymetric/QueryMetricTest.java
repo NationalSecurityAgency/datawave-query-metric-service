@@ -46,6 +46,7 @@ public class QueryMetricTest {
     private static ArrayList<PageMetric> pageTimes = null;
     private static List<String> positiveSelectors = null;
     private static List<String> proxyServers = null;
+    private static final String DEFAULT_ERROR_CODE = "500-1";
     
     @BeforeAll
     public static void setup() {
@@ -78,7 +79,7 @@ public class QueryMetricTest {
         Throwable t = new Throwable("non-datawave error");
         queryMetric.setError(t);
         assertEquals("non-datawave error", queryMetric.getErrorMessage());
-        assertEquals("500-1", queryMetric.getErrorCode());
+        assertEquals(DEFAULT_ERROR_CODE, queryMetric.getErrorCode());
     }
     
     @Test
