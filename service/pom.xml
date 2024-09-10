@@ -23,7 +23,7 @@
         <version.accumulo-utils>4.0.0</version.accumulo-utils>
         <version.base-rest-responses>4.0.0</version.base-rest-responses>
         <version.cache-api>1.1.1</version.cache-api>
-        <version.datawave>7.5.0-SNAPSHOT</version.datawave>
+        <version.datawave>7.6.0-SNAPSHOT</version.datawave>
         <version.hazelcast-kubernetes>2.2.3</version.hazelcast-kubernetes>
         <version.in-memory-accumulo>4.0.0</version.in-memory-accumulo>
         <version.microservice.accumulo-api>4.0.0</version.microservice.accumulo-api>
