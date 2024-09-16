@@ -23,11 +23,13 @@
         <version.accumulo-utils>4.0.0</version.accumulo-utils>
         <version.base-rest-responses>4.0.0</version.base-rest-responses>
         <version.cache-api>1.1.1</version.cache-api>
-        <version.datawave>7.6.0-SNAPSHOT</version.datawave>
+        <version.datawave>7.7.0-SNAPSHOT</version.datawave>
+        <version.geotools>29.0</version.geotools>
         <version.hazelcast-kubernetes>2.2.3</version.hazelcast-kubernetes>
         <version.in-memory-accumulo>4.0.0</version.in-memory-accumulo>
         <version.microservice.accumulo-api>4.0.0</version.microservice.accumulo-api>
         <version.microservice.hazelcast>4.0.2</version.microservice.hazelcast>
+        <version.microservice.map-api>1.0.0-SNAPSHOT</version.microservice.map-api>
         <version.microservice.query-metric-api>4.0.7</version.microservice.query-metric-api>
         <version.microservice.starter>4.0.3-SNAPSHOT</version.microservice.starter>
         <version.microservice.starter-datawave-query-metric>3.0.3</version.microservice.starter-datawave-query-metric>
@@ -186,6 +188,11 @@
             </dependency>
             <dependency>
                 <groupId>gov.nsa.datawave.microservice</groupId>
+                <artifactId>map-api</artifactId>
+                <version>${version.microservice.map-api}</version>
+            </dependency>
+            <dependency>
+                <groupId>gov.nsa.datawave.microservice</groupId>
                 <artifactId>query-metric-api</artifactId>
                 <version>${version.microservice.query-metric-api}</version>
                 <exclusions>
@@ -307,6 +314,26 @@
                 </exclusions>
             </dependency>
             <dependency>
+                <groupId>org.geotools</groupId>
+                <artifactId>gt-cql</artifactId>
+                <version>${version.geotools}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.geotools</groupId>
+                <artifactId>gt-epsg-hsql</artifactId>
+                <version>${version.geotools}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.geotools</groupId>
+                <artifactId>gt-epsg-wkt</artifactId>
+                <version>${version.geotools}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.geotools</groupId>
+                <artifactId>gt-geojson</artifactId>
+                <version>${version.geotools}</version>
+            </dependency>
+            <dependency>
                 <groupId>org.webjars</groupId>
                 <artifactId>bootstrap</artifactId>
                 <version>${version.webjars.bootstrap}</version>
@@ -355,6 +382,10 @@
         <dependency>
             <groupId>gov.nsa.datawave.microservice</groupId>
             <artifactId>hazelcast-common</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>gov.nsa.datawave.microservice</groupId>
+            <artifactId>map-api</artifactId>
         </dependency>
         <dependency>
             <groupId>gov.nsa.datawave.microservice</groupId>

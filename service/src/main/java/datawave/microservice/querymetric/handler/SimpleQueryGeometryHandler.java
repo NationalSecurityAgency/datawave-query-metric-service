@@ -2,7 +2,10 @@ package datawave.microservice.querymetric.handler;
 
 import static datawave.query.QueryParameters.QUERY_SYNTAX;
 
+import java.io.IOException;
+import java.io.StringWriter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -14,6 +17,10 @@ import org.slf4j.LoggerFactory;
 
 import datawave.core.query.language.parser.ParseException;
 import datawave.core.query.language.parser.jexl.LuceneToJexlQueryParser;
+import datawave.microservice.map.data.GeoFunctionFeature;
+import datawave.microservice.map.data.GeoQueryFeatures;
+import datawave.microservice.map.geojson.GeoJSON;
+import datawave.microservice.map.visitor.GeoFeatureVisitor;
 import datawave.microservice.query.QueryImpl;
 import datawave.microservice.querymetric.BaseQueryMetric;
 import datawave.microservice.querymetric.QueryGeometry;
@@ -21,7 +28,6 @@ import datawave.microservice.querymetric.QueryGeometryResponse;
 import datawave.microservice.querymetric.config.QueryMetricHandlerProperties;
 import datawave.microservice.querymetric.factory.QueryMetricResponseFactory;
 import datawave.query.jexl.JexlASTHelper;
-import datawave.query.jexl.visitors.GeoFeatureVisitor;
 
 /**
  * This class is used to extract query geometries from the query metrics in an effort to provide those geometries for subsequent display to the user.
@@ -53,8 +59,7 @@ public class SimpleQueryGeometryHandler implements QueryGeometryHandler {
                     boolean isLuceneQuery = isLuceneQuery(metric.getParameters());
                     String jexlQuery = (isLuceneQuery) ? toJexlQuery(metric.getQuery()) : metric.getQuery();
                     JexlNode queryNode = JexlASTHelper.parseAndFlattenJexlQuery(jexlQuery);
-                    Set<datawave.microservice.querymetric.QueryGeometry> features = GeoFeatureVisitor.getGeoFeatures(queryNode, isLuceneQuery);
-                    queryGeometries.addAll(features.stream().map(f -> new QueryGeometry(f.getFunction(), f.getGeometry())).collect(Collectors.toList()));
+                    queryGeometries.addAll(geoQueryFeaturesToQueryGeometry(GeoFeatureVisitor.getGeoFeatures(queryNode, Collections.emptyMap())));
                 } catch (Exception e) {
                     log.error(e.getMessage(), e);
                     response.addException(new Exception("Unable to parse the geo features"));
@@ -64,6 +69,25 @@ public class SimpleQueryGeometryHandler implements QueryGeometryHandler {
         }
         
         return response;
+    }
+    
+    private List<QueryGeometry> geoQueryFeaturesToQueryGeometry(GeoQueryFeatures geoQueryFeatures) {
+        List<QueryGeometry> queryGeometries = new ArrayList<>();
+        for (GeoFunctionFeature geoFuncFeature : geoQueryFeatures.getFunctions()) {
+            
+            String function = geoFuncFeature.getFunction();
+            String geometry = null;
+            try {
+                StringWriter writer = new StringWriter();
+                GeoJSON.write(geoFuncFeature.getGeoJson(), writer);
+                geometry = writer.toString();
+            } catch (IOException e) {
+                log.trace("Unable to serialize the geo features");
+                continue;
+            }
+            queryGeometries.add(new QueryGeometry(function, geometry));
+        }
+        return queryGeometries;
     }
     
     private static boolean isLuceneQuery(Set<QueryImpl.Parameter> parameters) {
@@ -84,7 +108,7 @@ public class SimpleQueryGeometryHandler implements QueryGeometryHandler {
             if (isLuceneQuery(metric.getParameters()))
                 jexlQuery = toJexlQuery(jexlQuery, new LuceneToJexlQueryParser());
             
-            return !GeoFeatureVisitor.getGeoFeatures(JexlASTHelper.parseAndFlattenJexlQuery(jexlQuery)).isEmpty();
+            return !GeoFeatureVisitor.getGeoFeatures(JexlASTHelper.parseAndFlattenJexlQuery(jexlQuery), Collections.emptyMap()).getFunctions().isEmpty();
         } catch (Exception e) {
             log.trace("Unable to parse the geo features", e);
         }
