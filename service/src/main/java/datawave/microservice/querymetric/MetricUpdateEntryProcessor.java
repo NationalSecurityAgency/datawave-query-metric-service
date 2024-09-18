@@ -42,6 +42,7 @@ public class MetricUpdateEntryProcessor implements EntryProcessor<String,QueryMe
             storedHolder.addValue("nextCount", updatedMetric.getNextCount());
             storedHolder.addValue("seekCount", updatedMetric.getSeekCount());
             storedHolder.addValue("yieldCount", updatedMetric.getYieldCount());
+            storedHolder.addValue("docSize", updatedMetric.getDocSize());
             storedHolder.addValue("docRanges", updatedMetric.getDocRanges());
             storedHolder.addValue("fiRanges", updatedMetric.getFiRanges());
         }
