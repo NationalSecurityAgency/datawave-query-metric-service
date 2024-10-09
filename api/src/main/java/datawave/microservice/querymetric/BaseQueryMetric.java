@@ -673,6 +673,8 @@ public abstract class BaseQueryMetric implements HasMarkings, Serializable {
     @XmlJavaTypeAdapter(StringMapAdapter.class)
     protected Map<String,String> versionMap = new TreeMap<>();
     @XmlElement
+    protected long docSize = 0;
+    @XmlElement
     protected long docRanges = 0;
     @XmlElement
     protected long fiRanges = 0;
@@ -897,6 +899,14 @@ public abstract class BaseQueryMetric implements HasMarkings, Serializable {
     
     public void setYieldCount(long yieldCount) {
         this.yieldCount = yieldCount;
+    }
+    
+    public long getDocSize() {
+        return docSize;
+    }
+    
+    public void setDocSize(long docSize) {
+        this.docSize = docSize;
     }
     
     public long getDocRanges() {
