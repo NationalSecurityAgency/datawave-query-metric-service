@@ -28,6 +28,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.CompareToBuilder;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,6 +37,8 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import datawave.marking.MarkingFunctions;
 import datawave.microservice.query.Query;
 import datawave.microservice.query.QueryImpl.Parameter;
+import datawave.webservice.query.exception.DatawaveErrorCode;
+import datawave.webservice.query.exception.NoResultsQueryException;
 import datawave.webservice.query.exception.QueryException;
 import datawave.webservice.query.result.event.HasMarkings;
 import io.protostuff.Input;
@@ -942,10 +945,10 @@ public abstract class BaseQueryMetric implements HasMarkings, Serializable {
     /**
      * Sets the error code and error message of the metric. There are a few cases that can occur: <br>
      * <br>
-     * <u>The throwable cause <b>IS</b> an instance of {@link QueryException}:</u>
+     * <u>The throwable or one of its causes <b>IS</b> an instance of {@link QueryException}:</u>
      * <ul>
-     * <li>In this case, the error message and error code will be set to the values that were passed when the exception was thrown.</li>
-     * <li>If the error code happens to be blank, {@link BaseQueryMetric#DEFAULT_ERROR_CODE} will be used.</li>
+     * <li>In this case, the error message and error code will be set to the values from the lowest QueryException.</li>
+     * <li>If that error code happens to be blank, {@link BaseQueryMetric#DEFAULT_ERROR_CODE} will be used.</li>
      * </ul>
      * <br>
      * <u>The throwable cause <b>IS NOT</b> an instance of {@link QueryException}:</u>
@@ -959,13 +962,20 @@ public abstract class BaseQueryMetric implements HasMarkings, Serializable {
      *            Object containing the exception associated with the error.
      */
     public void setError(Throwable t) {
-        if (t.getCause() instanceof QueryException) {
-            QueryException qe = (QueryException) t.getCause();
-            this.setErrorCode(qe.getErrorCode() != null ? qe.getErrorCode() : DEFAULT_ERROR_CODE);
+        // get a list of Throwable, filter by instanceof QueryException, find last in list
+        QueryException qe = null;
+        try {
+            qe = (QueryException) ExceptionUtils.getThrowableList(t).stream().filter(QueryException.class::isInstance).reduce((first, second) -> second)
+                            .orElse(null);
+        } catch (Exception e) {
+            log.error(e.getMessage(), e);
+        }
+        if (qe != null) {
+            this.setErrorCode(StringUtils.isBlank(qe.getErrorCode()) ? DEFAULT_ERROR_CODE : qe.getErrorCode());
             this.setErrorMessage(qe.getMessage());
         } else {
             this.setErrorCode(DEFAULT_ERROR_CODE);
-            this.setErrorMessage(t.getCause() != null ? t.getCause().getMessage() : t.getMessage());
+            this.setErrorMessage(t.getMessage());
         }
     }
     

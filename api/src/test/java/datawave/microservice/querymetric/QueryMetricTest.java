@@ -1,5 +1,6 @@
 package datawave.microservice.querymetric;
 
+import static datawave.webservice.query.exception.DatawaveErrorCode.NO_QUERY_RESULTS_FOUND;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -7,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
@@ -33,6 +35,7 @@ import datawave.microservice.querymetric.BaseQueryMetric.PageMetric;
 import datawave.microservice.querymetric.BaseQueryMetric.Prediction;
 import datawave.webservice.query.exception.BadRequestQueryException;
 import datawave.webservice.query.exception.DatawaveErrorCode;
+import datawave.webservice.query.exception.NoResultsQueryException;
 import io.protostuff.LinkedBuffer;
 import io.protostuff.Message;
 import io.protostuff.ProtostuffIOUtil;
@@ -74,6 +77,14 @@ public class QueryMetricTest {
         queryMetric.setError(e);
         assertEquals("The query contained fields which do not exist in the data dictionary for any specified datatype. test", queryMetric.getErrorMessage());
         assertEquals("400-16", queryMetric.getErrorCode());
+        
+        Exception ioe = new IOException("ioe");
+        Exception nrqe = new NoResultsQueryException(NO_QUERY_RESULTS_FOUND, ioe);
+        Exception rte1 = new RuntimeException("rte1", nrqe);
+        Exception rte2 = new RuntimeException("rte2", rte1);
+        queryMetric.setError(rte2);
+        assertEquals(NO_QUERY_RESULTS_FOUND.toString(), queryMetric.getErrorMessage());
+        assertEquals("204-6", queryMetric.getErrorCode());
         
         queryMetric.setErrorCode("");
         Throwable t = new Throwable("non-datawave error");
