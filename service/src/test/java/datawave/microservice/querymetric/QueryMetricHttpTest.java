@@ -23,6 +23,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.web.client.HttpClientErrorException;
 
+import datawave.microservice.querymetric.config.QueryMetricTransportType;
 import datawave.microservice.querymetric.function.QueryMetricSupplier;
 
 @ExtendWith(SpringExtension.class)
@@ -48,7 +49,7 @@ public class QueryMetricHttpTest extends QueryMetricTestBase {
                 .withMetric(createMetric())
                 .withMetricType(QueryMetricType.COMPLETE)
                 .withUser(nonAdminUser)
-                .build()));
+                .build(), QueryMetricTransportType.REST));
         // @formatter:on
     }
     
@@ -62,7 +63,7 @@ public class QueryMetricHttpTest extends QueryMetricTestBase {
                 .withMetrics(metrics)
                 .withMetricType(QueryMetricType.COMPLETE)
                 .withUser(nonAdminUser)
-                .build()));
+                .build(), QueryMetricTransportType.REST));
         // @formatter:on
     }
     
@@ -73,7 +74,7 @@ public class QueryMetricHttpTest extends QueryMetricTestBase {
                 .withMetric(createMetric())
                 .withMetricType(QueryMetricType.COMPLETE)
                 .withUser(adminUser)
-                .build());
+                .build(), QueryMetricTransportType.REST);
         // @formatter:on
     }
     
@@ -87,7 +88,7 @@ public class QueryMetricHttpTest extends QueryMetricTestBase {
                 .withMetrics(metrics)
                 .withMetricType(QueryMetricType.COMPLETE)
                 .withUser(adminUser)
-                .build());
+                .build(), QueryMetricTransportType.REST);
         // @formatter:on
     }
     
@@ -103,7 +104,7 @@ public class QueryMetricHttpTest extends QueryMetricTestBase {
                 .withMetrics(metrics)
                 .withMetricType(QueryMetricType.COMPLETE)
                 .withUser(adminUser)
-                .build());
+                .build(), QueryMetricTransportType.REST);
         // @formatter:on
         assertEquals(2, storedMetricUpdates.size());
     }

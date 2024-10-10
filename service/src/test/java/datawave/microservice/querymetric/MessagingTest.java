@@ -16,6 +16,8 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import datawave.microservice.querymetric.config.QueryMetricTransportType;
+
 @ExtendWith(SpringExtension.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ContextConfiguration(classes = MessagingTest.MessagingTestConfiguration.class)
@@ -41,7 +43,7 @@ public class MessagingTest extends QueryMetricTestBase {
         client.submit(new QueryMetricClient.Request.Builder()
                 .withMetric(m)
                 .withMetricType(QueryMetricType.COMPLETE)
-                .build());
+                .build(), QueryMetricTransportType.MESSAGE);
 
         ensureDataWritten(incomingQueryMetricsCache, lastWrittenQueryMetricCache, queryId);
         // @formatter:on
@@ -75,7 +77,7 @@ public class MessagingTest extends QueryMetricTestBase {
             client.submit(new QueryMetricClient.Request.Builder()
                     .withMetric(m)
                     .withMetricType(QueryMetricType.COMPLETE)
-                    .build());
+                    .build(), QueryMetricTransportType.MESSAGE);
             // @formatter:on
             
             ResponseEntity<BaseQueryMetricListResponse> metricResponse = restTemplate.exchange(metricUri.toUri(), HttpMethod.GET, metricRequestEntity,

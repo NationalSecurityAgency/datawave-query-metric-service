@@ -34,8 +34,8 @@ import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import datawave.marking.MarkingFunctions;
-import datawave.webservice.query.Query;
-import datawave.webservice.query.QueryImpl.Parameter;
+import datawave.microservice.query.Query;
+import datawave.microservice.query.QueryImpl.Parameter;
 import datawave.webservice.query.exception.QueryException;
 import datawave.webservice.query.result.event.HasMarkings;
 import io.protostuff.Input;
@@ -673,20 +673,21 @@ public abstract class BaseQueryMetric implements HasMarkings, Serializable {
     @XmlJavaTypeAdapter(StringMapAdapter.class)
     protected Map<String,String> versionMap = new TreeMap<>();
     @XmlElement
+    protected long docSize = 0;
+    @XmlElement
     protected long docRanges = 0;
     @XmlElement
     protected long fiRanges = 0;
     @XmlElement
     protected String plan = null;
+    @XmlElement(name = "subPlans")
+    @XmlJavaTypeAdapter(StringIntegerListMapAdapter.class)
+    protected Map<String,RangeCounts> subPlans = new HashMap<>();
     @XmlElement
     protected long loginTime = -1;
     @XmlElementWrapper(name = "predictions")
     @XmlElement(name = "prediction")
     protected Set<Prediction> predictions = new HashSet<>();
-    
-    @XmlElement(name = "subplans")
-    @XmlJavaTypeAdapter(StringIntegerListMapAdapter.class)
-    protected Map<String,RangeCounts> subPlans = new HashMap<>();
     
     public static final String DATAWAVE = "DATAWAVE";
     protected static final Map<String,String> discoveredVersionMap = BaseQueryMetric.getVersionsFromClasspath();
@@ -923,6 +924,14 @@ public abstract class BaseQueryMetric implements HasMarkings, Serializable {
     
     public void setYieldCount(long yieldCount) {
         this.yieldCount = yieldCount;
+    }
+    
+    public long getDocSize() {
+        return docSize;
+    }
+    
+    public void setDocSize(long docSize) {
+        this.docSize = docSize;
     }
     
     public long getDocRanges() {

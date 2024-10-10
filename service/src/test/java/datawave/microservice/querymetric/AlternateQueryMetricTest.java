@@ -11,6 +11,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import datawave.microservice.querymetric.config.AlternateQueryMetric;
+import datawave.microservice.querymetric.config.QueryMetricTransportType;
 
 @ExtendWith(SpringExtension.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -39,7 +40,7 @@ public class AlternateQueryMetricTest extends QueryMetricTestBase {
                 .withMetric(m)
                 .withMetricType(QueryMetricType.COMPLETE)
                 .withUser(adminUser)
-                .build());
+                .build(), QueryMetricTransportType.MESSAGE);
         // @formatter:on
         metricAssertEquals("incomingQueryMetricsCache metric wrong", m, incomingQueryMetricsCache.get(queryId, QueryMetricUpdate.class).getMetric());
         metricAssertEquals("lastWrittenQueryMetricCache metric wrong", m, lastWrittenQueryMetricCache.get(queryId, QueryMetricUpdate.class).getMetric());

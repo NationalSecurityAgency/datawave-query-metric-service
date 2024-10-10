@@ -24,8 +24,16 @@ public class QueryMetricUpdateHolder<T extends BaseQueryMetric> extends QueryMet
         this((T) metricUpdate.getMetric(), metricUpdate.getMetricType());
     }
     
-    // If we know that this metric has been persisted by the AccumuloMapStore, then it is not new
-    // Because the metric can be ejected from the incoming cache, we also track the lowest lifecycle
+    // If a metric has been combined and persisted in the incoming cache since LIFECYCLE=DEFINED and not persisted,
+    // then it is "new" in the sense that we do not need to look in Accumulo for the rest of the metric.
+    // Because the metric can be ejected from the incoming cache, we also track the lowest LIFECYCLE
+    // If we know that this metric has been persisted by the AccumuloMapStore, then it is not "new",
+    // so if we do not find it in the lastWrittenCache, then it needs to be retrieved from Accumulo
+    // persisted=false lowestLifecycle=null -- true
+    // persisted=false lowestLifecycle=DEFINED -- true
+    // persisted=false lowestLifecycle=INITIALIZED -- false
+    // persisted=true lowestLifecycle=null -- false
+    // persisted=true lowestLifecycle=INITIALIZED -- false
     public boolean isNewMetric() {
         return !persisted && (lowestLifecycle == null || lowestLifecycle.equals(Lifecycle.DEFINED));
     }

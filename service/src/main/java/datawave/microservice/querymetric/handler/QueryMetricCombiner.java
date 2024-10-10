@@ -19,6 +19,7 @@ import datawave.microservice.querymetric.QueryMetricType;
 import datawave.microservice.querymetric.RangeCounts;
 
 public class QueryMetricCombiner<T extends BaseQueryMetric> implements Serializable {
+    private static final long serialVersionUID = -5388075643256402640L;
     
     private static final Logger log = LoggerFactory.getLogger(QueryMetricCombiner.class);
     
@@ -187,6 +188,7 @@ public class QueryMetricCombiner<T extends BaseQueryMetric> implements Serializa
                 combinedMetric.setNextCount(combinedMetric.getNextCount() + updatedQueryMetric.getNextCount());
                 combinedMetric.setSeekCount(combinedMetric.getSeekCount() + updatedQueryMetric.getSeekCount());
                 combinedMetric.setYieldCount(combinedMetric.getYieldCount() + updatedQueryMetric.getYieldCount());
+                combinedMetric.setDocSize(combinedMetric.getDocSize() + updatedQueryMetric.getDocSize());
                 combinedMetric.setDocRanges(combinedMetric.getDocRanges() + updatedQueryMetric.getDocRanges());
                 combinedMetric.setFiRanges(combinedMetric.getFiRanges() + updatedQueryMetric.getFiRanges());
             } else {
@@ -194,8 +196,17 @@ public class QueryMetricCombiner<T extends BaseQueryMetric> implements Serializa
                 combinedMetric.setNextCount(updatedQueryMetric.getNextCount());
                 combinedMetric.setSeekCount(updatedQueryMetric.getSeekCount());
                 combinedMetric.setYieldCount(updatedQueryMetric.getYieldCount());
+                combinedMetric.setDocSize(updatedQueryMetric.getDocSize());
                 combinedMetric.setDocRanges(updatedQueryMetric.getDocRanges());
                 combinedMetric.setFiRanges(updatedQueryMetric.getFiRanges());
+            }
+            // update if the update is in-order and the value changed
+            if (inOrderUpdate && isChanged(updatedQueryMetric.getPlan(), combinedMetric.getPlan())) {
+                combinedMetric.setPlan(updatedQueryMetric.getPlan());
+            }
+            // only update once
+            if (combinedMetric.getPredictions() == null && updatedQueryMetric.getPredictions() != null) {
+                combinedMetric.setPredictions(updatedQueryMetric.getPredictions());
             }
             Map<String,RangeCounts> newPlanMap = new HashMap<>();
             Map<String,RangeCounts> storedSubPlans = new HashMap<>();
@@ -224,15 +235,6 @@ public class QueryMetricCombiner<T extends BaseQueryMetric> implements Serializa
                 newPlanMap.put(subplan, newCounts);
             }
             combinedMetric.setSubPlans(newPlanMap);
-            
-            // update if the update is in-order and the value changed
-            if (inOrderUpdate && isChanged(updatedQueryMetric.getPlan(), combinedMetric.getPlan())) {
-                combinedMetric.setPlan(updatedQueryMetric.getPlan());
-            }
-            // only update once
-            if (combinedMetric.getPredictions() == null && updatedQueryMetric.getPredictions() != null) {
-                combinedMetric.setPredictions(updatedQueryMetric.getPredictions());
-            }
             // use the max numUpdates
             combinedMetric.setNumUpdates(Math.max(combinedMetric.getNumUpdates(), updatedQueryMetric.getNumUpdates()));
         }

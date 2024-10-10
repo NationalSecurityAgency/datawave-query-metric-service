@@ -63,6 +63,7 @@ import com.hazelcast.config.MapStoreConfig;
 import com.hazelcast.map.IMap;
 import com.hazelcast.spring.cache.HazelcastCacheManager;
 
+import datawave.core.common.connection.AccumuloClientPool;
 import datawave.ingest.protobuf.Uid;
 import datawave.marking.MarkingFunctions;
 import datawave.microservice.authorization.preauth.ProxiedEntityX509Filter;
@@ -77,7 +78,6 @@ import datawave.microservice.security.util.DnUtils;
 import datawave.security.authorization.DatawaveUser;
 import datawave.security.authorization.JWTTokenHandler;
 import datawave.security.authorization.SubjectIssuerDNPair;
-import datawave.webservice.common.connection.AccumuloClientPool;
 import datawave.webservice.query.result.event.DefaultEvent;
 import datawave.webservice.query.result.event.DefaultField;
 import datawave.webservice.query.result.event.EventBase;
@@ -90,6 +90,9 @@ public class QueryMetricTestBase {
                     "cn=example corp ca, o=example corp, c=us");
     
     protected static final String getMetricsUrl = "/querymetric/v1/id/%s";
+    
+    @Autowired
+    protected QueryMetricOperations queryMetricOperations;
     
     @Autowired
     protected RestTemplateBuilder restTemplateBuilder;
@@ -336,6 +339,7 @@ public class QueryMetricTestBase {
         m.setHost("localhost");
         m.setQueryType("RunningQuery");
         m.setLifecycle(BaseQueryMetric.Lifecycle.INITIALIZED);
+        m.setSetupTime(4000);
         m.setCreateCallTime(4000);
         m.setQueryAuthorizations("A,B,C");
         m.setQueryName("TestQuery");
@@ -398,7 +402,7 @@ public class QueryMetricTestBase {
             }
             assertTrue(assertObjectsEqual(m1.getQueryId(), m2.getQueryId()), message + "queryId");
             assertTrue(assertObjectsEqual(m1.getQueryType(), m2.getQueryType()), message + "queryType");
-            assertTrue(assertObjectsEqual(m1.getQueryAuthorizations(), m2.getQueryAuthorizations()), message + "queryAuthorizatio1ns");
+            assertTrue(assertObjectsEqual(m1.getQueryAuthorizations(), m2.getQueryAuthorizations()), message + "queryAuthorizations");
             assertTrue(assertObjectsEqual(m1.getColumnVisibility(), m2.getColumnVisibility()), message + "columnVisibility");
             assertEquals(m1.getMarkings(), m2.getMarkings(), message + "markings");
             assertTrue(assertObjectsEqual(m1.getBeginDate(), m2.getBeginDate()), message + "beginDate");
@@ -421,11 +425,11 @@ public class QueryMetricTestBase {
             assertEquals(m1.getSourceCount(), m2.getSourceCount(), message + "sourceCount");
             assertEquals(m1.getNextCount(), m2.getNextCount(), message + "nextCount");
             assertEquals(m1.getSeekCount(), m2.getSeekCount(), message + "seekCount");
+            assertTrue(assertObjectsEqual(m1.getSubPlans(), m2.getSubPlans()), message + "subPlans");
             assertEquals(m1.getYieldCount(), m2.getYieldCount(), message + "yieldCount");
             assertEquals(m1.getDocRanges(), m2.getDocRanges(), message + "docRanges");
             assertEquals(m1.getFiRanges(), m2.getFiRanges(), message + "fiRanges");
             assertTrue(assertObjectsEqual(m1.getPlan(), m2.getPlan()), message + "plan");
-            assertTrue(assertObjectsEqual(m1.getSubPlans(), m2.getSubPlans()), message + "subPlans");
             assertEquals(m1.getLoginTime(), m2.getLoginTime(), message + "loginTime");
             assertTrue(assertObjectsEqual(m1.getPredictions(), m2.getPredictions()), message + "predictions");
             assertEquals(m1.getVersionMap(), m2.getVersionMap(), message + "versionMap");
@@ -546,7 +550,7 @@ public class QueryMetricTestBase {
         MapStoreConfig mapStoreConfig = config.getMapConfig(incomingCache.getName()).getMapStoreConfig();
         int writeDelaySeconds = Math.min(mapStoreConfig.getWriteDelaySeconds(), 1000);
         boolean found = false;
-        while (!found && System.currentTimeMillis() < (now + (1000 * (writeDelaySeconds + 1)))) {
+        while (!found && System.currentTimeMillis() < (now + (1000 * (writeDelaySeconds + 5.0)))) {
             found = lastWrittenCache.get(queryId, QueryMetricUpdateHolder.class) != null;
             if (!found) {
                 try {

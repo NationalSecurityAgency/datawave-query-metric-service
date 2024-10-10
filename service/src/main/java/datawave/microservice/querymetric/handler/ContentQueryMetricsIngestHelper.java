@@ -16,6 +16,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
+import datawave.core.query.util.QueryUtil;
 import datawave.ingest.data.config.NormalizedContentInterface;
 import datawave.ingest.data.config.NormalizedFieldAndValue;
 import datawave.ingest.data.config.ingest.CSVIngestHelper;
@@ -24,7 +25,6 @@ import datawave.microservice.querymetric.BaseQueryMetric;
 import datawave.microservice.querymetric.BaseQueryMetric.PageMetric;
 import datawave.microservice.querymetric.BaseQueryMetric.Prediction;
 import datawave.microservice.querymetric.RangeCounts;
-import datawave.webservice.query.util.QueryUtil;
 
 public class ContentQueryMetricsIngestHelper extends CSVIngestHelper implements TermFrequencyIngestHelperInterface {
     
@@ -202,6 +202,9 @@ public class ContentQueryMetricsIngestHelper extends CSVIngestHelper implements 
             if (isChanged(updated.getDocRanges(), stored == null ? -1 : stored.getDocRanges())) {
                 fields.put("DOC_RANGES", Long.toString(updated.getDocRanges()));
             }
+            if (isChanged(updated.getDocSize(), stored == null ? -1 : stored.getDocSize())) {
+                fields.put("DOC_SIZE", Long.toString(updated.getDocSize()));
+            }
             if (isChanged(updated.getElapsedTime(), stored == null ? -1 : stored.getElapsedTime())) {
                 fields.put("ELAPSED_TIME", Long.toString(updated.getElapsedTime()));
             }
@@ -320,7 +323,7 @@ public class ContentQueryMetricsIngestHelper extends CSVIngestHelper implements 
                     fields.put("QUERY_TYPE", updated.getQueryType());
                 }
             }
-            if (isFirstWrite(updated.getSetupTime(), stored == null ? 0 : stored.getSetupTime(), 0)) {
+            if (isFirstWrite(updated.getSetupTime(), stored == null ? -1 : stored.getSetupTime(), -1)) {
                 fields.put("SETUP_TIME", Long.toString(updated.getSetupTime()));
             }
             if (isChanged(updated.getSeekCount(), stored == null ? -1 : stored.getSeekCount())) {
@@ -393,6 +396,9 @@ public class ContentQueryMetricsIngestHelper extends CSVIngestHelper implements 
                 }
                 if (isChanged(updated.getDocRanges(), stored.getDocRanges())) {
                     fields.put("DOC_RANGES", Long.toString(stored.getDocRanges()));
+                }
+                if (isChanged(updated.getDocSize(), stored.getDocSize())) {
+                    fields.put("DOC_SIZE", Long.toString(stored.getDocSize()));
                 }
                 if (isChanged(updated.getElapsedTime(), stored.getElapsedTime())) {
                     fields.put("ELAPSED_TIME", Long.toString(stored.getElapsedTime()));

@@ -87,6 +87,7 @@ datawave:
       client:
         enabled: true
         transport: message
+        scheme: http
         host: localhost
         port: ${server.port}
         confirmAckEnabled: false

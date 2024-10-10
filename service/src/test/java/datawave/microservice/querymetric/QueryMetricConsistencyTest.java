@@ -36,6 +36,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import com.google.common.collect.Multimap;
 
 import datawave.data.hash.UID;
+import datawave.microservice.querymetric.config.QueryMetricTransportType;
 import datawave.microservice.querymetric.handler.ContentQueryMetricsIngestHelper;
 import datawave.microservice.querymetric.persistence.AccumuloMapStore;
 import datawave.util.StringUtils;
@@ -80,7 +81,7 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
                     .withMetric(m)
                     .withMetricType(QueryMetricType.COMPLETE)
                     .withUser(this.adminUser)
-                    .build());
+                    .build(), QueryMetricTransportType.MESSAGE);
             // @formatter:on
             ResponseEntity<BaseQueryMetricListResponse> metricResponse = this.restTemplate.exchange(metricUri.toUri(), HttpMethod.GET, metricRequestEntity,
                             BaseQueryMetricListResponse.class);
@@ -90,78 +91,6 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
             metricAssertEquals(m, returnedMetric);
         }
         assertNoDuplicateFields(queryId);
-    }
-    
-    public void updateRangeCounts(Map<String,Integer> shardCounts, Map<String,Integer> documentCounts, String subplan, Range range) {
-        Key key = range.getStartKey();
-        String cf = key.getColumnFamily().toString();
-        if (cf.length() > 0) {
-            if (documentCounts.containsKey(subplan)) {
-                documentCounts.put(subplan, documentCounts.get(subplan) + 1);
-            } else {
-                documentCounts.put(subplan, 1);
-            }
-        } else {
-            if (shardCounts.containsKey(subplan)) {
-                shardCounts.put(subplan, shardCounts.get(subplan) + 1);
-            } else {
-                shardCounts.put(subplan, 1);
-            }
-        }
-    }
-    
-    @Test
-    public void SubPlanTest() throws Exception {
-        String queryId = createQueryId();
-        BaseQueryMetric m = createMetric(queryId);
-        Map<String,Integer> shardCounts = new HashMap<>();
-        Map<String,Integer> documentCounts = new HashMap<>();
-        List<String> plans = new ArrayList<>();
-        plans.add("F1 == 'value1' || F2 == 'value2'");
-        plans.add("F3 == 'value3' || F4 == 'value4'");
-        plans.add("F2 == 'value2' || F3 == 'value3'");
-        plans.add("F1 == 'value1' || F6 == 'value6'");
-        plans.add("F1 == 'value1' || F5 == 'value5'");
-        Random r = new Random(System.currentTimeMillis());
-        
-        Date now = new Date();
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd");
-        String date = sdf.format(now);
-        int numShardSubplans = 10;
-        for (int i = 0; i < numShardSubplans; i++) {
-            String shard = date + "_" + i;
-            Key begin = new Key(shard);
-            Key end = begin.followingKey(PartialKey.ROW);
-            String subplan = plans.get(r.nextInt(plans.size()));
-            updateRangeCounts(shardCounts, documentCounts, subplan, new Range(begin, end));
-        }
-        int numDocSubplans = 10;
-        for (int i = 0; i < numDocSubplans; i++) {
-            String shard = date + "_" + i;
-            String uid = UID.builder().newId().toString();
-            Key begin = new Key(shard, "datatype\0" + uid);
-            Key end = begin.followingKey(PartialKey.ROW_COLFAM);
-            String subplan = plans.get(r.nextInt(plans.size()));
-            updateRangeCounts(shardCounts, documentCounts, subplan, new Range(begin, end));
-        }
-        for (String p : plans) {
-            RangeCounts ranges = new RangeCounts();
-            ranges.setShardRangeCount(shardCounts.getOrDefault(p, 0));
-            ranges.setDocumentRangeCount(documentCounts.getOrDefault(p, 0));
-            m.addSubPlan(p, ranges);
-        }
-        
-        // @formatter:off
-        client.submit(new QueryMetricClient.Request.Builder()
-                .withMetric(m)
-                .withMetricType(QueryMetricType.COMPLETE)
-                .withUser(this.adminUser)
-                .build());
-        // @formatter:on
-        this.ensureDataWritten(incomingQueryMetricsCache, lastWrittenQueryMetricCache, queryId);
-        BaseQueryMetric storedMetric = shardTableQueryMetricHandler.getQueryMetric(queryId);
-        assertEquals(m.getSubPlans(), storedMetric.getSubPlans());
-        metricAssertEquals(m, storedMetric);
     }
     
     @Test
@@ -177,7 +106,7 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
                 .withMetric(m)
                 .withMetricType(QueryMetricType.COMPLETE)
                 .withUser(this.adminUser)
-                .build());
+                .build(), QueryMetricTransportType.MESSAGE);
         // @formatter:on
         HttpEntity metricRequestEntity = createRequestEntity(null, this.adminUser, null);
         ResponseEntity<BaseQueryMetricListResponse> metricResponse = this.restTemplate.exchange(metricUri.toUri(), HttpMethod.GET, metricRequestEntity,
@@ -196,7 +125,7 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
                 .withMetric(m)
                 .withMetricType(QueryMetricType.COMPLETE)
                 .withUser(this.adminUser)
-                .build());
+                .build(), QueryMetricTransportType.MESSAGE);
         // @formatter:on
         metricRequestEntity = createRequestEntity(null, this.adminUser, null);
         metricResponse = restTemplate.exchange(metricUri.toUri(), HttpMethod.GET, metricRequestEntity, BaseQueryMetricListResponse.class);
@@ -206,6 +135,35 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
         // metric should have been updated without backtracking on the lifecycle
         assertEquals(BaseQueryMetric.Lifecycle.CLOSED, returnedMetric.getLifecycle(), "lifecycle incorrect");
         assertNoDuplicateFields(queryId);
+    }
+    
+    @Test
+    public void SetupTimeTest() throws Exception {
+        String queryId = createQueryId();
+        BaseQueryMetric m = createMetric(queryId);
+        m.setSetupTime(-1);
+        m.setLifecycle(BaseQueryMetric.Lifecycle.DEFINED);
+        // @formatter:off
+        client.submit(new QueryMetricClient.Request.Builder()
+                .withMetric(m)
+                .withMetricType(QueryMetricType.COMPLETE)
+                .withUser(this.adminUser)
+                .build());
+        // @formatter:on
+        BaseQueryMetric returnedMetric = shardTableQueryMetricHandler.getQueryMetric(queryId);
+        metricAssertEquals(m, returnedMetric);
+        
+        m.setSetupTime(4000);
+        m.setLifecycle(BaseQueryMetric.Lifecycle.INITIALIZED);
+        // @formatter:off
+        client.submit(new QueryMetricClient.Request.Builder()
+                .withMetric(m)
+                .withMetricType(QueryMetricType.COMPLETE)
+                .withUser(this.adminUser)
+                .build());
+        // @formatter:on
+        returnedMetric = shardTableQueryMetricHandler.getQueryMetric(queryId);
+        metricAssertEquals(m, returnedMetric);
     }
     
     @Test
@@ -221,7 +179,7 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
                 .withMetric(m)
                 .withMetricType(QueryMetricType.COMPLETE)
                 .withUser(this.adminUser)
-                .build());
+                .build(), QueryMetricTransportType.MESSAGE);
         // @formatter:on
         m.setPlan("RevisedPlan");
         m.setLastUpdated(new Date(m.getLastUpdated().getTime() + 1));
@@ -230,7 +188,7 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
                 .withMetric(m)
                 .withMetricType(QueryMetricType.COMPLETE)
                 .withUser(this.adminUser)
-                .build());
+                .build(), QueryMetricTransportType.MESSAGE);
         // @formatter:on
         
         HttpEntity metricRequestEntity = createRequestEntity(null, this.adminUser, null);
@@ -269,7 +227,7 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
                 .withMetric(m)
                 .withMetricType(QueryMetricType.DISTRIBUTED)
                 .withUser(this.adminUser)
-                .build());
+                .build(), QueryMetricTransportType.MESSAGE);
         // @formatter:on
         m = createMetric(queryId);
         m.setCreateDate(new Date(now - 1000));
@@ -288,7 +246,7 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
                 .withMetric(m)
                 .withMetricType(QueryMetricType.DISTRIBUTED)
                 .withUser(this.adminUser)
-                .build());
+                .build(), QueryMetricTransportType.MESSAGE);
         // @formatter:on
         HttpEntity metricRequestEntity = createRequestEntity(null, this.adminUser, null);
         ResponseEntity<BaseQueryMetricListResponse> metricResponse = this.restTemplate.exchange(metricUri.toUri(), HttpMethod.GET, metricRequestEntity,
@@ -319,7 +277,7 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
                 .withMetric(m)
                 .withMetricType(QueryMetricType.COMPLETE)
                 .withUser(this.adminUser)
-                .build());
+                .build(), QueryMetricTransportType.MESSAGE);
         // @formatter:on
         metricRequestEntity = createRequestEntity(null, this.adminUser, null);
         metricResponse = restTemplate.exchange(metricUri.toUri(), HttpMethod.GET, metricRequestEntity, BaseQueryMetricListResponse.class);
@@ -472,5 +430,77 @@ public class QueryMetricConsistencyTest extends QueryMetricTestBase {
     private String fieldSplit(Map.Entry<Key,Value> entry, int part) {
         String cq = entry.getKey().getColumnQualifier().toString();
         return StringUtils.split(cq, "\u0000")[part];
+    }
+    
+    public void updateRangeCounts(Map<String,Integer> shardCounts, Map<String,Integer> documentCounts, String subplan, Range range) {
+        Key key = range.getStartKey();
+        String cf = key.getColumnFamily().toString();
+        if (cf.length() > 0) {
+            if (documentCounts.containsKey(subplan)) {
+                documentCounts.put(subplan, documentCounts.get(subplan) + 1);
+            } else {
+                documentCounts.put(subplan, 1);
+            }
+        } else {
+            if (shardCounts.containsKey(subplan)) {
+                shardCounts.put(subplan, shardCounts.get(subplan) + 1);
+            } else {
+                shardCounts.put(subplan, 1);
+            }
+        }
+    }
+    
+    @Test
+    public void SubPlanTest() throws Exception {
+        String queryId = createQueryId();
+        BaseQueryMetric m = createMetric(queryId);
+        Map<String,Integer> shardCounts = new HashMap<>();
+        Map<String,Integer> documentCounts = new HashMap<>();
+        List<String> plans = new ArrayList<>();
+        plans.add("F1 == 'value1' || F2 == 'value2'");
+        plans.add("F3 == 'value3' || F4 == 'value4'");
+        plans.add("F2 == 'value2' || F3 == 'value3'");
+        plans.add("F1 == 'value1' || F6 == 'value6'");
+        plans.add("F1 == 'value1' || F5 == 'value5'");
+        Random r = new Random(System.currentTimeMillis());
+        
+        Date now = new Date();
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd");
+        String date = sdf.format(now);
+        int numShardSubplans = 10;
+        for (int i = 0; i < numShardSubplans; i++) {
+            String shard = date + "_" + i;
+            Key begin = new Key(shard);
+            Key end = begin.followingKey(PartialKey.ROW);
+            String subplan = plans.get(r.nextInt(plans.size()));
+            updateRangeCounts(shardCounts, documentCounts, subplan, new Range(begin, end));
+        }
+        int numDocSubplans = 10;
+        for (int i = 0; i < numDocSubplans; i++) {
+            String shard = date + "_" + i;
+            String uid = UID.builder().newId().toString();
+            Key begin = new Key(shard, "datatype\0" + uid);
+            Key end = begin.followingKey(PartialKey.ROW_COLFAM);
+            String subplan = plans.get(r.nextInt(plans.size()));
+            updateRangeCounts(shardCounts, documentCounts, subplan, new Range(begin, end));
+        }
+        for (String p : plans) {
+            RangeCounts ranges = new RangeCounts();
+            ranges.setShardRangeCount(shardCounts.getOrDefault(p, 0));
+            ranges.setDocumentRangeCount(documentCounts.getOrDefault(p, 0));
+            m.addSubPlan(p, ranges);
+        }
+        
+        // @formatter:off
+        client.submit(new QueryMetricClient.Request.Builder()
+                .withMetric(m)
+                .withMetricType(QueryMetricType.COMPLETE)
+                .withUser(this.adminUser)
+                .build());
+        // @formatter:on
+        this.ensureDataWritten(incomingQueryMetricsCache, lastWrittenQueryMetricCache, queryId);
+        BaseQueryMetric storedMetric = shardTableQueryMetricHandler.getQueryMetric(queryId);
+        assertEquals(m.getSubPlans(), storedMetric.getSubPlans());
+        metricAssertEquals(m, storedMetric);
     }
 }
