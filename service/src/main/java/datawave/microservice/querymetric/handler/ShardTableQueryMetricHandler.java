@@ -552,7 +552,7 @@ public abstract class ShardTableQueryMetricHandler<T extends BaseQueryMetric> ex
                             Date d = sdf_date_time1.parse(fieldValue);
                             m.setBeginDate(d);
                         } catch (Exception e) {
-                            log.error(fieldName + ":" + fieldValue + ":" + e.getMessage());
+                            log.error("{}:{}:{}", fieldName, fieldValue, e.getMessage());
                         }
                     } else if (fieldName.equals("CREATE_CALL_TIME")) {
                         m.setCreateCallTime(Long.parseLong(fieldValue));
@@ -562,7 +562,7 @@ public abstract class ShardTableQueryMetricHandler<T extends BaseQueryMetric> ex
                             m.setCreateDate(d);
                             createDateSet = true;
                         } catch (Exception e) {
-                            log.error(fieldName + ":" + fieldValue + ":" + e.getMessage());
+                            log.error("{}:{}:{}", fieldName, fieldValue, e.getMessage());
                         }
                     } else if (fieldName.equals("DOC_RANGES")) {
                         try {
@@ -571,14 +571,23 @@ public abstract class ShardTableQueryMetricHandler<T extends BaseQueryMetric> ex
                                 m.setDocRanges(l);
                             }
                         } catch (Exception e) {
-                            log.error(fieldName + ":" + fieldValue + ":" + e.getMessage());
+                            log.error("{}:{}:{}", fieldName, fieldValue, e.getMessage());
+                        }
+                    } else if (fieldName.equals("DOC_SIZE")) {
+                        try {
+                            long l = Long.parseLong(fieldValue);
+                            if (l > m.getDocSize()) {
+                                m.setDocSize(l);
+                            }
+                        } catch (Exception e) {
+                            log.error("{}:{}:{}", fieldName, fieldValue, e.getMessage());
                         }
                     } else if (fieldName.equals("END_DATE")) {
                         try {
                             Date d = sdf_date_time1.parse(fieldValue);
                             m.setEndDate(d);
                         } catch (Exception e) {
-                            log.error(fieldName + ":" + fieldValue + ":" + e.getMessage());
+                            log.error("{}:{}:{}", fieldName, fieldValue, e.getMessage());
                         }
                     } else if (fieldName.equals("ERROR_CODE")) {
                         m.setErrorCode(fieldValue);
@@ -591,7 +600,7 @@ public abstract class ShardTableQueryMetricHandler<T extends BaseQueryMetric> ex
                                 m.setFiRanges(l);
                             }
                         } catch (Exception e) {
-                            log.error(fieldName + ":" + fieldValue + ":" + e.getMessage());
+                            log.error("{}:{}:{}", fieldName, fieldValue, e.getMessage());
                         }
                     } else if (fieldName.equals("HOST")) {
                         m.setHost(fieldValue);
@@ -603,7 +612,7 @@ public abstract class ShardTableQueryMetricHandler<T extends BaseQueryMetric> ex
                                 m.setLastUpdated(d);
                             }
                         } catch (Exception e) {
-                            log.error(fieldName + ":" + fieldValue + ":" + e.getMessage());
+                            log.error("{}:{}:{}", fieldName, fieldValue, e.getMessage());
                         }
                     } else if (fieldName.equals("LIFECYCLE")) {
                         Lifecycle l = Lifecycle.valueOf(fieldValue);
@@ -627,7 +636,7 @@ public abstract class ShardTableQueryMetricHandler<T extends BaseQueryMetric> ex
                                 m.setNextCount(l);
                             }
                         } catch (Exception e) {
-                            log.error(fieldName + ":" + fieldValue + ":" + e.getMessage());
+                            log.error("{}:{}:{}", fieldName, fieldValue, e.getMessage());
                         }
                     } else if (fieldName.equals("NUM_UPDATES")) {
                         try {
@@ -636,14 +645,14 @@ public abstract class ShardTableQueryMetricHandler<T extends BaseQueryMetric> ex
                                 m.setNumUpdates(l);
                             }
                         } catch (Exception e) {
-                            log.error(fieldName + ":" + fieldValue + ":" + e.getMessage());
+                            log.error("{}:{}:{}", fieldName, fieldValue, e.getMessage());
                         }
                     } else if (fieldName.startsWith("PAGE_METRICS")) {
                         int index = fieldName.indexOf(".");
                         if (-1 == index) {
-                            log.error("Could not parse field name to extract repetition count: " + fieldName);
+                            log.error("Could not parse field name to extract repetition count: {}", fieldName);
                         } else {
-                            Long pageNum = Long.parseLong(fieldName.substring(index + 1));
+                            long pageNum = Long.parseLong(fieldName.substring(index + 1));
                             PageMetric pageMetric = PageMetric.parse(fieldValue);
                             if (pageMetric != null) {
                                 pageMetric.setPageNumber(pageNum);
@@ -673,7 +682,7 @@ public abstract class ShardTableQueryMetricHandler<T extends BaseQueryMetric> ex
                                 int x = fieldValue.indexOf(":");
                                 if (x > -1) {
                                     String predictionName = fieldValue.substring(0, x);
-                                    Double predictionValue = Double.parseDouble(fieldValue.substring(x + 1));
+                                    double predictionValue = Double.parseDouble(fieldValue.substring(x + 1));
                                     m.addPrediction(new Prediction(predictionName, predictionValue));
                                 }
                             } catch (Exception e) {
@@ -699,7 +708,7 @@ public abstract class ShardTableQueryMetricHandler<T extends BaseQueryMetric> ex
                                 m.setSeekCount(l);
                             }
                         } catch (Exception e) {
-                            log.error(fieldName + ":" + fieldValue + ":" + e.getMessage());
+                            log.error("{}:{}:{}", fieldName, fieldValue, e.getMessage());
                         }
                     } else if (fieldName.equals("SETUP_TIME")) {
                         m.setSetupTime(Long.parseLong(fieldValue));
@@ -710,7 +719,7 @@ public abstract class ShardTableQueryMetricHandler<T extends BaseQueryMetric> ex
                                 m.setSourceCount(l);
                             }
                         } catch (Exception e) {
-                            log.error(fieldName + ":" + fieldValue + ":" + e.getMessage());
+                            log.error("{}:{}:{}", fieldName, fieldValue, e.getMessage());
                         }
                     } else if (fieldName.equals("USER")) {
                         m.setUser(fieldValue);
@@ -727,7 +736,7 @@ public abstract class ShardTableQueryMetricHandler<T extends BaseQueryMetric> ex
                                 m.setYieldCount(l);
                             }
                         } catch (Exception e) {
-                            log.error(fieldName + ":" + fieldValue + ":" + e.getMessage());
+                            log.error("{}:{}:{}", fieldName, fieldValue, e.getMessage());
                         }
                     }
                 }
@@ -773,12 +782,12 @@ public abstract class ShardTableQueryMetricHandler<T extends BaseQueryMetric> ex
                     if (tableHelper != null) {
                         tableHelper.configure(accumuloClient.tableOperations());
                     } else {
-                        log.info("No configuration supplied for table: " + table);
+                        log.info("No configuration supplied for table: {}", table);
                     }
                 }
             } catch (TableExistsException te) {
                 // in this case, somebody else must have created the table after our existence check
-                log.debug("Tried to create " + table + " but somebody beat us to the punch");
+                log.debug("Tried to create {} but somebody beat us to the punch", table);
             }
         }
     }

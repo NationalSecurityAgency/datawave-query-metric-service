@@ -99,6 +99,7 @@ public class QueryMetric extends BaseQueryMetric implements Serializable, Messag
         this.seekCount = other.seekCount;
         this.yieldCount = other.yieldCount;
         this.versionMap = other.versionMap;
+        this.docSize = other.docSize;
         this.docRanges = other.docRanges;
         this.fiRanges = other.fiRanges;
         this.plan = other.plan;
@@ -140,8 +141,9 @@ public class QueryMetric extends BaseQueryMetric implements Serializable, Messag
                         .append(this.getHost()).append(this.getPageTimes()).append(this.getProxyServers()).append(this.getLifecycle())
                         .append(this.getErrorMessage()).append(this.getCreateCallTime()).append(this.getErrorCode()).append(this.getQueryName())
                         .append(this.getParameters()).append(this.getSourceCount()).append(this.getNextCount()).append(this.getSeekCount())
-                        .append(this.getYieldCount()).append(this.getDocRanges()).append(this.getFiRanges()).append(this.getPlan()).append(this.getLoginTime())
-                        .append(this.getPredictions()).append(this.getMarkings()).append(this.getNumUpdates()).append(this.getVersionMap()).toHashCode();
+                        .append(this.getYieldCount()).append(this.getDocSize()).append(this.getDocRanges()).append(this.getFiRanges()).append(this.getPlan())
+                        .append(this.getLoginTime()).append(this.getPredictions()).append(this.getMarkings()).append(this.getNumUpdates())
+                        .append(this.getVersionMap()).toHashCode();
     }
     
     @Override
@@ -166,11 +168,11 @@ public class QueryMetric extends BaseQueryMetric implements Serializable, Messag
                             .append(this.getLifecycle(), other.getLifecycle()).append(this.getErrorMessage(), other.getErrorMessage())
                             .append(this.getErrorCode(), other.getErrorCode()).append(this.getSourceCount(), other.getSourceCount())
                             .append(this.getNextCount(), other.getNextCount()).append(this.getSeekCount(), other.getSeekCount())
-                            .append(this.getYieldCount(), other.getYieldCount()).append(this.getDocRanges(), other.getDocRanges())
-                            .append(this.getFiRanges(), other.getFiRanges()).append(this.getPlan(), other.getPlan())
-                            .append(this.getLoginTime(), other.getLoginTime()).append(this.getPredictions(), other.getPredictions())
-                            .append(this.getMarkings(), other.getMarkings()).append(this.getNumUpdates(), other.getNumUpdates())
-                            .append(this.getVersionMap(), other.getVersionMap()).isEquals();
+                            .append(this.getYieldCount(), other.getYieldCount()).append(this.getDocSize(), other.getDocSize())
+                            .append(this.getDocRanges(), other.getDocRanges()).append(this.getFiRanges(), other.getFiRanges())
+                            .append(this.getPlan(), other.getPlan()).append(this.getLoginTime(), other.getLoginTime())
+                            .append(this.getPredictions(), other.getPredictions()).append(this.getMarkings(), other.getMarkings())
+                            .append(this.getNumUpdates(), other.getNumUpdates()).append(this.getVersionMap(), other.getVersionMap()).isEquals();
         } else {
             return false;
         }
@@ -208,6 +210,7 @@ public class QueryMetric extends BaseQueryMetric implements Serializable, Messag
         buf.append(" NextCount: ").append(this.getNextCount());
         buf.append(" Seek Count: ").append(this.getSeekCount());
         buf.append(" Yield Count: ").append(this.getYieldCount());
+        buf.append(" Doc Size: ").append(this.getDocSize());
         buf.append(" Doc Ranges: ").append(this.getDocRanges());
         buf.append(" FI Ranges: ").append(this.getFiRanges());
         buf.append(" Login Time: ").append(this.getLoginTime());
@@ -403,6 +406,8 @@ public class QueryMetric extends BaseQueryMetric implements Serializable, Messag
                     output.writeString(38, StringUtils.join(Arrays.asList(entry.getKey(), entry.getValue()), "\0"), true);
                 }
             }
+            
+            output.writeInt64(39, message.docSize, false);
         }
         
         public void mergeFrom(Input input, QueryMetric message) throws IOException {
@@ -551,6 +556,9 @@ public class QueryMetric extends BaseQueryMetric implements Serializable, Messag
                             message.versionMap.put(split[0], split[1]);
                         }
                         break;
+                    case 39:
+                        message.docSize = input.readInt64();
+                        break;
                     default:
                         input.handleUnknownField(number, this);
                         break;
@@ -637,6 +645,8 @@ public class QueryMetric extends BaseQueryMetric implements Serializable, Messag
                     return "version";
                 case 38:
                     return "versionMap";
+                case 39:
+                    return "docSize";
                 default:
                     return null;
             }
@@ -688,6 +698,7 @@ public class QueryMetric extends BaseQueryMetric implements Serializable, Messag
             fieldMap.put("predictions", 36);
             fieldMap.put("version", 37);
             fieldMap.put("versionMap", 38);
+            fieldMap.put("docSize", 39);
         }
     };
     

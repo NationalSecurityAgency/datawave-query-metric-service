@@ -46,6 +46,8 @@ public interface QueryMetricModelFormat {
     
     String getNumResultsStr();
     
+    String getDocSizeStr();
+    
     String getDocRangesStr();
     
     String getFiRangesStr();
