@@ -1,10 +1,7 @@
 package datawave.microservice.querymetric;
 
 import java.text.NumberFormat;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -35,6 +32,8 @@ public interface QueryMetricModelFormat {
     String getQueryAuthorizationsStr();
     
     String getPredictionsStr();
+    
+    String getSubplansStr();
     
     String getLoginTimeStr();
     
@@ -88,6 +87,10 @@ public interface QueryMetricModelFormat {
             builder.append("");
         }
         return builder.toString();
+    }
+    
+    default String getSubplansStr(Map<String,RangeCounts> test) {
+        return test.toString();
     }
     
     default boolean isJexlQuery(Set<QueryImpl.Parameter> params) {

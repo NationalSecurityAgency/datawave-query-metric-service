@@ -101,6 +101,10 @@ public class QueryMetricModel extends QueryMetric implements QueryMetricModelFor
         return getPredictionsStr(predictions);
     }
     
+    public String getSubplansStr() {
+        return getSubplansStr(subPlans);
+    }
+    
     public String getLoginTimeStr() {
         return numToString(getLoginTime(), 0);
     }
