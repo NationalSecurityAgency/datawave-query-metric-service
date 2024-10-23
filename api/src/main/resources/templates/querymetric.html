@@ -1,4 +1,4 @@
-<html xmlns:th="http:/>/www.thymeleaf.org">
+<html xmlns:th="http:/>/www.thymeleaf.org" lang="">
 <!--/*
     HTML page for QueryMetricResponse
 */-->
@@ -103,7 +103,7 @@
             </tr>
             <tr class="highlight" th:id="'query' + ${metricIter.index + 1} + '-value'" style="visibility:collapse;">
                 <td th:id="'query' + ${metricIter.index + 1} + '-header'">Query (<a th:onClick="|toggleVisibility('query', ${metricIter.index + 1})|">hide</a>)</td>
-                <td th:id="'query' + ${metricIter.index + 1}" th:style="${metric.queryStyle}"/>
+                <td th:id="'query' + ${metricIter.index + 1}" th:style="${metric.queryStyle}"></td>
             </tr>
 
             <tr th:id="'query-plan' + ${metricIter.index + 1} + '-placeholder'">
@@ -112,7 +112,7 @@
             </tr>
             <tr th:id="'query-plan' + ${metricIter.index + 1} + '-value'" style="visibility:collapse;">
                 <td>Query Plan (<a th:onClick="|toggleVisibility('query-plan', ${metricIter.index + 1})|">hide</a>)</td>
-                <td th:id="'query-plan' + ${metricIter.index + 1}" style="white-space:pre-wrap; overflow-wrap:anywhere;"/>
+                <td th:id="'query-plan' + ${metricIter.index + 1}" style="white-space:pre-wrap; overflow-wrap:anywhere;"></td>
             </tr>
             <tr class="highlight"><td>Predictions</td><td th:text="${metric.predictionsStr}"></td></tr>
             <tr><td>Server</td><td th:text="${metric.host}"></td></tr>

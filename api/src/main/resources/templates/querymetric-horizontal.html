@@ -1,4 +1,4 @@
-<html xmlns:th="http:/>/www.thymeleaf.org">
+<html xmlns:th="http:/>/www.thymeleaf.org" lang="">
 <!--/*
     HTML page for QueryMetricResponse
 */-->
@@ -8,7 +8,7 @@
     <link rel="stylesheet" type="text/css" media="screen" th:href="${basePath + '/css/screen.css'}">
     <link rel="stylesheet" type="text/css" th:href="${basePath + '/css/theme.css'}"> <!--/* styling for query metric page */-->
     <!--/* only needed if isGeoQuery */-->
-    <script type="text/javascript" th:src="${basePath + '/webjars/jquery/jquery.min.js'}" />
+    <script type="text/javascript" th:src="${basePath + '/webjars/jquery/jquery.min.js'}"></script>
     <script type="text/javascript">
         if ("[[${isGeoQuery}]]" === "true") {
             $(document).ready(function() {
