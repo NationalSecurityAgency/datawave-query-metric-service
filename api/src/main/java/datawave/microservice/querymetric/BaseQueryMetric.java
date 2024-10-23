@@ -683,6 +683,9 @@ public abstract class BaseQueryMetric implements HasMarkings, Serializable {
     protected long fiRanges = 0;
     @XmlElement
     protected String plan = null;
+    @XmlElement(name = "subPlans")
+    @XmlJavaTypeAdapter(StringIntegerListMapAdapter.class)
+    protected Map<String,RangeCounts> subPlans = new HashMap<>();
     @XmlElement
     protected long loginTime = -1;
     @XmlElementWrapper(name = "predictions")
@@ -697,6 +700,28 @@ public abstract class BaseQueryMetric implements HasMarkings, Serializable {
     public enum Lifecycle {
         
         NONE, DEFINED, INITIALIZED, RESULTS, CLOSED, CANCELLED, MAXRESULTS, NEXTTIMEOUT, TIMEOUT, SHUTDOWN, MAXWORK
+    }
+    
+    public void addSubPlan(String plan, RangeCounts rangeCounts) {
+        synchronized (this.subPlans) {
+            if (subPlans.containsKey(plan)) {
+                RangeCounts combinedCounts = new RangeCounts();
+                RangeCounts currentCounts = subPlans.get(plan);
+                combinedCounts.setDocumentRangeCount(currentCounts.getDocumentRangeCount() + rangeCounts.getDocumentRangeCount());
+                combinedCounts.setShardRangeCount(currentCounts.getShardRangeCount() + rangeCounts.getShardRangeCount());
+                subPlans.put(plan, combinedCounts);
+            } else {
+                subPlans.put(plan, rangeCounts);
+            }
+        }
+    }
+    
+    public Map<String,RangeCounts> getSubPlans() {
+        return subPlans;
+    }
+    
+    public void setSubPlans(Map<String,RangeCounts> subPlans) {
+        this.subPlans = subPlans;
     }
     
     public String getQueryType() {
