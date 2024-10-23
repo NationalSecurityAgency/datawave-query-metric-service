@@ -31,8 +31,10 @@
         <version.datawave.starter-datawave-query-metric>3.0.3</version.datawave.starter-datawave-query-metric>
         <version.datawave.starter-metadata>3.0.2</version.datawave.starter-metadata>
         <version.guava>31.1-jre</version.guava>
+        <version.hadoop>3.3.5</version.hadoop>
         <version.hazelcast-kubernetes>2.2.3</version.hazelcast-kubernetes>
         <version.in-memory-accumulo>4.0.0</version.in-memory-accumulo>
+        <version.javax.inject>1</version.javax.inject>
         <version.protobuf-java>3.7.1</version.protobuf-java>
         <version.spring>5.3.21</version.spring>
         <version.spring-boot>2.7.1</version.spring-boot>
@@ -338,8 +340,33 @@
             <artifactId>datawave-query-core</artifactId>
         </dependency>
         <dependency>
+            <groupId>gov.nsa.datawave.core</groupId>
+            <artifactId>datawave-core-query</artifactId>
+            <version>${version.datawave}</version>
+        </dependency>
+        <dependency>
+            <groupId>gov.nsa.datawave.microservice</groupId>
+            <artifactId>accumulo-utils</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>gov.nsa.datawave.microservice</groupId>
+            <artifactId>base-rest-responses</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>gov.nsa.datawave.microservice</groupId>
+            <artifactId>common-utils</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>gov.nsa.datawave.microservice</groupId>
+            <artifactId>common-utils</artifactId>
+        </dependency>
+        <dependency>
             <groupId>gov.nsa.datawave.microservice</groupId>
             <artifactId>hazelcast-common</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>gov.nsa.datawave.microservice</groupId>
+            <artifactId>metadata-utils</artifactId>
         </dependency>
         <dependency>
             <groupId>gov.nsa.datawave.microservice</groupId>
@@ -370,12 +397,49 @@
             <artifactId>jakarta.validation-api</artifactId>
         </dependency>
         <dependency>
+            <groupId>jakarta.xml.bind</groupId>
+            <artifactId>jakarta.xml.bind-api</artifactId>
+        </dependency>
+        <dependency>
             <groupId>javax.cache</groupId>
             <artifactId>cache-api</artifactId>
         </dependency>
         <dependency>
+            <groupId>javax.inject</groupId>
+            <artifactId>javax.inject</artifactId>
+            <version>${version.javax.inject}</version>
+        </dependency>
+        <dependency>
+            <groupId>javax.xml.bind</groupId>
+            <artifactId>jaxb-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.accumulo</groupId>
+            <artifactId>accumulo-core</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-pool2</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-client-api</artifactId>
+            <version>${version.hadoop}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-mapreduce-client-core</artifactId>
+            <version>${version.hadoop}</version>
+            <exclusions>
+                <exclusion>
+                    <artifactId>reload4j</artifactId>
+                    <groupId>ch.qos.reload4j</groupId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>slf4j-reload4j</artifactId>
+                    <groupId>org.slf4j</groupId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
