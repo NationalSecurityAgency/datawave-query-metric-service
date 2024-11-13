@@ -28,6 +28,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.CompareToBuilder;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,6 +37,8 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import datawave.marking.MarkingFunctions;
 import datawave.microservice.query.Query;
 import datawave.microservice.query.QueryImpl.Parameter;
+import datawave.webservice.query.exception.DatawaveErrorCode;
+import datawave.webservice.query.exception.NoResultsQueryException;
 import datawave.webservice.query.exception.QueryException;
 import datawave.webservice.query.result.event.HasMarkings;
 import io.protostuff.Input;
@@ -677,6 +680,8 @@ public abstract class BaseQueryMetric implements HasMarkings, Serializable {
     @XmlJavaTypeAdapter(StringMapAdapter.class)
     protected Map<String,String> versionMap = new TreeMap<>();
     @XmlElement
+    protected long docSize = 0;
+    @XmlElement
     protected long docRanges = 0;
     @XmlElement
     protected long fiRanges = 0;
@@ -689,6 +694,7 @@ public abstract class BaseQueryMetric implements HasMarkings, Serializable {
     protected Set<Prediction> predictions = new HashSet<>();
     
     public static final String DATAWAVE = "DATAWAVE";
+    public static final String DEFAULT_ERROR_CODE = "500-1";
     protected static final Map<String,String> discoveredVersionMap = BaseQueryMetric.getVersionsFromClasspath();
     protected long numUpdates = 0;
     
@@ -919,6 +925,14 @@ public abstract class BaseQueryMetric implements HasMarkings, Serializable {
         this.yieldCount = yieldCount;
     }
     
+    public long getDocSize() {
+        return docSize;
+    }
+    
+    public void setDocSize(long docSize) {
+        this.docSize = docSize;
+    }
+    
     public long getDocRanges() {
         return docRanges;
     }
@@ -958,13 +972,40 @@ public abstract class BaseQueryMetric implements HasMarkings, Serializable {
         this.predictions.add(prediction);
     }
     
+    /**
+     * Sets the error code and error message of the metric. There are a few cases that can occur: <br>
+     * <br>
+     * <u>The throwable or one of its causes <b>IS</b> an instance of {@link QueryException}:</u>
+     * <ul>
+     * <li>In this case, the error message and error code will be set to the values from the lowest QueryException.</li>
+     * <li>If that error code happens to be blank, {@link BaseQueryMetric#DEFAULT_ERROR_CODE} will be used.</li>
+     * </ul>
+     * <br>
+     * <u>The throwable cause <b>IS NOT</b> an instance of {@link QueryException}:</u>
+     * <ul>
+     * <li>In this case, there is no error code given by the exception, so the error code will be set to {@link BaseQueryMetric#DEFAULT_ERROR_CODE}.</li>
+     * <li>The error message is set to the message passed by either the cause of the throwable (if it is not null) or the throwable itself.</li>
+     * </ul>
+     * <em>All possible error codes can be found here {@link datawave.webservice.query.exception.DatawaveErrorCode}.</em>
+     *
+     * @param t
+     *            Object containing the exception associated with the error.
+     */
     public void setError(Throwable t) {
-        if (t.getCause() instanceof QueryException) {
-            QueryException qe = (QueryException) t.getCause();
-            this.setErrorCode(qe.getErrorCode());
+        // get a list of Throwable, filter by instanceof QueryException, find last in list
+        QueryException qe = null;
+        try {
+            qe = (QueryException) ExceptionUtils.getThrowableList(t).stream().filter(QueryException.class::isInstance).reduce((first, second) -> second)
+                            .orElse(null);
+        } catch (Exception e) {
+            log.error(e.getMessage(), e);
+        }
+        if (qe != null) {
+            this.setErrorCode(StringUtils.isBlank(qe.getErrorCode()) ? DEFAULT_ERROR_CODE : qe.getErrorCode());
             this.setErrorMessage(qe.getMessage());
         } else {
-            this.setErrorMessage(t.getCause() != null ? t.getCause().getMessage() : t.getMessage());
+            this.setErrorCode(DEFAULT_ERROR_CODE);
+            this.setErrorMessage(t.getMessage());
         }
     }
     

@@ -202,6 +202,9 @@ public class ContentQueryMetricsIngestHelper extends CSVIngestHelper implements 
             if (isChanged(updated.getDocRanges(), stored == null ? -1 : stored.getDocRanges())) {
                 fields.put("DOC_RANGES", Long.toString(updated.getDocRanges()));
             }
+            if (isChanged(updated.getDocSize(), stored == null ? -1 : stored.getDocSize())) {
+                fields.put("DOC_SIZE", Long.toString(updated.getDocSize()));
+            }
             if (isChanged(updated.getElapsedTime(), stored == null ? -1 : stored.getElapsedTime())) {
                 fields.put("ELAPSED_TIME", Long.toString(updated.getElapsedTime()));
             }
@@ -388,6 +391,9 @@ public class ContentQueryMetricsIngestHelper extends CSVIngestHelper implements 
                 }
                 if (isChanged(updated.getDocRanges(), stored.getDocRanges())) {
                     fields.put("DOC_RANGES", Long.toString(stored.getDocRanges()));
+                }
+                if (isChanged(updated.getDocSize(), stored.getDocSize())) {
+                    fields.put("DOC_SIZE", Long.toString(stored.getDocSize()));
                 }
                 if (isChanged(updated.getElapsedTime(), stored.getElapsedTime())) {
                     fields.put("ELAPSED_TIME", Long.toString(stored.getElapsedTime()));

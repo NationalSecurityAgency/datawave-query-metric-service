@@ -52,11 +52,11 @@ public class AccumuloMapStore<T extends BaseQueryMetric> extends AccumuloMapLoad
     }
     
     private static AccumuloMapStore instance;
-    private Logger log = LoggerFactory.getLogger(AccumuloMapStore.class);
+    private final Logger log = LoggerFactory.getLogger(AccumuloMapStore.class);
     private Cache lastWrittenQueryMetricCache;
-    private com.github.benmanes.caffeine.cache.Cache failures;
-    private Timer writeTimer = new Timer(new SlidingTimeWindowArrayReservoir(1, MINUTES));
-    private Timer readTimer = new Timer(new SlidingTimeWindowArrayReservoir(1, MINUTES));
+    private final com.github.benmanes.caffeine.cache.Cache failures;
+    private final Timer writeTimer = new Timer(new SlidingTimeWindowArrayReservoir(1, MINUTES));
+    private final Timer readTimer = new Timer(new SlidingTimeWindowArrayReservoir(1, MINUTES));
     private boolean shuttingDown = false;
     
     public static class Factory implements MapStoreFactory<String,BaseQueryMetric> {
@@ -142,7 +142,7 @@ public class AccumuloMapStore<T extends BaseQueryMetric> extends AccumuloMapLoad
                             // these fields will not be populated in the returned metric,
                             // so we should not compare them later for writing mutations
                             ignoredFields.addAll(ignoreFieldsOnWrite);
-                            lastQueryMetricUpdate = new QueryMetricUpdateHolder(m, metricType);
+                            lastQueryMetricUpdate = new QueryMetricUpdateHolder<>(m, metricType);
                         }
                     } catch (Exception e) {
                         log.error(e.getMessage(), e);
@@ -164,6 +164,7 @@ public class AccumuloMapStore<T extends BaseQueryMetric> extends AccumuloMapLoad
                     updatedMetric.setEvaluatedCount(queryMetricUpdate.getValue("evaluatedCount"));
                     updatedMetric.setRejectedCount(queryMetricUpdate.getValue("rejectedCount"));
                     updatedMetric.setYieldCount(queryMetricUpdate.getValue("yieldCount"));
+                    updatedMetric.setDocSize(queryMetricUpdate.getValue("docSize"));
                     updatedMetric.setDocRanges(queryMetricUpdate.getValue("docRanges"));
                     updatedMetric.setFiRanges(queryMetricUpdate.getValue("fiRanges"));
                 }
@@ -190,12 +191,12 @@ public class AccumuloMapStore<T extends BaseQueryMetric> extends AccumuloMapLoad
                 handler.writeMetric(updatedMetric, Collections.emptyList(), updatedMetric.getCreateDate().getTime(), false, ignoredFields);
             }
             if (log.isTraceEnabled()) {
-                log.trace("writing metric to accumulo: " + queryId + " - " + queryMetricUpdate.getMetric());
+                log.trace("writing metric to accumulo: {} - {}", queryId, queryMetricUpdate.getMetric());
             } else {
-                log.debug("writing metric to accumulo: " + queryId);
+                log.debug("writing metric to accumulo: {}", queryId);
             }
             
-            lastWrittenQueryMetricCache.put(queryId, new QueryMetricUpdateHolder(updatedMetric));
+            lastWrittenQueryMetricCache.put(queryId, new QueryMetricUpdateHolder<>(updatedMetric));
             queryMetricUpdate.setPersisted();
             failures.invalidate(queryId);
         } finally {
@@ -209,6 +210,7 @@ public class AccumuloMapStore<T extends BaseQueryMetric> extends AccumuloMapLoad
                     queryMetricUpdate.getMetric().setEvaluatedCount(updatedMetric.getEvaluatedCount());
                     queryMetricUpdate.getMetric().setRejectedCount(updatedMetric.getRejectedCount());
                     queryMetricUpdate.getMetric().setYieldCount(updatedMetric.getYieldCount());
+                    queryMetricUpdate.getMetric().setDocSize(updatedMetric.getDocSize());
                     queryMetricUpdate.getMetric().setDocRanges(updatedMetric.getDocRanges());
                     queryMetricUpdate.getMetric().setFiRanges(updatedMetric.getFiRanges());
                 }
@@ -218,7 +220,7 @@ public class AccumuloMapStore<T extends BaseQueryMetric> extends AccumuloMapLoad
     
     private boolean retryOnException(QueryMetricUpdate update, Exception e) {
         String queryId = update.getMetric().getQueryId();
-        Integer numFailures = 1;
+        int numFailures = 1;
         try {
             numFailures = (Integer) this.failures.get(queryId, o -> 0) + 1;
         } catch (Exception e1) {
@@ -231,7 +233,7 @@ public class AccumuloMapStore<T extends BaseQueryMetric> extends AccumuloMapLoad
             return true;
         } else {
             // stop trying by not propagating the exception
-            log.error("writing metric to accumulo: " + queryId + " failed 3 times, will stop trying: " + update.getMetric(), e);
+            log.error("writing metric to accumulo: {} failed 3 times, will stop trying: {}", queryId, update.getMetric(), e);
             this.failures.invalidate(queryId);
             return false;
         }

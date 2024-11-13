@@ -121,6 +121,10 @@ public class QueryMetricModel extends QueryMetric implements QueryMetricModelFor
         return nf.format(numResults);
     }
     
+    public String getDocSizeStr() {
+        return nf.format(docSize);
+    }
+    
     public String getDocRangesStr() {
         return nf.format(docRanges);
     }

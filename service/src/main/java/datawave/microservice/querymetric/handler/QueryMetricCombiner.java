@@ -186,6 +186,7 @@ public class QueryMetricCombiner<T extends BaseQueryMetric> implements Serializa
                 combinedMetric.setEvaluatedCount(combinedMetric.getEvaluatedCount() + updatedQueryMetric.getEvaluatedCount());
                 combinedMetric.setRejectedCount(combinedMetric.getRejectedCount() + updatedQueryMetric.getRejectedCount());
                 combinedMetric.setYieldCount(combinedMetric.getYieldCount() + updatedQueryMetric.getYieldCount());
+                combinedMetric.setDocSize(combinedMetric.getDocSize() + updatedQueryMetric.getDocSize());
                 combinedMetric.setDocRanges(combinedMetric.getDocRanges() + updatedQueryMetric.getDocRanges());
                 combinedMetric.setFiRanges(combinedMetric.getFiRanges() + updatedQueryMetric.getFiRanges());
             } else {
@@ -195,6 +196,7 @@ public class QueryMetricCombiner<T extends BaseQueryMetric> implements Serializa
                 combinedMetric.setEvaluatedCount(updatedQueryMetric.getEvaluatedCount());
                 combinedMetric.setRejectedCount(updatedQueryMetric.getRejectedCount());
                 combinedMetric.setYieldCount(updatedQueryMetric.getYieldCount());
+                combinedMetric.setDocSize(updatedQueryMetric.getDocSize());
                 combinedMetric.setDocRanges(updatedQueryMetric.getDocRanges());
                 combinedMetric.setFiRanges(updatedQueryMetric.getFiRanges());
             }

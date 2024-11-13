@@ -90,6 +90,7 @@ public class QueryMetricHandlerProperties {
             "CREATE_CALL_TIME",
             "CREATE_DATE",
             "DOC_RANGES",
+            "DOC_SIZE",
             "ELAPSED_TIME",
             "END_DATE",
             "ERROR_CODE",
@@ -143,6 +144,7 @@ public class QueryMetricHandlerProperties {
     protected List<String> numericFields = Arrays.asList(
             "CREATE_CALL_TIME",
             "DOC_RANGES",
+            "DOC_SIZE",
             "ELAPSED_TIME",
             "EVALUATED_COUNT",
             "FI_RANGES",
