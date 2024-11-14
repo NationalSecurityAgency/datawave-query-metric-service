@@ -670,7 +670,7 @@ public abstract class BaseQueryMetric implements HasMarkings, Serializable {
     @XmlElement
     protected long yieldCount = 0L;
     @XmlElement
-    @XmlJavaTypeAdapter(StringMapAdapter.class)
+    @XmlJavaTypeAdapter(StringSerializableMapAdapter.class)
     protected Map<String,String> versionMap = new TreeMap<>();
     @XmlElement
     protected long docSize = 0;
@@ -681,7 +681,7 @@ public abstract class BaseQueryMetric implements HasMarkings, Serializable {
     @XmlElement
     protected String plan = null;
     @XmlElement(name = "subPlans")
-    @XmlJavaTypeAdapter(StringIntegerListMapAdapter.class)
+    @XmlJavaTypeAdapter(StringSerializableMapAdapter.class)
     protected Map<String,RangeCounts> subPlans = new HashMap<>();
     @XmlElement
     protected long loginTime = -1;

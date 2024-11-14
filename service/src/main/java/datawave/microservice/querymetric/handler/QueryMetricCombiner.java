@@ -223,7 +223,7 @@ public class QueryMetricCombiner<T extends BaseQueryMetric> implements Serializa
             for (String subplan : allSubPlanKeys) {
                 RangeCounts defaultRangeCount = new RangeCounts();
                 RangeCounts storedCounts = storedSubPlans.getOrDefault(subplan, defaultRangeCount);
-                RangeCounts updatedCounts = updatedSubPlans.getOrDefault(subplan, defaultRangeCount);
+                RangeCounts updatedCounts = updatedSubPlans.getOrDefault(subplan, defaultRangeCount); // this line seems to not be happy
                 
                 long documentCount = Math.max(storedCounts.getDocumentRangeCount(), updatedCounts.getDocumentRangeCount());
                 long shardCount = Math.max(storedCounts.getShardRangeCount(), updatedCounts.getShardRangeCount());

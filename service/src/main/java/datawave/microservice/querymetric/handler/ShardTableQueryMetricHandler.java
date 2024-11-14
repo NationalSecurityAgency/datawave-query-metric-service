@@ -168,6 +168,7 @@ public abstract class ShardTableQueryMetricHandler<T extends BaseQueryMetric> ex
         metric.setBeginDate(d);
         metric.setEndDate(d);
         metric.setPlan("PLAN");
+        metric.setSubPlans(new HashMap<>());
         metric.setError(new RuntimeException());
         metric.setErrorMessage("ERROR");
         metric.setErrorCode("ERROR");
