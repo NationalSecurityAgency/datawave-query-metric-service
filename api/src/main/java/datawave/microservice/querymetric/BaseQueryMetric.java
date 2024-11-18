@@ -982,10 +982,10 @@ public abstract class BaseQueryMetric implements HasMarkings, Serializable {
         }
         if (qe != null) {
             this.setErrorCode(StringUtils.isBlank(qe.getErrorCode()) ? DEFAULT_ERROR_CODE : qe.getErrorCode());
-            this.setErrorMessage(qe.getMessage());
+            this.setErrorMessage(StringUtils.isBlank(qe.getMessage()) ? qe.getClass().getCanonicalName() : qe.getMessage());
         } else {
             this.setErrorCode(DEFAULT_ERROR_CODE);
-            this.setErrorMessage(t.getMessage());
+            this.setErrorMessage(StringUtils.isBlank(t.getMessage()) ? t.getClass().getCanonicalName() : t.getMessage());
         }
     }
     
