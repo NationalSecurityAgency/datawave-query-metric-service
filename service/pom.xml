@@ -32,7 +32,7 @@
         <version.datawave.starter-datawave-query-metric>3.0.3</version.datawave.starter-datawave-query-metric>
         <version.datawave.starter-metadata>3.0.2</version.datawave.starter-metadata>
         <version.datawave.type-utils>3.0.0</version.datawave.type-utils>
-        <version.datawawave.audit-api>4.0.0</version.datawawave.audit-api>
+        <version.datawave.audit-api>4.0.0</version.datawave.audit-api>
         <version.guava>31.1-jre</version.guava>
         <version.hadoop>3.3.5</version.hadoop>
         <version.hazelcast-kubernetes>2.2.3</version.hazelcast-kubernetes>
@@ -385,7 +385,7 @@
         <dependency>
             <groupId>gov.nsa.datawave.microservice</groupId>
             <artifactId>audit-api</artifactId>
-            <version>${version.datawawave.audit-api}</version>
+            <version>${version.datawave.audit-api}</version>
         </dependency>
         <dependency>
             <groupId>gov.nsa.datawave.microservice</groupId>
