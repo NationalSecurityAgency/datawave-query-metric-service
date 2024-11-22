@@ -353,7 +353,7 @@
         <dependency>
             <groupId>gov.nsa.datawave.microservice</groupId>
             <artifactId>audit-api</artifactId>
-            <version>${version.datawawave.audit-api}</version>
+            <version>${version.datawave.audit-api}</version>
         </dependency>
         <dependency>
             <groupId>gov.nsa.datawave.microservice</groupId>
