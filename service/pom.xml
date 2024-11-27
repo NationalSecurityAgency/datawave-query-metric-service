@@ -24,6 +24,7 @@
         <version.datawave>7.14.1</version.datawave>
         <version.datawave.accumulo-api>4.0.0</version.datawave.accumulo-api>
         <version.datawave.accumulo-utils>4.0.1</version.datawave.accumulo-utils>
+        <version.datawave.audit-api>4.0.0</version.datawave.audit-api>
         <version.datawave.base-rest-responses>4.0.0</version.datawave.base-rest-responses>
         <version.datawave.hazelcast-common>4.0.2</version.datawave.hazelcast-common>
         <version.query-api>1.0.0</version.query-api>
