@@ -24,6 +24,7 @@
         <version.datawave>7.1.3</version.datawave>
         <version.datawave.accumulo-api>4.0.0</version.datawave.accumulo-api>
         <version.datawave.accumulo-utils>4.0.0</version.datawave.accumulo-utils>
+        <version.datawave.audit-api>4.0.0</version.datawave.audit-api>
         <version.datawave.base-rest-responses>4.0.0</version.datawave.base-rest-responses>
         <version.datawave.hazelcast-common>4.0.2</version.datawave.hazelcast-common>
         <version.datawave.query-api>1.0.0</version.datawave.query-api>
@@ -32,7 +33,6 @@
         <version.datawave.starter-datawave-query-metric>3.0.3</version.datawave.starter-datawave-query-metric>
         <version.datawave.starter-metadata>3.0.2</version.datawave.starter-metadata>
         <version.datawave.type-utils>3.0.0</version.datawave.type-utils>
-        <version.datawave.audit-api>4.0.0</version.datawave.audit-api>
         <version.guava>31.1-jre</version.guava>
         <version.hadoop>3.3.5</version.hadoop>
         <version.hazelcast-kubernetes>2.2.3</version.hazelcast-kubernetes>
