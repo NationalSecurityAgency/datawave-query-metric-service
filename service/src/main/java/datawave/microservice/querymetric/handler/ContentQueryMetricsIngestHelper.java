@@ -219,6 +219,9 @@ public class ContentQueryMetricsIngestHelper extends CSVIngestHelper implements 
             if (isChanged(updated.getErrorMessage(), stored == null ? null : stored.getErrorMessage())) {
                 fields.put("ERROR_MESSAGE", updated.getErrorMessage());
             }
+            if (isChanged(updated.getEvaluatedCount(), stored == null ? -1 : stored.getEvaluatedCount())) {
+                fields.put("EVALUATED_COUNT", Long.toString(updated.getEvaluatedCount()));
+            }
             if (isChanged(updated.getFiRanges(), stored == null ? -1 : stored.getFiRanges())) {
                 fields.put("FI_RANGES", Long.toString(updated.getFiRanges()));
             }
@@ -323,6 +326,9 @@ public class ContentQueryMetricsIngestHelper extends CSVIngestHelper implements 
                     fields.put("QUERY_TYPE", updated.getQueryType());
                 }
             }
+            if (isChanged(updated.getRejectedCount(), stored == null ? -1 : stored.getRejectedCount())) {
+                fields.put("REJECTED_COUNT", Long.toString(updated.getRejectedCount()));
+            }
             if (isFirstWrite(updated.getSetupTime(), stored == null ? -1 : stored.getSetupTime(), -1)) {
                 fields.put("SETUP_TIME", Long.toString(updated.getSetupTime()));
             }
@@ -392,6 +398,9 @@ public class ContentQueryMetricsIngestHelper extends CSVIngestHelper implements 
                 if (isChanged(updated.getElapsedTime(), stored.getElapsedTime())) {
                     fields.put("ELAPSED_TIME", Long.toString(stored.getElapsedTime()));
                 }
+                if (isChanged(updated.getEvaluatedCount(), stored.getEvaluatedCount())) {
+                    fields.put("EVALUATED_COUNT", Long.toString(stored.getEvaluatedCount()));
+                }
                 if (isChanged(updated.getFiRanges(), stored.getFiRanges())) {
                     fields.put("FI_RANGES", Long.toString(stored.getFiRanges()));
                 }
@@ -449,6 +458,9 @@ public class ContentQueryMetricsIngestHelper extends CSVIngestHelper implements 
                     if (stored.getPlan() != null && isChanged(updated.getPlan(), stored.getPlan())) {
                         fields.put("PLAN", stored.getPlan());
                     }
+                }
+                if (isChanged(updated.getRejectedCount(), stored.getRejectedCount())) {
+                    fields.put("REJECTED_COUNT", Long.toString(stored.getRejectedCount()));
                 }
                 if (isChanged(updated.getSeekCount(), stored.getSeekCount())) {
                     fields.put("SEEK_COUNT", Long.toString(stored.getSeekCount()));

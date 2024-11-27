@@ -145,6 +145,14 @@ public class QueryMetricModel extends QueryMetric implements QueryMetricModelFor
         return nf.format(seekCount);
     }
     
+    public String getEvaluatedCountStr() {
+        return nf.format(evaluatedCount);
+    }
+    
+    public String getRejectedCountStr() {
+        return nf.format(rejectedCount);
+    }
+    
     public String getYieldCountStr() {
         return nf.format(yieldCount);
     }

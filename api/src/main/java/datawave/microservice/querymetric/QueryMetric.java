@@ -97,6 +97,8 @@ public class QueryMetric extends BaseQueryMetric implements Serializable, Messag
         this.sourceCount = other.sourceCount;
         this.nextCount = other.nextCount;
         this.seekCount = other.seekCount;
+        this.evaluatedCount = other.evaluatedCount;
+        this.rejectedCount = other.rejectedCount;
         this.yieldCount = other.yieldCount;
         this.versionMap = other.versionMap;
         this.docSize = other.docSize;
@@ -143,7 +145,7 @@ public class QueryMetric extends BaseQueryMetric implements Serializable, Messag
                         .append(this.getParameters()).append(this.getSourceCount()).append(this.getNextCount()).append(this.getSeekCount())
                         .append(this.getYieldCount()).append(this.getDocSize()).append(this.getDocRanges()).append(this.getFiRanges()).append(this.getPlan())
                         .append(this.getLoginTime()).append(this.getPredictions()).append(this.getMarkings()).append(this.getNumUpdates())
-                        .append(this.getVersionMap()).toHashCode();
+                        .append(this.getVersionMap()).append(this.getEvaluatedCount()).append(this.getRejectedCount()).toHashCode();
     }
     
     @Override
@@ -169,6 +171,7 @@ public class QueryMetric extends BaseQueryMetric implements Serializable, Messag
                             .append(this.getErrorCode(), other.getErrorCode()).append(this.getSourceCount(), other.getSourceCount())
                             .append(this.getNextCount(), other.getNextCount()).append(this.getSeekCount(), other.getSeekCount())
                             .append(this.getYieldCount(), other.getYieldCount()).append(this.getDocSize(), other.getDocSize())
+                            .append(this.getEvaluatedCount(), other.getEvaluatedCount()).append(this.getRejectedCount(), other.getRejectedCount())
                             .append(this.getDocRanges(), other.getDocRanges()).append(this.getFiRanges(), other.getFiRanges())
                             .append(this.getPlan(), other.getPlan()).append(this.getLoginTime(), other.getLoginTime())
                             .append(this.getPredictions(), other.getPredictions()).append(this.getMarkings(), other.getMarkings())
@@ -209,6 +212,8 @@ public class QueryMetric extends BaseQueryMetric implements Serializable, Messag
         buf.append(" Source Count: ").append(this.getSourceCount());
         buf.append(" NextCount: ").append(this.getNextCount());
         buf.append(" Seek Count: ").append(this.getSeekCount());
+        buf.append(" Evaluated Count: ").append(this.getEvaluatedCount());
+        buf.append(" Rejected Count: ").append(this.getRejectedCount());
         buf.append(" Yield Count: ").append(this.getYieldCount());
         buf.append(" Doc Size: ").append(this.getDocSize());
         buf.append(" Doc Ranges: ").append(this.getDocRanges());
@@ -406,8 +411,10 @@ public class QueryMetric extends BaseQueryMetric implements Serializable, Messag
                     output.writeString(38, StringUtils.join(Arrays.asList(entry.getKey(), entry.getValue()), "\0"), true);
                 }
             }
-            
+
             output.writeInt64(39, message.docSize, false);
+            output.writeInt64(40, message.evaluatedCount, false);
+            output.writeInt64(41, message.rejectedCount, false);
         }
         
         public void mergeFrom(Input input, QueryMetric message) throws IOException {
@@ -559,6 +566,12 @@ public class QueryMetric extends BaseQueryMetric implements Serializable, Messag
                     case 39:
                         message.docSize = input.readInt64();
                         break;
+                    case 40:
+                        message.evaluatedCount = input.readInt64();
+                        break;
+                    case 41:
+                        message.rejectedCount = input.readInt64();
+                        break;
                     default:
                         input.handleUnknownField(number, this);
                         break;
@@ -647,6 +660,10 @@ public class QueryMetric extends BaseQueryMetric implements Serializable, Messag
                     return "versionMap";
                 case 39:
                     return "docSize";
+                case 40:
+                    return "evaluatedCount";
+                case 41:
+                    return "rejectedCount";
                 default:
                     return null;
             }
@@ -699,6 +716,8 @@ public class QueryMetric extends BaseQueryMetric implements Serializable, Messag
             fieldMap.put("version", 37);
             fieldMap.put("versionMap", 38);
             fieldMap.put("docSize", 39);
+            fieldMap.put("evaluatedCount", 40);
+            fieldMap.put("rejectedCount", 41);
         }
     };
     

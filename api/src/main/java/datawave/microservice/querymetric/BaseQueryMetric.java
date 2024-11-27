@@ -671,6 +671,10 @@ public abstract class BaseQueryMetric implements HasMarkings, Serializable {
     @XmlElement
     protected long seekCount = 0;
     @XmlElement
+    protected long evaluatedCount = 0;
+    @XmlElement
+    protected long rejectedCount = 0;
+    @XmlElement
     protected long yieldCount = 0L;
     @XmlElement
     @XmlJavaTypeAdapter(StringMapAdapter.class)
@@ -895,6 +899,22 @@ public abstract class BaseQueryMetric implements HasMarkings, Serializable {
     
     public void setSeekCount(long seekCount) {
         this.seekCount = seekCount;
+    }
+    
+    public long getEvaluatedCount() {
+        return evaluatedCount;
+    }
+    
+    public void setEvaluatedCount(long evaluatedCount) {
+        this.evaluatedCount = evaluatedCount;
+    }
+    
+    public long getRejectedCount() {
+        return rejectedCount;
+    }
+    
+    public void setRejectedCount(long rejectedCount) {
+        this.rejectedCount = rejectedCount;
     }
     
     public long getYieldCount() {

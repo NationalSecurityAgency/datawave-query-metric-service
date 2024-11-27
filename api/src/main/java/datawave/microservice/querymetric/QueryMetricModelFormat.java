@@ -58,6 +58,10 @@ public interface QueryMetricModelFormat {
     
     String getSeekCountStr();
     
+    String getEvaluatedCountStr();
+    
+    String getRejectedCountStr();
+    
     String getYieldCountStr();
     
     String getVersionStr();
