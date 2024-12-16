@@ -28,6 +28,7 @@
     </script>
 
     <div th:each="metric,metricIter : ${metricList}">
+        <h3 th:text="${metric.queryId}"/>
         <table class="metric-horizontal">
             <tr>
                 <th>Visibility</th>
@@ -93,6 +94,7 @@
                 <td th:text="${metric.createCallTimeStr}"></td>
                 <td th:text="${metric.numPagesStr}"></td>
                 <td th:text="${metric.numResultsStr}"></td>
+                <td th:text="${metric.docSizeStr}"></td>
                 <td th:text="${metric.docRangesStr}"></td>
                 <td th:text="${metric.fiRangesStr}"></td>
                 <td th:text="${metric.sourceCountStr}"></td>
@@ -144,8 +146,9 @@
                 <td th:text="${page.bytesWrittenStr}"></td>
             </tr>
         </table>
-        <br th:if="metricIter.last == false"/>
-        <br th:if="metricIter.last == false"/>
+        <br th:if="${!metricIter.last}"/>
+        <br th:if="${!metricIter.last}"/>
+        <br th:if="${!metricIter.last}"/>
     </div>
     <br/>
     <div th:utext="${footer}"></div>
