@@ -438,9 +438,17 @@ public abstract class ShardTableQueryMetricHandler<T extends BaseQueryMetric> ex
         return getQueryMetric(queryId, Collections.emptySet());
     }
     
+    public List<T> getQueryMetrics(final String queryId) throws Exception {
+        return getQueryMetrics(getJexlQuery(queryId), Collections.emptySet());
+    }
+    
     public T getQueryMetric(final String queryId, Collection<String> ignoredFields) throws Exception {
-        List<T> queryMetrics = getQueryMetrics("QUERY_ID == '" + queryId + "'", ignoredFields);
+        List<T> queryMetrics = getQueryMetrics(getJexlQuery(queryId), ignoredFields);
         return queryMetrics.isEmpty() ? null : queryMetrics.get(0);
+    }
+    
+    protected String getJexlQuery(final String queryId) {
+        return "QUERY_ID == '" + queryId + "'";
     }
     
     public Query createQuery() {

@@ -34,12 +34,6 @@ public class QueryMetricOperationsHazelcastWriteThroughTest extends QueryMetricO
     
     @Test
     @Override
-    public void MetricEvictionAndCompletion() throws Exception {
-        super.MetricEvictionAndCompletion();
-    }
-    
-    @Test
-    @Override
     public void MultipleMetricsStoredCorrectlyInCachesAndAccumulo() throws Exception {
         super.MultipleMetricsStoredCorrectlyInCachesAndAccumulo();
     }
