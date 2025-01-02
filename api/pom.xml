@@ -8,12 +8,12 @@
         <relativePath>../../../microservice-parent/pom.xml</relativePath>
     </parent>
     <artifactId>query-metric-api</artifactId>
-    <version>4.0.11-SNAPSHOT</version>
+    <version>4.0.11</version>
     <url>https://code.nsa.gov/datawave-query-metric-service</url>
     <scm>
         <connection>scm:git:https://github.com/NationalSecurityAgency/datawave-query-metric-service.git</connection>
         <developerConnection>scm:git:git@github.com:NationalSecurityAgency/datawave-query-metric-service.git</developerConnection>
-        <tag>HEAD</tag>
+        <tag>api-4.0.11</tag>
         <url>https://github.com/NationalSecurityAgency/datawave-query-metric-service</url>
     </scm>
     <properties>
@@ -21,8 +21,8 @@
         <spotbugs.excludes.file>${basedir}/spotbugs-exclude.xml</spotbugs.excludes.file>
         <version.commons-lang3>3.12.0</version.commons-lang3>
         <version.commons-text>1.9</version.commons-text>
-        <version.datawave>7.1.3</version.datawave>
-        <version.datawave.accumulo-utils>4.0.0</version.datawave.accumulo-utils>
+        <version.datawave>7.10.1</version.datawave>
+        <version.datawave.accumulo-utils>4.0.1</version.datawave.accumulo-utils>
         <version.datawave.base-rest-responses>4.0.0</version.datawave.base-rest-responses>
         <version.datawave.query-api>1.0.0</version.datawave.query-api>
         <version.glassfish>2.3.6</version.glassfish>
