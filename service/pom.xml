@@ -284,6 +284,11 @@
                 </exclusions>
             </dependency>
             <dependency>
+                <groupId>org.apache.zookeeper</groupId>
+                <artifactId>zookeeper-jute</artifactId>
+                <version>${version.zookeeper}</version>
+            </dependency>
+            <dependency>
                 <groupId>org.webjars</groupId>
                 <artifactId>bootstrap</artifactId>
                 <version>${version.webjars.bootstrap}</version>
@@ -453,8 +458,11 @@
         </dependency>
         <dependency>
             <groupId>org.apache.zookeeper</groupId>
+            <artifactId>zookeeper</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.zookeeper</groupId>
             <artifactId>zookeeper-jute</artifactId>
-            <version>${version.zookeeper}</version>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
