@@ -34,7 +34,7 @@
         <version.datawave.starter-metadata>3.0.2</version.datawave.starter-metadata>
         <version.datawawave.audit-api>4.0.0</version.datawawave.audit-api>
         <version.guava>31.1-jre</version.guava>
-        <version.hadoop>3.3.5</version.hadoop>
+        <version.hadoop>3.3.6</version.hadoop>
         <version.hazelcast-kubernetes>2.2.3</version.hazelcast-kubernetes>
         <version.in-memory-accumulo>4.0.0</version.in-memory-accumulo>
         <version.javax.inject>1</version.javax.inject>
