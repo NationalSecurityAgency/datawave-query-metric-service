@@ -6,8 +6,8 @@ import org.apache.commons.pool2.impl.DefaultPooledObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import datawave.accumulo.inmemory.InMemoryAccumulo;
 import datawave.accumulo.inmemory.InMemoryAccumuloClient;
-import datawave.accumulo.inmemory.InMemoryInstance;
 import datawave.core.common.connection.AccumuloClientPoolFactory;
 import datawave.webservice.common.connection.WrappedAccumuloClient;
 
@@ -25,7 +25,7 @@ public class WrappedAccumuloClientPoolFactory extends AccumuloClientPoolFactory 
         super("", "", "", "");
         this.accumuloClientPoolFactory = accumuloClientPoolFactory;
         try {
-            inMemoryAccumuloClient = new InMemoryAccumuloClient("mock", new InMemoryInstance());
+            inMemoryAccumuloClient = new InMemoryAccumuloClient("mock", new InMemoryAccumulo());
         } catch (Exception e) {
             log.error(e.getMessage(), e);
         }

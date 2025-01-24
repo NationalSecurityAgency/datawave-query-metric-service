@@ -16,8 +16,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.context.annotation.Profile;
 
+import datawave.accumulo.inmemory.InMemoryAccumulo;
 import datawave.accumulo.inmemory.InMemoryAccumuloClient;
-import datawave.accumulo.inmemory.InMemoryInstance;
 import datawave.core.common.connection.AccumuloClientPool;
 import datawave.core.common.connection.AccumuloClientPoolFactory;
 import datawave.microservice.config.accumulo.AccumuloProperties;
@@ -54,7 +54,7 @@ public class QueryMetricTestConfiguration {
             this.accumuloProperties = accumuloProperties;
             try {
                 AccumuloClient accumuloClient = new InMemoryAccumuloClient(accumuloProperties.getUsername(),
-                                new InMemoryInstance(accumuloProperties.getInstanceName()));
+                                new InMemoryAccumulo(accumuloProperties.getInstanceName()));
                 accumuloClient.securityOperations().changeUserAuthorizations(accumuloClient.whoami(), new Authorizations("PUBLIC", "A", "B", "C"));
             } catch (AccumuloSecurityException e) {
                 e.printStackTrace();
@@ -63,7 +63,7 @@ public class QueryMetricTestConfiguration {
         
         public PooledObject<AccumuloClient> makeObject() throws Exception {
             return new DefaultPooledObject(
-                            new InMemoryAccumuloClient(this.accumuloProperties.getUsername(), new InMemoryInstance(accumuloProperties.getInstanceName())));
+                            new InMemoryAccumuloClient(this.accumuloProperties.getUsername(), new InMemoryAccumulo(accumuloProperties.getInstanceName())));
         }
     }
 }

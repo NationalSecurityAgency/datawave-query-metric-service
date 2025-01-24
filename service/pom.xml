@@ -22,8 +22,8 @@
         <start-class>datawave.microservice.querymetric.QueryMetricService</start-class>
         <version.cache-api>1.1.1</version.cache-api>
         <version.datawave>7.14.1</version.datawave>
-        <version.datawave.accumulo-api>4.0.0</version.datawave.accumulo-api>
-        <version.datawave.accumulo-utils>4.0.1</version.datawave.accumulo-utils>
+        <version.datawave.accumulo-api>4.0.1-datawave-1</version.datawave.accumulo-api>
+        <version.datawave.accumulo-utils>5.1.0-accumulo4</version.datawave.accumulo-utils>
         <version.datawave.base-rest-responses>4.0.0</version.datawave.base-rest-responses>
         <version.datawave.hazelcast-common>4.0.2</version.datawave.hazelcast-common>
         <version.datawave.query-metric-api>4.0.11</version.datawave.query-metric-api>
@@ -31,7 +31,7 @@
         <version.datawave.starter-datawave-query-metric>3.0.3</version.datawave.starter-datawave-query-metric>
         <version.datawave.starter-metadata>3.0.2</version.datawave.starter-metadata>
         <version.hazelcast-kubernetes>2.2.3</version.hazelcast-kubernetes>
-        <version.in-memory-accumulo>4.0.0</version.in-memory-accumulo>
+        <version.in-memory-accumulo>5.0.0-datawave-1</version.in-memory-accumulo>
         <version.protobuf-java>3.7.1</version.protobuf-java>
         <version.validation-api>2.0.2</version.validation-api>
         <version.webjars.bootstrap>4.3.1</version.webjars.bootstrap>
