@@ -204,7 +204,8 @@ public class QueryMetricOperations {
                     try {
                         String queryId = correlatedUpdates.get(0).getMetric().getQueryId();
                         QueryMetricType metricType = correlatedUpdates.get(0).getMetricType();
-                        QueryMetricUpdateHolder metricUpdate = combineMetricUpdates(correlatedUpdates, metricType);
+                        QueryMetricUpdateHolder metricUpdate = combineMetricUpdates(correlatedUpdates, metricType); // this line is also troublesome, mostly
+                                                                                                                    // because it is calling combine metrics
                         log.debug("storing correlated updates for {}", queryId);
                         storeMetricUpdate(metricUpdate);
                     } catch (Exception e) {
