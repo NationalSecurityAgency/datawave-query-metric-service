@@ -16,6 +16,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.TimeZone;
@@ -374,16 +375,8 @@ public class QueryMetricOperations {
         BaseQueryMetricListResponse response = queryMetricResponseFactory.createListResponse();
         List<BaseQueryMetric> metricList = new ArrayList<>();
         try {
-            BaseQueryMetric metric;
-            QueryMetricUpdateHolder metricUpdate = incomingQueryMetricsCache.get(queryId, QueryMetricUpdateHolder.class);
-            if (metricUpdate == null) {
-                // fetches metric from Accumulo
-                metric = this.handler.getQueryMetric(queryId);
-            } else {
-                // determine if the cached metric is complete, and if not then fetch metric from Accumulo
-                metric = isMetricComplete(metricUpdate) ? metricUpdate.getMetric() : completeMetric(metricUpdate);
-            }
-            if (metric != null) {
+            List<BaseQueryMetric> metricsFromAccumulo = this.handler.getQueryMetrics(queryId);
+            for (BaseQueryMetric metric : metricsFromAccumulo) {
                 boolean allowAllMetrics = false;
                 boolean sameUser = false;
                 if (currentUser != null) {
@@ -406,7 +399,8 @@ public class QueryMetricOperations {
                         }
                     }
                     if (userCanSeeVisibility) {
-                        metricList.add(metric);
+                        // if returning this metric, then add any updates found in the incomingQueryMetricsCache
+                        metricList.add(completeMetric(metric));
                     }
                 }
             }
@@ -492,44 +486,33 @@ public class QueryMetricOperations {
     }
     
     /*
-     * Try to determine if cached metric is complete or whether it may be missing pages because it was evicted from the incoming cache
+     * Pages could be missing if the metric was updated since being written to Accumulo
      */
-    protected boolean isMetricComplete(QueryMetricUpdateHolder metricUpdateHolderFromCache) {
-        BaseQueryMetric metricUpdate = metricUpdateHolderFromCache.getMetric();
-        if (metricUpdateHolderFromCache.isNewMetric()) {
-            return true;
-        } else {
-            List<PageMetric> pageMetrics = new ArrayList<>(metricUpdate.getPageTimes());
-            if (metricUpdate.getNumPages() != pageMetrics.size()) {
-                return false;
-            } else {
-                pageMetrics.sort(Comparator.comparingLong(PageMetric::getPageNumber));
-                // If the first page's pageNumber is equal to 1 then that's a good indicator that the metric hasn't been evicted
-                return (pageMetrics.isEmpty()) || (pageMetrics.get(0).getPageNumber() == 1);
-            }
-        }
-    }
-    
-    /*
-     * Pages could be missing if the metricUpdate was evicted from the incomingQueryMetricsCache. If so, then retrieve the full metric from Accumulo and combine
-     * metrics so that the requesting user gets the complete metric.
-     */
-    protected BaseQueryMetric completeMetric(QueryMetricUpdateHolder metricUpdateHolderFromCache) {
-        BaseQueryMetric metricUpdate = null;
+    protected BaseQueryMetric completeMetric(BaseQueryMetric metricFromAccumulo) {
+        String queryId = metricFromAccumulo.getQueryId();
+        QueryMetricUpdateHolder metricUpdateHolderFromCache = incomingQueryMetricsCache.get(queryId, QueryMetricUpdateHolder.class);
+        BaseQueryMetric updatedMetric = metricFromAccumulo;
         if (metricUpdateHolderFromCache != null) {
-            metricUpdate = metricUpdateHolderFromCache.getMetric();
-            if (metricUpdate != null) {
-                try {
-                    BaseQueryMetric metricFromAccumulo = this.handler.getQueryMetric(metricUpdate.getQueryId());
-                    if (metricFromAccumulo != null) {
-                        metricUpdate = this.handler.combineMetrics(metricUpdate, metricFromAccumulo, metricUpdateHolderFromCache.getMetricType());
-                    }
-                } catch (Exception e) {
-                    log.error(e.getMessage(), e);
+            try {
+                BaseQueryMetric metricFromCache = metricUpdateHolderFromCache.getMetric();
+                QueryMetricType metricType = metricUpdateHolderFromCache.getMetricType();
+                if (metricType.equals(QueryMetricType.DISTRIBUTED)) {
+                    // These values are additive, so we don't want to count them twice
+                    // The QueryMetricUpdateHolder resets the values when written to Accumulo
+                    metricFromCache.setSourceCount(metricUpdateHolderFromCache.getValue("sourceCount"));
+                    metricFromCache.setNextCount(metricUpdateHolderFromCache.getValue("nextCount"));
+                    metricFromCache.setSeekCount(metricUpdateHolderFromCache.getValue("seekCount"));
+                    metricFromCache.setYieldCount(metricUpdateHolderFromCache.getValue("yieldCount"));
+                    metricFromCache.setDocSize(metricUpdateHolderFromCache.getValue("docSize"));
+                    metricFromCache.setDocRanges(metricUpdateHolderFromCache.getValue("docRanges"));
+                    metricFromCache.setFiRanges(metricUpdateHolderFromCache.getValue("fiRanges"));
                 }
+                updatedMetric = this.handler.combineMetrics(metricFromCache, metricFromAccumulo, metricUpdateHolderFromCache.getMetricType());
+            } catch (Exception e) {
+                log.error(e.getMessage(), e);
             }
         }
-        return metricUpdate;
+        return updatedMetric;
     }
     
     @Operation(summary = "Get a map for the given query represented by the query ID, if applicable.")

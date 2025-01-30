@@ -440,9 +440,17 @@ public abstract class ShardTableQueryMetricHandler<T extends BaseQueryMetric> ex
         return getQueryMetric(queryId, Collections.emptySet());
     }
     
+    public List<T> getQueryMetrics(final String queryId) throws Exception {
+        return getQueryMetrics(getJexlQuery(queryId), Collections.emptySet());
+    }
+    
     public T getQueryMetric(final String queryId, Collection<String> ignoredFields) throws Exception {
-        List<T> queryMetrics = getQueryMetrics("QUERY_ID == '" + queryId + "'", ignoredFields);
+        List<T> queryMetrics = getQueryMetrics(getJexlQuery(queryId), ignoredFields);
         return queryMetrics.isEmpty() ? null : queryMetrics.get(0);
+    }
+    
+    protected String getJexlQuery(final String queryId) {
+        return "QUERY_ID == '" + queryId + "'";
     }
     
     public Query createQuery() {
@@ -784,6 +792,7 @@ public abstract class ShardTableQueryMetricHandler<T extends BaseQueryMetric> ex
     
     protected void createAndConfigureTablesIfNecessary(String[] tableNames, AccumuloClient accumuloClient, Configuration conf)
                     throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
+        
         for (String table : tableNames) {
             // If the tables don't exist, then create them.
             try {
@@ -800,49 +809,43 @@ public abstract class ShardTableQueryMetricHandler<T extends BaseQueryMetric> ex
                 }
                 if (!accumuloClient.tableOperations().exists(table)) {
                     accumuloClient.tableOperations().create(table);
-                    Map<String,TableConfigHelper> tableConfigs = getTableConfigs(conf, tableNames);
-                    
-                    TableConfigHelper tableHelper = tableConfigs.get(table);
-                    
-                    if (tableHelper != null) {
-                        tableHelper.configure(accumuloClient.tableOperations());
-                    } else {
-                        log.info("No configuration supplied for table: {}", table);
-                    }
                 }
             } catch (TableExistsException te) {
                 // in this case, somebody else must have created the table after our existence check
-                log.debug("Tried to create {} but somebody beat us to the punch", table);
+                log.debug("Tried to create {} but it already exists", table);
+            }
+            try {
+                TableConfigHelper tableHelper = getTableConfig(conf, table);
+                if (tableHelper != null) {
+                    tableHelper.configure(accumuloClient.tableOperations());
+                } else {
+                    log.info("No configuration supplied for table: {}", table);
+                }
+            } catch (Exception e) {
+                log.error(e.getMessage(), e);
             }
         }
     }
     
     @SuppressWarnings("unchecked")
-    protected Map<String,TableConfigHelper> getTableConfigs(Configuration conf, String[] tableNames) {
-        Map<String,TableConfigHelper> helperMap = new HashMap<>();
+    protected TableConfigHelper getTableConfig(Configuration conf, String tableName) {
+        String prop = tableName + TableConfigHelper.TABLE_CONFIG_CLASS_SUFFIX;
+        String className = conf.get(prop, null);
+        TableConfigHelper tableHelper = null;
         
-        for (String table : tableNames) {
-            String prop = table + TableConfigHelper.TABLE_CONFIG_CLASS_SUFFIX;
-            String className = conf.get(prop, null);
-            TableConfigHelper tableHelper = null;
-            
-            if (className != null) {
-                try {
-                    Class<? extends TableConfigHelper> tableHelperClass = (Class<? extends TableConfigHelper>) Class.forName(className.trim());
-                    tableHelper = tableHelperClass.getDeclaredConstructor().newInstance();
-                    
-                    if (tableHelper != null) {
-                        tableHelper.setup(table, conf, setupLogger);
-                    }
-                } catch (Exception e) {
-                    throw new IllegalArgumentException(e);
+        if (className != null) {
+            try {
+                Class<? extends TableConfigHelper> tableHelperClass = (Class<? extends TableConfigHelper>) Class.forName(className.trim());
+                tableHelper = tableHelperClass.getDeclaredConstructor().newInstance();
+                
+                if (tableHelper != null) {
+                    tableHelper.setup(tableName, conf, setupLogger);
                 }
+            } catch (Exception e) {
+                throw new IllegalArgumentException(e);
             }
-            
-            helperMap.put(table, tableHelper);
         }
-        
-        return helperMap;
+        return tableHelper;
     }
     
     @Override
